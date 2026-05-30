@@ -70,7 +70,7 @@ export function Navbar() {
                     </div>
 
                     {/* CTA Buttons */}
-                    <div className="hidden items-center gap-3 lg:flex">
+                    {/* <div className="hidden items-center gap-3 lg:flex">
                         <Link to="/dashboard">
                             <Button variant="ghost">
                                 Dashboard
@@ -82,7 +82,7 @@ export function Navbar() {
                                 Start Your Journey
                             </Button>
                         </Link>
-                    </div>
+                    </div> */}
 
                     {/* Mobile Menu Button */}
                     <button
@@ -130,7 +130,7 @@ export function Navbar() {
                                     </motion.div>
                                 ))}
 
-                                <motion.div
+                                {/* <motion.div
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: navItems.length * 0.05 }}
@@ -147,7 +147,7 @@ export function Navbar() {
                                             Start Your Journey
                                         </Button>
                                     </Link>
-                                </motion.div>
+                                </motion.div> */}
                             </div>
                         </div>
                     </motion.div>

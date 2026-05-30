@@ -10,7 +10,6 @@ import { ToolsSection } from '@/components/landing/ToolsSection';
 import { PricingSection } from '@/components/landing/PricingSection';
 import { ContactSection } from '@/components/landing/ContactSection';
 import { BlogSection } from '@/components/landing/BlogSection';
-import DashboardSection from '@/components/landing/DashboardSelection';
 import { Button } from '@/components/ui/button';
 import { Flame } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -33,7 +32,6 @@ export default function Landing() {
             <div id="programs"><ProgramsSection /></div>
             <div id="transformations"><TransformationsSection /></div>
             <div id="tools"><ToolsSection /></div>
-            <div id="dashboard"><DashboardSection /></div>
             <div id="testimonials"><TestimonialsSection /></div>
             <div id="pricing"><PricingSection /></div>
             {/* <div id="faq"><FAQSection /></div> */}
