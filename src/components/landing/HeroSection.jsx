@@ -35,15 +35,23 @@ function AnimatedCounter({ value, suffix = "" }) {
     return <span className="text-3xl md:text-4xl font-bold text-primary">{count}{suffix}</span>;
 }
 
+const heroBg = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&h=1080&fit=crop&q=80";
 export default function HeroSection() {
     return (
         <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-            {/* Background */}
-            <div className="absolute inset-0 bg-grid opacity-20" />
-            <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
+            {/* Full-bleed background image */}
+            <img
+                src={heroBg}
+                alt="Fitness training background"
+                className="absolute inset-0 w-full h-full object-cover object-center"
+            />
 
-            {/* Orbs */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl animate-pulse" />
+            {/* Background Elements */}
+            <div className="absolute inset-0 bg-grid opacity-20" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background via-background/70 to-background" />
+
+            {/* Animated Background Orbs */}
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
             <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000" />
 
             <div className="relative container mx-auto px-4 pt-24 pb-20">
