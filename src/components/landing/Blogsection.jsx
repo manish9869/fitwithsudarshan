@@ -60,7 +60,6 @@ const blogPosts = [
 ]
 
 
-// Removed TypeScript Record type — plain object works in JSX
 const categoryColors = {
     "Fat Loss": "bg-orange-500/20 text-orange-400",
     "Nutrition": "bg-green-500/20 text-green-400",
