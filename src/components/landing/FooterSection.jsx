@@ -1,55 +1,49 @@
 import { motion } from "framer-motion";
-import {
-    Dumbbell,
-    Instagram,
-    Youtube,
-    MessageCircle,
-    Mail,
-    Heart
-} from "lucide-react"
+import { Instagram, Youtube, MessageCircle, Mail, Heart, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
+import { contact, brand } from "@/data/siteData";
+
 const footerLinks = {
     quickLinks: [
         { name: "Home", href: "#home" },
-        { name: "About", href: "#features" },
+        { name: "About", href: "#about" },
         { name: "Programs", href: "#programs" },
-        { name: "Testimonials", href: "#testimonials" },
-        { name: "FAQ", href: "#faq" },
+        { name: "Transformations", href: "#transformations" },
+        { name: "Pricing", href: "#pricing" },
+        { name: "Contact", href: "#contact" },
     ],
     programs: [
-        { name: "Fat Loss", href: "#programs" },
-        { name: "Muscle Building", href: "#programs" },
-        { name: "Online Coaching", href: "#programs" },
-        { name: "Nutrition Planning", href: "#programs" },
+        { name: "RECODE ONLINE", href: "#programs" },
+        { name: "RECODE CONSULT", href: "#programs" },
+        { name: "RECODE PERSONAL", href: "#programs" },
+        { name: "RECODE ELITE", href: "#programs" },
     ],
     resources: [
-        { name: "Fitness Blog", href: "#" },
-        { name: "Success Stories", href: "#testimonials" },
-        { name: "Free Consultation", href: "#" },
-        { name: "Dashboard", href: "/dashboard" },
+        { name: "Fitness Blog", href: "/blog" },
+        { name: "Transformations", href: "#transformations" },
+        { name: "Free Consultation", href: contact.social.whatsapp },
+        { name: "Apply for Coaching", href: contact.social.whatsapp },
     ],
 };
 
 const socialLinks = [
-    { icon: Instagram, label: "Instagram", href: "#" },
-    { icon: Youtube, label: "YouTube", href: "#" },
-    { icon: MessageCircle, label: "WhatsApp", href: "#" },
-    { icon: Mail, label: "Email", href: "mailto:coach@fitwithsudarshan.com" },
+    { icon: Instagram, label: "Instagram", href: contact.social.instagram },
+    { icon: Youtube, label: "YouTube", href: contact.social.youtube },
+    { icon: MessageCircle, label: "WhatsApp", href: contact.social.whatsapp },
+    { icon: Mail, label: "Email", href: `mailto:${contact.email}` },
 ];
 
 export default function FooterSection() {
-    const currentYear = new Date().getFullYear()
+    const currentYear = new Date().getFullYear();
 
     return (
         <footer className="relative pt-20 pb-8 overflow-hidden">
-            {/* Background */}
             <div className="absolute inset-0 bg-gradient-to-t from-muted/50 to-background" />
             <div className="absolute inset-0 bg-grid opacity-20" />
 
             <div className="relative container mx-auto px-4">
-                {/* Newsletter Section */}
+                {/* Newsletter */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -59,131 +53,98 @@ export default function FooterSection() {
                 >
                     <div className="grid md:grid-cols-2 gap-8 items-center">
                         <div>
-                            <h3 className="text-2xl md:text-3xl font-bold mb-4">
-                                Get Free Fitness Tips
-                            </h3>
+                            <h3 className="text-2xl md:text-3xl font-bold mb-2">Get Free RECODE™ Tips</h3>
                             <p className="text-muted-foreground">
-                                Subscribe to my newsletter for weekly workout tips, nutrition advice,
-                                and exclusive content delivered to your inbox.
+                                Subscribe for weekly recovery, nutrition, and transformation insights delivered to your inbox.
                             </p>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <Input
-                                type="email"
-                                placeholder="Enter your email"
-                                className="bg-muted/50 flex-1"
-                            />
-                            <Button className="glow-lime whitespace-nowrap">
-                                Subscribe
-                            </Button>
+                            <Input type="email" placeholder="Enter your email" className="bg-muted/50 flex-1" />
+                            <Button className="glow-lime text-black font-bold whitespace-nowrap">Subscribe</Button>
                         </div>
                     </div>
                 </motion.div>
 
-                {/* Main Footer Content */}
+                {/* Links */}
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
                     {/* Brand */}
                     <div className="col-span-2 md:col-span-4 lg:col-span-1">
-                        {/* Use <a> for hash links instead of react-router Link */}
                         <a href="#home" className="flex items-center gap-2 mb-4">
-                            <Dumbbell className="h-8 w-8 text-primary" />
-                            <span className="text-xl font-bold">
-                                Fit with <span className="text-primary">Sudarshan</span>
+                            <Dumbbell className="h-7 w-7 text-primary" />
+                            <span className="text-lg font-bold">
+                                FitWith<span className="text-primary">Sudarshan</span>
                             </span>
                         </a>
+                        <p className="text-xs text-muted-foreground mb-1 font-semibold text-primary">RECODE™</p>
                         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                            Transform your body with expert coaching.
-                            Personalized fitness programs designed for real results.
+                            {brand.tagline}
                         </p>
-                        {/* Social Links */}
                         <div className="flex items-center gap-3">
-                            {socialLinks.map((social) => (
+                            {socialLinks.map((s) => (
                                 <a
-                                    key={social.label}
-                                    href={social.href}
-                                    className="w-10 h-10 rounded-full glass flex items-center justify-center hover:border-primary/50 hover:text-primary transition-all"
-                                    aria-label={social.label}
+                                    key={s.label}
+                                    href={s.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-9 h-9 rounded-full glass flex items-center justify-center hover:border-primary/50 hover:text-primary transition-all"
+                                    aria-label={s.label}
                                 >
-                                    <social.icon className="h-4 w-4" />
+                                    <s.icon className="h-4 w-4" />
                                 </a>
                             ))}
                         </div>
                     </div>
 
-                    {/* Quick Links */}
                     <div>
-                        <h4 className="font-semibold mb-4">Quick Links</h4>
+                        <h4 className="font-semibold mb-4 text-sm">Quick Links</h4>
                         <ul className="space-y-2">
                             {footerLinks.quickLinks.map((link) => (
                                 <li key={link.name}>
-                                    <a
-                                        href={link.href}
-                                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                                    >
-                                        {link.name}
-                                    </a>
+                                    <a href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">{link.name}</a>
                                 </li>
                             ))}
                         </ul>
                     </div>
 
-                    {/* Programs */}
                     <div>
-                        <h4 className="font-semibold mb-4">Programs</h4>
+                        <h4 className="font-semibold mb-4 text-sm">Programs</h4>
                         <ul className="space-y-2">
                             {footerLinks.programs.map((link) => (
                                 <li key={link.name}>
-                                    <a
-                                        href={link.href}
-                                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                                    >
-                                        {link.name}
-                                    </a>
+                                    <a href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">{link.name}</a>
                                 </li>
                             ))}
                         </ul>
                     </div>
 
-                    {/* Resources */}
                     <div>
-                        <h4 className="font-semibold mb-4">Resources</h4>
+                        <h4 className="font-semibold mb-4 text-sm">Resources</h4>
                         <ul className="space-y-2">
                             {footerLinks.resources.map((link) => (
                                 <li key={link.name}>
-                                    <a
-                                        href={link.href}
-                                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                                    >
-                                        {link.name}
-                                    </a>
+                                    <a href={link.href} target={link.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">{link.name}</a>
                                 </li>
                             ))}
                         </ul>
                     </div>
                 </div>
 
-                {/* Bottom Bar */}
+                {/* Bottom bar */}
                 <div className="border-t border-border pt-8">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <p className="text-sm text-muted-foreground text-center md:text-left">
-                            {currentYear} Fit with Sudarshan. All rights reserved.
+                        <p className="text-sm text-muted-foreground">
+                            © {currentYear} FitWithSudarshan. All rights reserved.
                         </p>
                         <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                            <a href="#" className="hover:text-primary transition-colors">
-                                Privacy Policy
-                            </a>
-                            <a href="#" className="hover:text-primary transition-colors">
-                                Terms of Service
-                            </a>
+                            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
+                            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
                         </div>
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            Made with <Heart className="h-3 w-3 text-red-500 fill-red-500 mx-1" /> for fitness enthusiasts
+                            Built with <Heart className="h-3 w-3 text-red-500 fill-red-500 mx-1" /> for transformation
                         </p>
                     </div>
                 </div>
             </div>
         </footer>
-    )
+    );
 }
-
-

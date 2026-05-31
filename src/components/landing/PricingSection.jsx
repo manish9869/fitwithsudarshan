@@ -1,60 +1,9 @@
 "use client"
-
-import { useState, useRef } from "react"
-import { motion, useInView } from "framer-motion"
-import { Check, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
-
-
-const plans = [
-    {
-        name: "Basic",
-        description: "Perfect for beginners starting their fitness journey",
-        monthlyPrice: 2999,
-        yearlyPrice: 29990,
-        features: [
-            "Personalized workout plan",
-            "Basic nutrition guidelines",
-            "Weekly check-ins via chat",
-            "Access to exercise library",
-            "Monthly progress review",
-        ],
-        popular: false,
-    },
-    {
-        name: "Premium",
-        description: "Our most popular plan for serious transformations",
-        monthlyPrice: 5999,
-        yearlyPrice: 59990,
-        features: [
-            "Everything in Basic",
-            "Custom nutrition plan",
-            "Bi-weekly video calls",
-            "24/7 WhatsApp support",
-            "Weekly progress tracking",
-            "Supplement guidance",
-            "Recipe suggestions",
-        ],
-        popular: true,
-    },
-    {
-        name: "Elite",
-        description: "VIP coaching for maximum results",
-        monthlyPrice: 9999,
-        yearlyPrice: 99990,
-        features: [
-            "Everything in Premium",
-            "Daily check-ins",
-            "Unlimited video calls",
-            "Priority support",
-            "Advanced analytics dashboard",
-            "Personalized meal prep",
-            "Competition prep ready",
-            "1-on-1 accountability partner",
-        ],
-        popular: false,
-    },
-]
+import { useState, useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Check, Sparkles, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { pricing } from "@/data/siteData";
 
 function Toggle({ checked, onCheckedChange }) {
     return (
@@ -63,174 +12,156 @@ function Toggle({ checked, onCheckedChange }) {
             aria-checked={checked}
             onClick={() => onCheckedChange(!checked)}
             className="relative inline-flex items-center rounded-full transition-colors duration-200 focus:outline-none"
-            style={{
-                width: '48px',
-                height: '26px',
-                background: checked ? '#beff00' : 'rgba(255,255,255,0.15)',
-                border: '1px solid rgba(255,255,255,0.15)',
-            }}
+            style={{ width: "48px", height: "26px", background: checked ? "#beff00" : "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.15)" }}
         >
             <span
                 className="inline-block rounded-full transition-transform duration-200"
-                style={{
-                    width: '20px',
-                    height: '20px',
-                    background: checked ? '#0a0a0a' : '#ffffff',
-                    transform: checked ? 'translateX(24px)' : 'translateX(3px)',
-                }}
+                style={{ width: "20px", height: "20px", background: checked ? "#0a0a0a" : "#ffffff", transform: checked ? "translateX(24px)" : "translateX(3px)" }}
             />
         </button>
-    )
+    );
 }
 
 export function PricingSection() {
-    const [isYearly, setIsYearly] = useState(false)
-    const ref = useRef(null)
-    const isInView = useInView(ref, { once: true, margin: "-100px" })
+    const [showFounding, setShowFounding] = useState(true);
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: "-100px" });
 
-    const formatPrice = (price) => {
-        return new Intl.NumberFormat("en-IN", {
-            style: "currency",
-            currency: "INR",
-            maximumFractionDigits: 0,
-        }).format(price)
-    }
+    const formatPrice = (price) =>
+        new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(price);
 
     return (
         <section id="pricing" className="relative py-24 overflow-hidden">
-            {/* Background */}
             <div className="absolute inset-0 bg-grid opacity-30" />
 
             <div ref={ref} className="relative container mx-auto px-4">
-                {/* Section Header */}
+                {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.5 }}
                     className="text-center mb-12"
                 >
-                    <span className="text-primary text-sm font-semibold uppercase tracking-widest">
-                        Pricing
-                    </span>
-                    <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-6">
-                        Invest in Your <span className="text-primary">Health</span>
+                    <span className="text-primary text-sm font-semibold uppercase tracking-widest">Pricing</span>
+                    <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-4">
+                        Invest in Your <span className="text-primary">Transformation</span>
                     </h2>
-                    <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed mb-8">
-                        Choose the plan that fits your goals. All plans include personalized
-                        coaching and proven methods for real results.
-                    </p>
 
-                    {/* Billing Toggle */}
+                    {/* Founding Member Banner */}
+                    <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full glass-card border border-primary/30 mb-8 mt-2">
+                        <Lock className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-semibold text-primary">Founding Member Pricing — Limited to First 50 Members. Lock Your Price Forever.</span>
+                    </div>
+
+                    {/* Toggle */}
                     <div className="flex items-center justify-center gap-4">
-                        <span className={`text-sm ${!isYearly ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                            Monthly
-                        </span>
-                        <Toggle checked={isYearly} onCheckedChange={setIsYearly} />
-                        <span className={`text-sm ${isYearly ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                            Yearly
-                        </span>
-                        {isYearly && (
-                            <span className="text-xs font-medium px-2 py-1 rounded-full"
-                                style={{ color: '#beff00', background: 'rgba(190,255,0,0.1)' }}
-                            >
-                                Save 17%
+                        <span className={`text-sm ${!showFounding ? "text-foreground font-medium" : "text-muted-foreground"}`}>Regular Price</span>
+                        <Toggle checked={showFounding} onCheckedChange={setShowFounding} />
+                        <span className={`text-sm ${showFounding ? "text-foreground font-medium" : "text-muted-foreground"}`}>Founding Price</span>
+                        {showFounding && (
+                            <span className="text-xs font-bold px-2 py-1 rounded-full text-primary bg-primary/10 border border-primary/20">
+                                Save up to 40%
                             </span>
                         )}
                     </div>
                 </motion.div>
 
-                {/* Pricing Cards */}
-                <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                    {plans.map((plan, index) => (
+                {/* Cards */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-7xl mx-auto">
+                    {pricing.map((plan, index) => (
                         <motion.div
                             key={plan.name}
                             initial={{ opacity: 0, y: 30 }}
                             animate={isInView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.4, delay: 0.1 + index * 0.1 }}
-                            className={`relative glass-card rounded-2xl p-6 transition-all ${plan.popular
-                                ? "scale-105 z-10"
-                                : "hover:border-primary/30"
-                                }`}
-                            style={plan.popular ? {
-                                border: '1px solid #beff00',
-                                boxShadow: '0 0 20px rgba(190,255,0,0.2), 0 0 60px rgba(190,255,0,0.08)',
-                            } : {}}
+                            transition={{ duration: 0.4, delay: 0.1 + index * 0.08 }}
+                            className={`relative glass-card rounded-2xl p-5 flex flex-col transition-all ${plan.popular ? "scale-[1.03] z-10" : "hover:border-primary/30"}`}
+                            style={plan.popular ? { border: "1px solid #beff00", boxShadow: "0 0 20px rgba(190,255,0,0.15)" } : {}}
                         >
-                            {/* Popular Badge */}
-                            {plan.popular && (
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                                    <div
-                                        className="flex items-center gap-1 px-4 py-1 rounded-full text-sm font-semibold"
-                                        style={{ background: '#beff00', color: '#0a0a0a' }}
-                                    >
-                                        <Sparkles className="h-4 w-4" />
-                                        Most Popular
+                            {/* Badges */}
+                            {plan.badge && (
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                    <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
+                                        style={{ background: plan.popular ? "#beff00" : "rgba(190,255,0,0.15)", color: plan.popular ? "#0a0a0a" : "#beff00" }}>
+                                        {plan.popular && <Sparkles className="h-3 w-3" />}
+                                        {plan.badge}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Plan Header */}
-                            <div className="text-center mb-6 pt-2">
-                                <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                                <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
-                                <div className="flex items-baseline justify-center gap-1">
-                                    <span className="text-4xl font-bold">
-                                        {formatPrice(isYearly ? plan.yearlyPrice / 12 : plan.monthlyPrice)}
+                            {/* Plan name */}
+                            <div className="pt-2 mb-4">
+                                <h3 className="text-sm font-bold mb-1">{plan.name}</h3>
+                                <p className="text-xs text-muted-foreground">{plan.duration}</p>
+                            </div>
+
+                            {/* Price */}
+                            <div className="mb-4">
+                                {showFounding && plan.isFoundingDifferent && (
+                                    <p className="text-xs text-muted-foreground line-through mb-1">{formatPrice(plan.regularPrice)}</p>
+                                )}
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-2xl font-bold">
+                                        {formatPrice(showFounding ? plan.foundingPrice : plan.regularPrice)}
                                     </span>
-                                    <span className="text-muted-foreground">/month</span>
                                 </div>
-                                {isYearly && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Billed {formatPrice(plan.yearlyPrice)} yearly
+                                {showFounding && plan.isFoundingDifferent && (
+                                    <p className="text-xs text-primary mt-1 font-medium">
+                                        Save {formatPrice(plan.regularPrice - plan.foundingPrice)}
                                     </p>
                                 )}
                             </div>
 
                             {/* Features */}
-                            <ul className="space-y-3 mb-6">
-                                {plan.features.map((feature) => (
-                                    <li key={feature} className="flex items-start gap-3">
-                                        <div
-                                            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                                            style={{ background: 'rgba(190,255,0,0.15)' }}
-                                        >
-                                            <Check className="h-3 w-3" style={{ color: '#beff00' }} />
+                            <ul className="space-y-2 mb-5 flex-1">
+                                {plan.features.map((f) => (
+                                    <li key={f} className="flex items-start gap-2">
+                                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(190,255,0,0.15)" }}>
+                                            <Check className="h-2.5 w-2.5" style={{ color: "#beff00" }} />
                                         </div>
-                                        <span className="text-sm text-muted-foreground">{feature}</span>
+                                        <span className="text-xs text-muted-foreground leading-relaxed">{f}</span>
                                     </li>
                                 ))}
                             </ul>
 
                             {/* CTA */}
-                            <Button
-                                className="w-full font-semibold"
-                                variant={plan.popular ? "default" : "outline"}
-                                style={plan.popular ? {
-                                    background: '#beff00',
-                                    color: '#0a0a0a',
-                                    boxShadow: '0 0 20px rgba(190,255,0,0.3)',
-                                } : {}}
-                            >
-                                Get Started
-                            </Button>
+                            <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer" className="w-full">
+                                <Button
+                                    className="w-full text-sm font-semibold"
+                                    variant={plan.popular ? "default" : "outline"}
+                                    size="sm"
+                                    style={plan.popular ? { background: "#beff00", color: "#0a0a0a", boxShadow: "0 0 20px rgba(190,255,0,0.3)" } : {}}
+                                >
+                                    {plan.cta}
+                                </Button>
+                            </a>
                         </motion.div>
                     ))}
                 </div>
 
-                {/* Money Back Guarantee */}
+                {/* Consult add-on */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    className="text-center mt-12"
+                    transition={{ duration: 0.5, delay: 0.6 }}
+                    className="mt-10 max-w-2xl mx-auto glass-card rounded-2xl p-6 border border-primary/20 text-center"
                 >
-                    <p className="text-muted-foreground text-sm">
-                        100% satisfaction guarantee. Full refund within 7 days if you&apos;re not satisfied.
-                    </p>
+                    <h3 className="font-bold text-lg mb-2">RECODE CONSULT</h3>
+                    <p className="text-muted-foreground text-sm mb-3">Single 60-minute one-on-one session — movement assessment, lifestyle review, nutrition guidance, recovery analysis & action plan.</p>
+                    <p className="text-2xl font-bold text-primary mb-4">₹1,999 <span className="text-sm text-muted-foreground font-normal">/ session</span></p>
+                    <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" className="hover:border-primary/50">Book a Session</Button>
+                    </a>
                 </motion.div>
+
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={isInView ? { opacity: 1 } : {}}
+                    transition={{ duration: 0.5, delay: 0.7 }}
+                    className="text-center text-muted-foreground text-sm mt-8"
+                >
+                    100% satisfaction commitment. Questions? <a href="https://wa.me/919619708124" className="text-primary hover:underline">Message on WhatsApp</a>
+                </motion.p>
             </div>
         </section>
-    )
+    );
 }
-
-
