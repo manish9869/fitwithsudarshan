@@ -49,7 +49,8 @@ export default function FooterSection() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5 }}
-                    className="glass-card rounded-2xl p-8 md:p-12 mb-16 border-primary/20"
+                    className="glass-card rounded-2xl p-8 md:p-12 mb-16"
+                    style={{ border: '1px solid rgba(231,23,99,0.2)' }}
                 >
                     <div className="grid md:grid-cols-2 gap-8 items-center">
                         <div>
@@ -60,7 +61,7 @@ export default function FooterSection() {
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Input type="email" placeholder="Enter your email" className="bg-muted/50 flex-1" />
-                            <Button className="glow-lime text-black font-bold whitespace-nowrap">Subscribe</Button>
+                            <Button className="glow-lime text-white font-bold whitespace-nowrap">Subscribe</Button>
                         </div>
                     </div>
                 </motion.div>
@@ -69,14 +70,18 @@ export default function FooterSection() {
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
                     {/* Brand */}
                     <div className="col-span-2 md:col-span-4 lg:col-span-1">
-                        <a href="#home">
-                            <img
-                                src="/logo.png"
-                                alt="Fit with Sudarshan"
-                                className="h-14 lg:h-18"
-                            />
+                        <a href="#home" className="group flex items-center gap-2 mb-4">
+                            <div className="relative">
+                                <Dumbbell
+                                    className="h-7 w-7 transition-transform group-hover:scale-110"
+                                    style={{ color: '#e71763', filter: 'drop-shadow(0 0 6px rgba(231,23,99,0.7))' }}
+                                />
+                            </div>
+                            <span className="text-lg font-bold">
+                                FitWith<span style={{ color: '#e71763' }}>Sudarshan</span>
+                            </span>
                         </a>
-                        <p className="text-xs text-muted-foreground mb-1 font-semibold text-primary">RECODE™</p>
+                        <p className="text-xs font-semibold mb-1" style={{ color: '#e71763' }}>RECODE™</p>
                         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
                             {brand.tagline}
                         </p>
@@ -87,7 +92,18 @@ export default function FooterSection() {
                                     href={s.href}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-9 h-9 rounded-full glass flex items-center justify-center hover:border-primary/50 hover:text-primary transition-all"
+                                    className="w-9 h-9 rounded-full glass flex items-center justify-center transition-all"
+                                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.borderColor = 'rgba(231,23,99,0.5)';
+                                        e.currentTarget.style.color = '#e71763';
+                                        e.currentTarget.style.boxShadow = '0 0 12px rgba(231,23,99,0.25)';
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                                        e.currentTarget.style.color = '';
+                                        e.currentTarget.style.boxShadow = '';
+                                    }}
                                     aria-label={s.label}
                                 >
                                     <s.icon className="h-4 w-4" />
@@ -141,7 +157,7 @@ export default function FooterSection() {
                             <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
                         </div>
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            Built with <Heart className="h-3 w-3 text-red-500 fill-red-500 mx-1" /> for transformation
+                            Built with <Heart className="h-3 w-3 mx-1" style={{ color: '#e71763', fill: '#e71763' }} /> for transformation
                         </p>
                     </div>
                 </div>

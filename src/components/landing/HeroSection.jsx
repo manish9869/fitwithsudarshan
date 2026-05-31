@@ -35,24 +35,21 @@ function AnimatedCounter({ value, suffix = "" }) {
     return <span className="text-3xl md:text-4xl font-bold text-primary">{count}{suffix}</span>;
 }
 
-const heroBg = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&h=1080&fit=crop&q=80";
 export default function HeroSection() {
     return (
         <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-            {/* Full-bleed background image */}
-            <img
-                src={heroBg}
-                alt="Fitness training background"
-                className="absolute inset-0 w-full h-full object-cover object-center"
-            />
-
-            {/* Background Elements */}
             <div className="absolute inset-0 bg-grid opacity-20" />
-            <div className="absolute inset-0 bg-gradient-to-b from-background via-background/70 to-background" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
 
-            {/* Animated Background Orbs */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000" />
+            {/* Pink orbs */}
+            <div
+                className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse"
+                style={{ background: 'rgba(231,23,99,0.08)' }}
+            />
+            <div
+                className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse"
+                style={{ background: 'rgba(231,23,99,0.05)', animationDelay: '1s' }}
+            />
 
             <div className="relative container mx-auto px-4 pt-24 pb-20">
                 <div className="max-w-5xl mx-auto text-center">
@@ -62,7 +59,8 @@ export default function HeroSection() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-8 border border-primary/20"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-8"
+                        style={{ border: '1px solid rgba(231,23,99,0.2)' }}
                     >
                         <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         <span className="text-sm font-medium text-muted-foreground">
@@ -82,7 +80,7 @@ export default function HeroSection() {
                         </span>
                     </motion.div>
 
-                    {/* Main Headline */}
+                    {/* Main headline */}
                     <motion.h1
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -95,7 +93,6 @@ export default function HeroSection() {
                         Rebuild Your Life.
                     </motion.h1>
 
-                    {/* Subheadline */}
                     <motion.p
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -122,7 +119,11 @@ export default function HeroSection() {
                         className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
                     >
                         <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
-                            <Button size="lg" className="glow-lime text-lg px-8 py-6 text-black font-bold group">
+                            <Button
+                                size="lg"
+                                className="glow-lime text-lg px-8 py-6 text-white font-bold group"
+                                style={{ background: '#e71763' }}
+                            >
                                 Apply For Coaching
                                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                             </Button>
@@ -162,7 +163,7 @@ export default function HeroSection() {
                     </motion.div>
                 </div>
 
-                {/* Scroll Indicator */}
+                {/* Scroll indicator */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

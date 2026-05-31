@@ -13,7 +13,7 @@ export default function FeaturesSection() {
 
             <div ref={ref} className="relative container mx-auto px-4">
 
-                {/* ── ABOUT SUDARSHAN ── */}
+                {/* ABOUT SUDARSHAN */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -27,43 +27,98 @@ export default function FeaturesSection() {
                 </motion.div>
 
                 <div className="grid lg:grid-cols-2 gap-12 items-center mb-24">
-                    {/* Avatar side */}
+
+                    {/* PHOTO CARD — full-bleed */}
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className="relative"
                     >
-                        <div className="relative aspect-[4/5] rounded-3xl overflow-hidden glass-card">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent" />
-                            <div className="absolute inset-0 flex items-center justify-center">
+                        {/* Outer glow */}
+                        <div
+                            className="absolute -inset-1 rounded-3xl opacity-30 blur-xl pointer-events-none"
+                            style={{ background: 'linear-gradient(135deg, #e71763 0%, transparent 60%)' }}
+                        />
+
+                        <div
+                            className="relative rounded-3xl overflow-hidden"
+                            style={{
+                                aspectRatio: '3/4',
+                                border: '1px solid rgba(231,23,99,0.3)',
+                                boxShadow: '0 0 40px rgba(231,23,99,0.15)',
+                            }}
+                        >
+                            {/* Full-bleed photo */}
+                            <img
+                                src="/sudarshan.jpeg"
+                                alt={coach.name}
+                                className="absolute inset-0 w-full h-full object-cover object-top"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                                }}
+                            />
+
+                            {/* Fallback */}
+                            <div
+                                className="absolute inset-0 hidden items-center justify-center"
+                                style={{ background: 'linear-gradient(160deg, rgba(231,23,99,0.12) 0%, rgba(0,0,0,0.8) 100%)' }}
+                            >
                                 <div className="text-center p-8">
-                                    <div className="w-36 h-36 rounded-full bg-primary/20 mx-auto mb-6 flex items-center justify-center border-2 border-primary/30">
+                                    <div
+                                        className="w-36 h-36 rounded-full mx-auto mb-4 flex items-center justify-center"
+                                        style={{ background: 'rgba(231,23,99,0.2)', border: '2px solid rgba(231,23,99,0.4)' }}
+                                    >
                                         <span className="text-6xl font-bold text-primary">S</span>
                                     </div>
-                                    <h3 className="text-2xl font-bold mb-1">{coach.name}</h3>
-                                    <p className="text-primary text-sm font-semibold mb-1">Founder, RECODE™</p>
-                                    <p className="text-muted-foreground text-sm">{coach.certifications[0]}</p>
+                                    <p className="text-sm text-muted-foreground">Place sudarshan.jpg in /public</p>
                                 </div>
                             </div>
-                            {/* Floating cards */}
+
+                            {/* Bottom gradient for text */}
+                            <div
+                                className="absolute inset-0 pointer-events-none"
+                                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.25) 40%, transparent 65%)' }}
+                            />
+
+                            {/* Name pinned to bottom */}
+                            <div className="absolute bottom-0 left-0 right-0 p-6">
+                                <h3 className="text-2xl font-bold mb-0.5">{coach.name}</h3>
+                                <p className="text-sm font-semibold mb-1" style={{ color: '#e71763' }}>Founder, RECODE™</p>
+                                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>{coach.certifications[0]}</p>
+                            </div>
+
+                            {/* Top-right badge */}
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={isInView ? { opacity: 1, scale: 1 } : {}}
                                 transition={{ duration: 0.5, delay: 0.6 }}
-                                className="absolute top-6 right-6 glass-card rounded-xl p-4"
+                                className="absolute top-4 right-4 rounded-xl p-3"
+                                style={{
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(12px)',
+                                    border: '1px solid rgba(231,23,99,0.35)',
+                                }}
                             >
-                                <p className="text-xs text-muted-foreground">Personal Transformation</p>
-                                <p className="font-bold text-primary text-lg">85kg → 56kg</p>
+                                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>Transformation</p>
+                                <p className="font-bold text-primary text-sm">85kg → 56kg</p>
                             </motion.div>
+
+                            {/* Top-left badge */}
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={isInView ? { opacity: 1, scale: 1 } : {}}
                                 transition={{ duration: 0.5, delay: 0.7 }}
-                                className="absolute bottom-6 left-6 glass-card rounded-xl p-4"
+                                className="absolute top-4 left-4 rounded-xl p-3"
+                                style={{
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(12px)',
+                                    border: '1px solid rgba(231,23,99,0.35)',
+                                }}
                             >
-                                <p className="text-xs text-muted-foreground">Clients Guided</p>
-                                <p className="font-bold text-primary text-lg">200+</p>
+                                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>Clients Guided</p>
+                                <p className="font-bold text-primary text-sm">200+</p>
                             </motion.div>
                         </div>
                     </motion.div>
@@ -80,7 +135,6 @@ export default function FeaturesSection() {
                             <p className="text-muted-foreground leading-relaxed">{coach.longBio}</p>
                         </div>
 
-                        {/* Stats row */}
                         <div className="grid grid-cols-2 gap-4 pt-4">
                             {coach.stats.map((s, i) => (
                                 <motion.div
@@ -98,7 +152,7 @@ export default function FeaturesSection() {
                     </motion.div>
                 </div>
 
-                {/* ── WHAT IS RECODE ── */}
+                {/* WHAT IS RECODE */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -114,7 +168,7 @@ export default function FeaturesSection() {
                     </p>
                 </motion.div>
 
-                {/* ── 5R METHOD ── */}
+                {/* 5R METHOD */}
                 <div className="grid md:grid-cols-5 gap-4 mb-24">
                     {recodeMethod.map((r, i) => (
                         <motion.div
@@ -133,7 +187,7 @@ export default function FeaturesSection() {
                     ))}
                 </div>
 
-                {/* ── WHY RECODE ── */}
+                {/* WHY RECODE */}
                 <div className="grid md:grid-cols-2 gap-8 mb-24 max-w-4xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
@@ -151,7 +205,6 @@ export default function FeaturesSection() {
                             ))}
                         </ul>
                     </motion.div>
-
                     <motion.div
                         initial={{ opacity: 0, x: 30 }}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
@@ -170,7 +223,7 @@ export default function FeaturesSection() {
                     </motion.div>
                 </div>
 
-                {/* ── WHO IT'S FOR ── */}
+                {/* WHO IT'S FOR */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
