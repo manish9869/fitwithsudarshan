@@ -69,7 +69,7 @@ const categoryColors = {
     "Workouts": "bg-primary/20 text-primary",
 }
 
-export function BlogSection() {
+export default function BlogSection() {
     const ref = useRef(null)
     const isInView = useInView(ref, { once: true, margin: "-100px" })
 
