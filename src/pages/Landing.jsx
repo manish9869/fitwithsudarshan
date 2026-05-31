@@ -55,7 +55,7 @@ export default function Landing() {
                     <Link to="/dashboard">
                         <Button
                             size="lg"
-                            className="text-black rounded-xl py-7 text-lg font-semibold px-10 glow-lime"
+                            className="text-white rounded-xl py-7 text-lg font-semibold px-10 glow-lime"
                         >
                             Start My Transformation
                         </Button>

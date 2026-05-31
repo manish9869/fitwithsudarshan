@@ -12,11 +12,11 @@ function Toggle({ checked, onCheckedChange }) {
             aria-checked={checked}
             onClick={() => onCheckedChange(!checked)}
             className="relative inline-flex items-center rounded-full transition-colors duration-200 focus:outline-none"
-            style={{ width: "48px", height: "26px", background: checked ? "#beff00" : "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.15)" }}
+            style={{ width: "48px", height: "26px", background: checked ? "#e71763" : "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.15)" }}
         >
             <span
                 className="inline-block rounded-full transition-transform duration-200"
-                style={{ width: "20px", height: "20px", background: checked ? "#0a0a0a" : "#ffffff", transform: checked ? "translateX(24px)" : "translateX(3px)" }}
+                style={{ width: "20px", height: "20px", background: "#ffffff", transform: checked ? "translateX(24px)" : "translateX(3px)" }}
             />
         </button>
     );
@@ -75,13 +75,15 @@ export function PricingSection() {
                             animate={isInView ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.4, delay: 0.1 + index * 0.08 }}
                             className={`relative glass-card rounded-2xl p-5 flex flex-col transition-all ${plan.popular ? "scale-[1.03] z-10" : "hover:border-primary/30"}`}
-                            style={plan.popular ? { border: "1px solid #beff00", boxShadow: "0 0 20px rgba(190,255,0,0.15)" } : {}}
+                            style={plan.popular ? { border: "1px solid #e71763", boxShadow: "0 0 20px rgba(231,23,99,0.15)" } : {}}
                         >
                             {/* Badges */}
                             {plan.badge && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
-                                        style={{ background: plan.popular ? "#beff00" : "rgba(190,255,0,0.15)", color: plan.popular ? "#0a0a0a" : "#beff00" }}>
+                                    <div
+                                        className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold text-white"
+                                        style={{ background: plan.popular ? "#e71763" : "rgba(231,23,99,0.2)" }}
+                                    >
                                         {plan.popular && <Sparkles className="h-3 w-3" />}
                                         {plan.badge}
                                     </div>
@@ -115,8 +117,8 @@ export function PricingSection() {
                             <ul className="space-y-2 mb-5 flex-1">
                                 {plan.features.map((f) => (
                                     <li key={f} className="flex items-start gap-2">
-                                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "rgba(190,255,0,0.15)" }}>
-                                            <Check className="h-2.5 w-2.5" style={{ color: "#beff00" }} />
+                                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 bg-primary/20">
+                                            <Check className="h-2.5 w-2.5 text-primary" />
                                         </div>
                                         <span className="text-xs text-muted-foreground leading-relaxed">{f}</span>
                                     </li>
@@ -126,10 +128,10 @@ export function PricingSection() {
                             {/* CTA */}
                             <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer" className="w-full">
                                 <Button
-                                    className="w-full text-sm font-semibold"
+                                    className="w-full text-sm font-semibold text-white"
                                     variant={plan.popular ? "default" : "outline"}
                                     size="sm"
-                                    style={plan.popular ? { background: "#beff00", color: "#0a0a0a", boxShadow: "0 0 20px rgba(190,255,0,0.3)" } : {}}
+                                    style={plan.popular ? { background: "#e71763", boxShadow: "0 0 20px rgba(231,23,99,0.3)" } : {}}
                                 >
                                     {plan.cta}
                                 </Button>
@@ -149,7 +151,7 @@ export function PricingSection() {
                     <p className="text-muted-foreground text-sm mb-3">Single 60-minute one-on-one session — movement assessment, lifestyle review, nutrition guidance, recovery analysis & action plan.</p>
                     <p className="text-2xl font-bold text-primary mb-4">₹1,999 <span className="text-sm text-muted-foreground font-normal">/ session</span></p>
                     <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" className="hover:border-primary/50">Book a Session</Button>
+                        <Button variant="outline" className="hover:border-primary/50 text-white">Book a Session</Button>
                     </a>
                 </motion.div>
 
