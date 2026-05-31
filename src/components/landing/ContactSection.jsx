@@ -1,12 +1,28 @@
 "use client"
 import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { Mail, Phone, MapPin, Send, MessageCircle, Instagram, Youtube, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, MessageCircle, Instagram, Youtube, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { contact } from "@/data/SiteData";
+import emailjs from "@emailjs/browser";
+
+// ─── EMAILJS CONFIG ────────────────────────────────────────────────
+// Replace these with your actual values from emailjs.com
+const EMAILJS_SERVICE_ID = "service_ek1wuc3";   // e.g. "service_abc123"
+const EMAILJS_TEMPLATE_ID = "template_4pab1rw";  // e.g. "template_xyz456"
+const EMAILJS_PUBLIC_KEY = "aDYF7gZgkw0Sq3iei";   // e.g. "abcDEFghiJKL789"
+// ───────────────────────────────────────────────────────────────────
+
+// EmailJS template variables used (set these up in your template):
+// {{from_name}}   — sender's name
+// {{from_email}}  — sender's email
+// {{phone}}       — sender's phone
+// {{goal}}        — fitness goal
+// {{message}}     — message body
+// {{to_name}}     — "Sudarshan" (hardcoded below)
 
 const contactInfo = [
     { icon: Phone, label: "Phone", value: contact.phone, href: `tel:+91${contact.phone}` },
@@ -20,18 +36,64 @@ const socialLinks = [
     { icon: MessageCircle, label: "WhatsApp", href: contact.social.whatsapp },
 ];
 
+const initialForm = { name: "", phone: "", email: "", goal: "", message: "" };
+
 export function ContactSection() {
     const ref = useRef(null);
+    const formRef = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
-    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [form, setForm] = useState(initialForm);
+    const [status, setStatus] = useState("idle"); // idle | sending | success | error
+    const [errorMsg, setErrorMsg] = useState("");
+
+    const handleChange = (e) => {
+        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
-        await new Promise((r) => setTimeout(r, 1500));
-        setIsSubmitting(false);
-        window.open(contact.social.whatsapp, "_blank");
+        setStatus("sending");
+        setErrorMsg("");
+
+        // Basic validation
+        if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+            setStatus("error");
+            setErrorMsg("Please fill in Name, Email, and Message.");
+            return;
+        }
+
+        try {
+            await emailjs.send(
+                EMAILJS_SERVICE_ID,
+                EMAILJS_TEMPLATE_ID,
+                {
+                    to_name: "Sudarshan",
+                    from_name: form.name.trim(),
+                    from_email: form.email.trim(),
+                    phone: form.phone.trim() || "Not provided",
+                    goal: form.goal.trim() || "Not specified",
+                    message: form.message.trim(),
+                },
+                EMAILJS_PUBLIC_KEY
+            );
+
+            setStatus("success");
+            setForm(initialForm);
+        } catch (err) {
+            console.error("EmailJS error:", err);
+            setStatus("error");
+            setErrorMsg(
+                err?.text ||
+                "Something went wrong. Please try WhatsApp or email directly."
+            );
+        }
     };
+
+    const isConfigured =
+        EMAILJS_SERVICE_ID !== "YOUR_SERVICE_ID" &&
+        EMAILJS_TEMPLATE_ID !== "YOUR_TEMPLATE_ID" &&
+        EMAILJS_PUBLIC_KEY !== "YOUR_PUBLIC_KEY";
 
     return (
         <section id="contact" className="relative py-24 overflow-hidden">
@@ -53,8 +115,29 @@ export function ContactSection() {
                     </p>
                 </motion.div>
 
+                {/* Setup warning — only shows if keys aren't replaced yet */}
+                {!isConfigured && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="max-w-5xl mx-auto mb-8 flex items-start gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-5 py-4"
+                    >
+                        <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm">
+                            <p className="font-semibold text-yellow-300 mb-1">EmailJS not configured yet</p>
+                            <p className="text-yellow-300/70">
+                                Replace <code className="bg-yellow-500/15 px-1 rounded">EMAILJS_SERVICE_ID</code>,{" "}
+                                <code className="bg-yellow-500/15 px-1 rounded">EMAILJS_TEMPLATE_ID</code>, and{" "}
+                                <code className="bg-yellow-500/15 px-1 rounded">EMAILJS_PUBLIC_KEY</code> at the top of{" "}
+                                <code className="bg-yellow-500/15 px-1 rounded">ContactSection.jsx</code> with your values from{" "}
+                                <a href="https://emailjs.com" target="_blank" rel="noopener noreferrer" className="underline text-yellow-300">emailjs.com</a>.
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+
                 <div className="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto">
-                    {/* Left */}
+                    {/* ── Left: contact info ── */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
@@ -134,7 +217,7 @@ export function ContactSection() {
                         </motion.div>
                     </motion.div>
 
-                    {/* Right — form */}
+                    {/* ── Right: form ── */}
                     <motion.div
                         initial={{ opacity: 0, x: 30 }}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
@@ -142,37 +225,134 @@ export function ContactSection() {
                     >
                         <div className="glass-card rounded-2xl p-6 md:p-8">
                             <h3 className="text-xl font-bold mb-6">Send a Message</h3>
-                            <form onSubmit={handleSubmit} className="space-y-5">
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Name</Label>
-                                        <Input id="name" placeholder="Your name" className="bg-muted/50" required />
+
+                            {/* ── Success state ── */}
+                            {status === "success" ? (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="flex flex-col items-center text-center py-10 gap-4"
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-primary/15 border-2 border-primary/30 flex items-center justify-center">
+                                        <CheckCircle2 className="h-8 w-8 text-primary" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="phone">Phone</Label>
-                                        <Input id="phone" placeholder="+91 96197 08124" className="bg-muted/50" required />
+                                    <div>
+                                        <h4 className="text-lg font-bold mb-1">Message Sent!</h4>
+                                        <p className="text-muted-foreground text-sm">
+                                            Thanks for reaching out. Sudarshan will get back to you shortly.
+                                        </p>
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input id="email" type="email" placeholder="your@email.com" className="bg-muted/50" required />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="goal">Fitness Goal</Label>
-                                    <Input id="goal" placeholder="e.g., Fat loss, Muscle building, Energy improvement" className="bg-muted/50" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="message">Message</Label>
-                                    <Textarea id="message" placeholder="Tell me about your goals and current situation..." className="bg-muted/50 min-h-[120px]" required />
-                                </div>
-                                <Button type="submit" className="w-full glow-lime text-black font-bold" size="lg" disabled={isSubmitting}>
-                                    {isSubmitting ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</>
-                                    ) : (
-                                        <><Send className="mr-2 h-4 w-4" />Apply For Coaching</>
+                                    <Button
+                                        variant="outline"
+                                        className="mt-2 text-white"
+                                        onClick={() => setStatus("idle")}
+                                    >
+                                        Send Another Message
+                                    </Button>
+                                </motion.div>
+                            ) : (
+                                <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="name">Name *</Label>
+                                            <Input
+                                                id="name"
+                                                name="name"
+                                                placeholder="Your name"
+                                                className="bg-muted/50"
+                                                value={form.name}
+                                                onChange={handleChange}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="phone">Phone</Label>
+                                            <Input
+                                                id="phone"
+                                                name="phone"
+                                                placeholder="+91 96197 08124"
+                                                className="bg-muted/50"
+                                                value={form.phone}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Email *</Label>
+                                        <Input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            placeholder="your@email.com"
+                                            className="bg-muted/50"
+                                            value={form.email}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="goal">Fitness Goal</Label>
+                                        <Input
+                                            id="goal"
+                                            name="goal"
+                                            placeholder="e.g. Fat loss, Muscle building, Energy improvement"
+                                            className="bg-muted/50"
+                                            value={form.goal}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="message">Message *</Label>
+                                        <Textarea
+                                            id="message"
+                                            name="message"
+                                            placeholder="Tell me about your goals and current situation..."
+                                            className="bg-muted/50 min-h-[120px]"
+                                            value={form.message}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Error message */}
+                                    {status === "error" && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-sm text-red-400"
+                                        >
+                                            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                            <span>{errorMsg}</span>
+                                        </motion.div>
                                     )}
-                                </Button>
-                            </form>
+
+                                    <Button
+                                        type="submit"
+                                        className="w-full glow-lime text-white font-bold"
+                                        size="lg"
+                                        disabled={status === "sending"}
+                                    >
+                                        {status === "sending" ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Sending…
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Mail className="mr-2 h-4 w-4" />
+                                                Send Message
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        Your details are only used to respond to your enquiry.
+                                    </p>
+                                </form>
+                            )}
                         </div>
                     </motion.div>
                 </div>
