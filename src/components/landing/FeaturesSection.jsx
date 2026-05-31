@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { coach, recodeMethod, targetAudience, whyRecode } from "@/data/siteData";
+import { coach, recodeMethod, targetAudience, whyRecode } from "@/data/SiteData";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 export default function FeaturesSection() {

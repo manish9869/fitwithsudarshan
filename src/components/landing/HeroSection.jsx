@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ArrowRight, Users, Award, Clock, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
-import { coach, brand } from "@/data/siteData";
+import { coach, brand } from "@/data/SiteData";
 
 const stats = [
     { icon: TrendingUp, value: "29kg", label: "Personal Transformation" },

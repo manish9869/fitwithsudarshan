@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { testimonials } from "@/data/siteData";
+import { testimonials } from "@/data/SiteData";
 
 export default function TestimonialsSection() {
     const ref = useRef(null);

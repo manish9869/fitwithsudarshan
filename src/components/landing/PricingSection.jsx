@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Check, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { pricing } from "@/data/siteData";
+import { pricing } from "@/data/SiteData";
 
 function Toggle({ checked, onCheckedChange }) {
     return (
