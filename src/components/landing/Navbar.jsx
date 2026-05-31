@@ -177,7 +177,7 @@ export function Navbar() {
                         <img
                             src="/logo.png"
                             alt="Fit with Sudarshan"
-                            className="h-14 lg:h-18"
+                            className="h-12 lg:h-16"
                         />
                     </a>
 
