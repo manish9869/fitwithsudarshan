@@ -9,7 +9,7 @@ import { TransformationsSection } from '@/components/landing/TransformationsSect
 import { ToolsSection } from '@/components/landing/ToolsSection';
 import { PricingSection } from '@/components/landing/PricingSection';
 import { ContactSection } from '@/components/landing/ContactSection';
-import { BlogSection } from '@/components/landing/BlogSection';
+import BlogSection from '@/components/landing/BlogSection';
 import { Button } from '@/components/ui/button';
 import { Flame } from 'lucide-react';
 import { Link } from 'react-router-dom';
