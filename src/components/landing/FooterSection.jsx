@@ -69,11 +69,12 @@ export default function FooterSection() {
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
                     {/* Brand */}
                     <div className="col-span-2 md:col-span-4 lg:col-span-1">
-                        <a href="#home" className="flex items-center gap-2 mb-4">
-                            <Dumbbell className="h-7 w-7 text-primary" />
-                            <span className="text-lg font-bold">
-                                FitWith<span className="text-primary">Sudarshan</span>
-                            </span>
+                        <a href="#home">
+                            <img
+                                src="/logo.png"
+                                alt="Fit with Sudarshan"
+                                className="h-14 lg:h-18"
+                            />
                         </a>
                         <p className="text-xs text-muted-foreground mb-1 font-semibold text-primary">RECODE™</p>
                         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">

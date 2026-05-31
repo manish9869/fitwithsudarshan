@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X, Dumbbell } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { createPortal } from "react-dom"
+import { Menu, X } from "lucide-react"
 import { Link } from "react-router-dom"
+import { motion } from "framer-motion"
 
 const navItems = [
     { name: "Home", href: "#home" },
@@ -18,18 +18,149 @@ const navItems = [
 export function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50)
-        }
-
+        const handleScroll = () => setIsScrolled(window.scrollY > 50)
         window.addEventListener("scroll", handleScroll)
-
-        return () => {
-            window.removeEventListener("scroll", handleScroll)
-        }
+        return () => window.removeEventListener("scroll", handleScroll)
     }, [])
+
+    const openMenu = () => {
+        setIsMobileMenuOpen(true)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => setIsVisible(true))
+        })
+    }
+
+    const closeMenu = () => {
+        setIsVisible(false)
+        setTimeout(() => setIsMobileMenuOpen(false), 350)
+    }
+
+    // ✅ FIXED SCROLL LOCK (no position fixed)
+    useEffect(() => {
+        document.body.style.overflow = isMobileMenuOpen ? "hidden" : ""
+        return () => {
+            document.body.style.overflow = ""
+        }
+    }, [isMobileMenuOpen])
+
+    const handleNavClick = (item) => {
+        const id = item.href.replace("#", "")
+        const el = document.getElementById(id)
+
+        closeMenu()
+
+        setTimeout(() => {
+            if (el) {
+                el.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                })
+            }
+        }, 350)
+    }
+
+    const mobileMenu = isMobileMenuOpen ? (
+        <div
+            style={{
+                position: "fixed",
+                inset: 0,
+                backgroundColor: "#0a0a0a",
+                zIndex: 999999,
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "auto",
+                transform: isVisible ? "translateX(0)" : "translateX(100%)",
+                opacity: isVisible ? 1 : 0,
+                transition:
+                    "transform 350ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms ease",
+            }}
+        >
+            {/* Header */}
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "20px",
+                    borderBottom: "1px solid rgba(255,255,255,0.1)",
+                }}
+            >
+                <img
+                    src="/logo.png"
+                    alt="Fit with Sudarshan"
+                    style={{ height: "40px" }}
+                />
+
+                <button
+                    onClick={closeMenu}
+                    style={{
+                        padding: "8px",
+                        borderRadius: "8px",
+                        background: "rgba(255,255,255,0.1)",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <X size={20} />
+                </button>
+            </div>
+
+            {/* Nav Links */}
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: "16px",
+                    gap: "4px",
+                }}
+            >
+                {navItems.map((item, index) => (
+                    <button
+                        key={item.name}
+                        onClick={() => handleNavClick(item)}
+                        style={{
+                            all: "unset",
+                            display: "flex",
+                            width: "100%",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "14px 16px",
+                            borderRadius: "12px",
+                            color: "white",
+                            fontSize: "16px",
+                            fontWeight: 500,
+                            borderBottom:
+                                "1px solid rgba(255,255,255,0.06)",
+                            cursor: "pointer",
+                            transform: isVisible
+                                ? "translateX(0)"
+                                : "translateX(30px)",
+                            opacity: isVisible ? 1 : 0,
+                            transition: `transform 400ms cubic-bezier(0.32, 0.72, 0, 1) ${index * 40
+                                }ms, opacity 350ms ease ${index * 40}ms`,
+                        }}
+                    >
+                        {item.name}
+                        <span
+                            style={{
+                                color: "rgba(255,255,255,0.3)",
+                                fontSize: "12px",
+                            }}
+                        >
+                            →
+                        </span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    ) : null
 
     return (
         <>
@@ -37,25 +168,21 @@ export function Navbar() {
                 initial={{ y: -100 }}
                 animate={{ y: 0 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "glass py-3" : "bg-transparent py-5"
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "glass py-3" : "bg-transparent py-4"
                     }`}
             >
                 <div className="container mx-auto flex items-center justify-between px-4">
                     {/* Logo */}
-                    <a href="#home" className="group flex items-center gap-2">
-                        <div className="relative">
-                            <Dumbbell className="h-8 w-8 text-primary transition-transform group-hover:scale-110" />
-
-                            <div className="absolute inset-0 bg-primary/30 blur-lg transition-all group-hover:bg-primary/50" />
-                        </div>
-
-                        <span className="text-xl font-bold tracking-tight">
-                            Fit with <span className="text-primary">Sudarshan</span>
-                        </span>
+                    <a href="#home">
+                        <img
+                            src="/logo.png"
+                            alt="Fit with Sudarshan"
+                            className="h-14 lg:h-18"
+                        />
                     </a>
 
-                    {/* Desktop Navigation */}
-                    <div className="hidden items-center gap-1 lg:flex">
+                    {/* Desktop Nav */}
+                    <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 gap-1">
                         {navItems.map((item) => (
                             <a
                                 key={item.name}
@@ -63,98 +190,24 @@ export function Navbar() {
                                 className="group relative px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                             >
                                 {item.name}
-
                                 <span className="absolute bottom-0 left-1/2 h-0.5 w-0 -translate-x-1/2 bg-primary transition-all group-hover:w-full" />
                             </a>
                         ))}
                     </div>
 
-                    {/* CTA Buttons */}
-                    {/* <div className="hidden items-center gap-3 lg:flex">
-                        <Link to="/dashboard">
-                            <Button variant="ghost">
-                                Dashboard
-                            </Button>
-                        </Link>
-
-                        <Link to="/dashboard">
-                            <Button className="glow-lime">
-                                Start Your Journey
-                            </Button>
-                        </Link>
-                    </div> */}
-
-                    {/* Mobile Menu Button */}
-                    <button
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="p-2 text-foreground transition-colors hover:text-primary lg:hidden"
-                        aria-label="Toggle menu"
-                    >
-                        {isMobileMenuOpen ? (
-                            <X className="h-6 w-6" />
-                        ) : (
+                    {/* Right Buttons */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={openMenu}
+                            className="p-2 lg:hidden"
+                        >
                             <Menu className="h-6 w-6" />
-                        )}
-                    </button>
+                        </button>
+                    </div>
                 </div>
             </motion.nav>
 
-            {/* Mobile Menu */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed inset-0 z-40 pt-20 lg:hidden"
-                    >
-                        <div className="absolute inset-0 bg-background/95 backdrop-blur-xl" />
-
-                        <div className="relative container mx-auto px-4 py-8">
-                            <div className="flex flex-col gap-2">
-                                {navItems.map((item, index) => (
-                                    <motion.div
-                                        key={item.name}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: index * 0.05 }}
-                                    >
-                                        <a
-                                            href={item.href}
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="block rounded-lg px-4 py-3 text-lg font-medium text-foreground transition-all hover:bg-muted/50 hover:text-primary"
-                                        >
-                                            {item.name}
-                                        </a>
-                                    </motion.div>
-                                ))}
-
-                                {/* <motion.div
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: navItems.length * 0.05 }}
-                                    className="mt-4 flex flex-col gap-3"
-                                >
-                                    <Link to="/dashboard">
-                                        <Button variant="outline" className="w-full">
-                                            Dashboard
-                                        </Button>
-                                    </Link>
-
-                                    <Link to="/dashboard">
-                                        <Button className="glow-lime w-full" size="lg">
-                                            Start Your Journey
-                                        </Button>
-                                    </Link>
-                                </motion.div> */}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {createPortal(mobileMenu, document.body)}
         </>
     )
 }
-
-
