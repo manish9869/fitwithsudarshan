@@ -14,7 +14,7 @@ const transformations = [
         quote: "As an anesthetist, maintaining my own health while caring for others can be challenging. What stood out about RECODE was its focus on sustainability and lifestyle integration. It wasn't about following a strict diet — it was about building habits that fit my routine and delivered lasting results.",
         stats: { before: "82kg", after: "71kg", bodyFat: "-9%" },
         photoBefore: null,
-        photoAfter: null
+        photoAfter: null,
     },
     {
         id: 2,
@@ -26,7 +26,7 @@ const transformations = [
         quote: "As someone working in finance, consistency was always my biggest challenge. RECODE helped me build sustainable habits around nutrition and training, leading to an 11kg transformation without extreme dieting.",
         stats: { before: "82kg", after: "71kg", bodyFat: "-9%" },
         photoBefore: null,
-        photoAfter: null
+        photoAfter: null,
     },
     {
         id: 3,
@@ -50,7 +50,7 @@ const transformations = [
         quote: "As an actor, staying camera-ready is part of the profession. RECODE gave me a structured and sustainable approach to nutrition and training that fit my schedule. In just 3 months, I transformed from 85kg to 70kg while improving my energy, confidence, and overall physique without relying on extreme dieting.",
         stats: { before: "85kg", after: "70kg", bodyFat: "-10%" },
         photoBefore: null,
-        photoAfter: null
+        photoAfter: null,
     },
     {
         id: 5,
@@ -66,9 +66,78 @@ const transformations = [
     },
 ]
 
+// Initials from a name
+function getInitials(name) {
+    return name
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+}
+
+// When no images: a clean quote card that matches the site's glass-card style
+function NoImageCard({ transformation }) {
+    return (
+        <div className="glass-card rounded-2xl overflow-hidden aspect-[3/4] flex flex-col border border-primary/10">
+            {/* Top accent bar */}
+            <div className="h-1 w-full bg-primary/60 flex-shrink-0" />
+
+            <div className="flex flex-col flex-1 p-8 justify-between">
+                {/* Category */}
+                <div>
+                    <span className="text-primary text-xs font-semibold uppercase tracking-widest">
+                        {transformation.category}
+                    </span>
+                </div>
+
+                {/* Avatar + name */}
+                <div className="flex flex-col items-center text-center gap-4">
+                    <div className="w-20 h-20 rounded-full bg-primary/15 border-2 border-primary/30 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-primary">
+                            {getInitials(transformation.name)}
+                        </span>
+                    </div>
+                    <div>
+                        <p className="text-lg font-bold text-white">{transformation.name}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{transformation.role}</p>
+                    </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-white/5 border border-white/8 p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Result</p>
+                        <p className="text-sm font-bold text-primary leading-tight">{transformation.weightLost}</p>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/8 p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Duration</p>
+                        <p className="text-sm font-bold text-white leading-tight">{transformation.duration}</p>
+                    </div>
+                </div>
+
+                {/* Photo coming soon pill */}
+                <div className="flex justify-center">
+                    <span className="px-3 py-1 rounded-full text-xs text-muted-foreground border border-white/10 bg-white/3">
+                        📸 Photos coming soon
+                    </span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 function BeforeAfterSlider({ transformation }) {
     const [sliderPosition, setSliderPosition] = useState(50)
     const containerRef = useRef(null)
+
+    const hasBefore = Boolean(transformation.photoBefore)
+    const hasAfter = Boolean(transformation.photoAfter)
+
+    // No images — render the clean placeholder card
+    if (!hasBefore && !hasAfter) {
+        return <NoImageCard transformation={transformation} />
+    }
 
     const handleMouseMove = (e) => {
         if (!containerRef.current) return
@@ -84,6 +153,26 @@ function BeforeAfterSlider({ transformation }) {
         setSliderPosition((x / rect.width) * 100)
     }
 
+    // Only one image available — show it as a static card with a label
+    if (!hasBefore || !hasAfter) {
+        const src = hasAfter ? transformation.photoAfter : transformation.photoBefore
+        const label = hasAfter ? "AFTER" : "BEFORE"
+        return (
+            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden glass-card">
+                <img
+                    src={src}
+                    alt={label}
+                    className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute top-4 left-4 bg-primary/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-white">
+                    {label}
+                </div>
+            </div>
+        )
+    }
+
+    // Both images — full interactive slider
     return (
         <div
             ref={containerRef}
@@ -91,15 +180,12 @@ function BeforeAfterSlider({ transformation }) {
             onMouseMove={handleMouseMove}
             onTouchMove={handleTouchMove}
         >
-            {/* AFTER photo — full width base layer */}
             <img
                 src={transformation.photoAfter}
                 alt="After"
                 className="absolute inset-0 w-full h-full object-cover object-top"
                 draggable={false}
             />
-
-            {/* BEFORE photo — clipped to left of slider */}
             <div
                 className="absolute inset-0 overflow-hidden"
                 style={{ width: `${sliderPosition}%` }}
@@ -113,13 +199,10 @@ function BeforeAfterSlider({ transformation }) {
                 />
             </div>
 
-            {/* Divider line */}
             <div
                 className="absolute top-0 bottom-0 w-0.5 bg-white z-10 shadow-[0_0_8px_rgba(0,0,0,0.8)]"
                 style={{ left: `${sliderPosition}%` }}
             />
-
-            {/* Drag handle */}
             <div
                 className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center"
                 style={{ left: `${sliderPosition}%` }}
@@ -128,7 +211,6 @@ function BeforeAfterSlider({ transformation }) {
                 <ChevronRight className="h-3.5 w-3.5 text-black" />
             </div>
 
-            {/* Labels */}
             <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-white">
                 BEFORE
             </div>
@@ -136,7 +218,6 @@ function BeforeAfterSlider({ transformation }) {
                 AFTER
             </div>
 
-            {/* Range input for accessibility & fine control */}
             <input
                 type="range"
                 min="0"
@@ -155,7 +236,6 @@ export function TransformationsSection() {
     const [selectedIndex, setSelectedIndex] = useState(0)
 
     const selected = transformations[selectedIndex]
-
     const nextSlide = () => setSelectedIndex((prev) => (prev + 1) % transformations.length)
     const prevSlide = () => setSelectedIndex((prev) => (prev - 1 + transformations.length) % transformations.length)
 
@@ -225,7 +305,7 @@ export function TransformationsSection() {
                             </div>
                         </div>
 
-                        {/* Before / After weight if available */}
+                        {/* Before / After weight */}
                         {selected.stats.before && selected.stats.after && (
                             <div className="flex items-center gap-3">
                                 <div className="flex-1 glass-card rounded-xl p-3 text-center">
@@ -280,16 +360,32 @@ export function TransformationsSection() {
                                 : "border-white/10 hover:border-primary/40"
                                 }`}
                         >
-                            <img
-                                src={t.photoAfter}
-                                alt={t.name}
-                                className="w-full h-full object-cover object-top"
-                            />
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-4 pb-1.5 px-1">
-                                <p className="text-[9px] text-white font-semibold text-center leading-tight truncate">
-                                    {t.name.split(" ")[0]}
-                                </p>
-                            </div>
+                            {t.photoAfter ? (
+                                <>
+                                    <img
+                                        src={t.photoAfter}
+                                        alt={t.name}
+                                        className="w-full h-full object-cover object-top"
+                                    />
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-4 pb-1.5 px-1">
+                                        <p className="text-[9px] text-white font-semibold text-center leading-tight truncate">
+                                            {t.name.split(" ")[0]}
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                /* No photo thumbnail — initials on dark bg */
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-white/5 gap-1">
+                                    <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+                                        <span className="text-[10px] font-bold text-primary">
+                                            {getInitials(t.name)}
+                                        </span>
+                                    </div>
+                                    <p className="text-[8px] text-white/50 font-medium leading-tight px-1 text-center truncate w-full">
+                                        {t.name.split(" ")[0]}
+                                    </p>
+                                </div>
+                            )}
                         </motion.button>
                     ))}
                 </motion.div>
