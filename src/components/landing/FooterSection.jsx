@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Instagram, Youtube, MessageCircle, Mail, Heart, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { contact, brand } from "@/data/siteData";
+import { contact, brand } from "@/data/SiteData";
 
 const footerLinks = {
     quickLinks: [

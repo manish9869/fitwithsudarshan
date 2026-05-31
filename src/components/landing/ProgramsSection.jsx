@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Globe, Video, MapPin, Crown, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { services } from "@/data/siteData";
+import { services } from "@/data/SiteData";
 
 const icons = { online: Globe, consult: Video, personal: MapPin, elite: Crown };
 
