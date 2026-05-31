@@ -45,7 +45,7 @@ export default function ProgramsSection() {
                                     {/* Badge */}
                                     {service.badge && (
                                         <div className="absolute -top-3 left-6">
-                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary text-black">
+                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white">
                                                 {service.badge}
                                             </span>
                                         </div>
@@ -93,7 +93,7 @@ export default function ProgramsSection() {
                 >
                     <p className="text-muted-foreground mb-6">Not sure which path is right for you?</p>
                     <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
-                        <Button size="lg" className="glow-lime text-black font-bold">Book a Free Consultation</Button>
+                        <Button size="lg" className="glow-lime text-white font-bold">Book a Free Consultation</Button>
                     </a>
                 </motion.div>
             </div>
