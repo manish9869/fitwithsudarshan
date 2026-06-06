@@ -36,7 +36,6 @@ export default function TestimonialsSection() {
                     animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 6, repeat: Infinity }} />
                 <Orb style={{ left: '-8%', top: '20%', width: 400, height: 400, background: 'rgba(231,23,99,0.06)' }} delay={0} />
                 <Orb style={{ right: '-5%', bottom: '15%', width: 350, height: 350, background: 'rgba(231,23,99,0.04)' }} delay={3} />
-                {/* Vertical light lines */}
                 {[25, 50, 75].map((pos, i) => (
                     <motion.div key={i} className="absolute top-0 bottom-0 w-px"
                         style={{ left: `${pos}%`, background: 'linear-gradient(to bottom, transparent, rgba(231,23,99,0.07), transparent)' }}
@@ -46,7 +45,7 @@ export default function TestimonialsSection() {
 
             <div ref={ref} className="relative container mx-auto px-4 max-w-6xl">
 
-                {/* Header */}
+                {/* Header — FIXED responsive text sizes */}
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} className="text-center mb-16">
                     <motion.span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full mb-6"
@@ -55,9 +54,13 @@ export default function TestimonialsSection() {
                         transition={{ duration: 3, repeat: Infinity }}>
                         Results
                     </motion.span>
-                    <h2 className="text-5xl md:text-6xl font-black text-white mb-4">
-                        Real People.<br />
-                        <motion.span style={{ color: '#e71763' }}
+
+                    {/* Responsive heading — no forced line break on mobile */}
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 leading-tight">
+                        Real People.{" "}
+                        <motion.span
+                            className="block sm:inline"
+                            style={{ color: '#e71763' }}
                             animate={{ textShadow: ['0 0 20px rgba(231,23,99,0.3)', '0 0 60px rgba(231,23,99,0.65)', '0 0 20px rgba(231,23,99,0.3)'] }}
                             transition={{ duration: 3, repeat: Infinity }}>
                             Real Transformations.
@@ -69,22 +72,21 @@ export default function TestimonialsSection() {
                 {/* Hero testimonial */}
                 <motion.div initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className="max-w-4xl mx-auto mb-14">
-                    <div className="relative rounded-3xl p-8 md:p-12 overflow-hidden"
+                    <div className="relative rounded-3xl p-6 sm:p-8 md:p-12 overflow-hidden"
                         style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 40px 80px rgba(0,0,0,0.5)' }}>
-                        {/* Corner glow */}
                         <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none"
                             style={{ background: 'rgba(231,23,99,0.08)', transform: 'translate(30%, -30%)' }} />
                         <motion.div className="absolute inset-0 rounded-3xl pointer-events-none"
                             style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.04) 0%, transparent 50%)' }}
                             animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 5, repeat: Infinity }} />
 
-                        <Quote className="absolute top-6 left-6 h-14 w-14" style={{ color: 'rgba(231,23,99,0.12)' }} />
+                        <Quote className="absolute top-5 left-5 sm:top-6 sm:left-6 h-10 w-10 sm:h-14 sm:w-14" style={{ color: 'rgba(231,23,99,0.12)' }} />
 
                         <div className="relative z-10">
-                            <div className="flex items-center gap-1 mb-6">
+                            <div className="flex items-center gap-1 mb-4 sm:mb-6">
                                 {[...Array(t.rating)].map((_, i) => (
                                     <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.07, type: 'spring' }}>
-                                        <Star className="h-5 w-5" style={{ fill: '#e71763', color: '#e71763' }} />
+                                        <Star className="h-4 w-4 sm:h-5 sm:w-5" style={{ fill: '#e71763', color: '#e71763' }} />
                                     </motion.div>
                                 ))}
                             </div>
@@ -93,7 +95,7 @@ export default function TestimonialsSection() {
                                 <motion.blockquote key={currentIndex}
                                     initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
                                     transition={{ duration: 0.35 }}
-                                    className="text-xl md:text-2xl leading-relaxed text-white mb-8 font-medium">
+                                    className="text-base sm:text-xl md:text-2xl leading-relaxed text-white mb-6 sm:mb-8 font-medium">
                                     "{t.quote}"
                                 </motion.blockquote>
                             </AnimatePresence>
@@ -102,42 +104,42 @@ export default function TestimonialsSection() {
                                 <motion.div key={`info-${currentIndex}`}
                                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                     className="flex items-center justify-between flex-wrap gap-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-full flex items-center justify-center"
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center"
                                             style={{ background: 'rgba(231,23,99,0.12)', border: '2px solid rgba(231,23,99,0.35)' }}>
-                                            <span className="text-xl font-black" style={{ color: '#e71763' }}>{t.name.charAt(0)}</span>
+                                            <span className="text-lg sm:text-xl font-black" style={{ color: '#e71763' }}>{t.name.charAt(0)}</span>
                                         </div>
                                         <div>
                                             <p className="font-black text-white">{t.name}</p>
-                                            <p className="text-sm text-white/40">{t.role}</p>
+                                            <p className="text-xs sm:text-sm text-white/40">{t.role}</p>
                                         </div>
                                     </div>
-                                    <div className="px-4 py-2 rounded-xl text-center"
+                                    <div className="px-3 sm:px-4 py-2 rounded-xl text-center"
                                         style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.25)' }}>
-                                        <p className="font-black text-sm" style={{ color: '#e71763' }}>{t.transformation}</p>
+                                        <p className="font-black text-xs sm:text-sm" style={{ color: '#e71763' }}>{t.transformation}</p>
                                         <p className="text-[10px] text-white/35 mt-0.5">Transformation</p>
                                     </div>
                                 </motion.div>
                             </AnimatePresence>
 
                             {/* Controls */}
-                            <div className="flex items-center justify-center gap-4 mt-8">
+                            <div className="flex items-center justify-center gap-4 mt-6 sm:mt-8">
                                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prev}
-                                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"
                                     style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>
-                                    <ChevronLeft className="h-5 w-5 text-white" />
+                                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                                 </motion.button>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
                                     {testimonials.map((_, i) => (
                                         <button key={i} onClick={() => { setIsAutoPlaying(false); setCurrentIndex(i); }}
                                             className="rounded-full transition-all"
-                                            style={{ width: i === currentIndex ? '28px' : '6px', height: '6px', background: i === currentIndex ? '#e71763' : 'rgba(255,255,255,0.15)' }} />
+                                            style={{ width: i === currentIndex ? '24px' : '6px', height: '6px', background: i === currentIndex ? '#e71763' : 'rgba(255,255,255,0.15)' }} />
                                     ))}
                                 </div>
                                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={next}
-                                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"
                                     style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>
-                                    <ChevronRight className="h-5 w-5 text-white" />
+                                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                                 </motion.button>
                             </div>
                         </div>
@@ -145,18 +147,17 @@ export default function TestimonialsSection() {
                 </motion.div>
 
                 {/* Cards row */}
-                <div className="grid md:grid-cols-3 gap-5">
+                <div className="grid md:grid-cols-3 gap-4 sm:gap-5">
                     {testimonials.slice(0, 3).map((item, index) => (
                         <motion.div key={item.id}
                             initial={{ opacity: 0, y: 40, scale: 0.92 }}
                             animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
                             transition={{ duration: 0.6, delay: 0.3 + index * 0.1, ease: [0.22, 1, 0.36, 1] }}
                             whileHover={{ y: -8, scale: 1.02 }}
-                            className="rounded-2xl p-6 cursor-default relative overflow-hidden"
+                            className="rounded-2xl p-5 sm:p-6 cursor-default relative overflow-hidden"
                             style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', transition: 'box-shadow 0.3s' }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.35)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(231,23,99,0.12), 0 20px 40px rgba(0,0,0,0.4)'; }}
                             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; }}>
-                            {/* Top accent line */}
                             <div className="absolute top-0 left-0 right-0 h-0.5 opacity-0 hover:opacity-100 transition-opacity"
                                 style={{ background: 'linear-gradient(90deg, transparent, #e71763, transparent)' }} />
                             <div className="flex items-center gap-1 mb-4">
