@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 function loadRazorpayScript() {
     return new Promise((resolve) => {
@@ -28,6 +29,7 @@ export function useRazorpay() {
         console.log('amountPaise:', amountPaise);
         console.log('name:', name, '| email:', email, '| contact:', contact);
         console.log('VITE_RAZORPAY_KEY_ID:', RAZORPAY_KEY_ID ?? '❌ MISSING');
+        console.log('API_BASE:', API_BASE || '(relative — dev proxy)');
 
         // Guard: key must be present
         if (!RAZORPAY_KEY_ID) {
@@ -52,7 +54,7 @@ export function useRazorpay() {
         console.log('[Razorpay] POST /api/create-order  amount:', amountPaise);
         let order;
         try {
-            const res = await fetch('/api/create-order', {
+            const res = await fetch(`${API_BASE}/api/create-order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ amount: amountPaise, currency: 'INR' }),
@@ -100,7 +102,7 @@ export function useRazorpay() {
                 // ── 3. Verify signature ───────────────────────────────────────
                 console.log('[Razorpay] POST /api/verify-payment…');
                 try {
-                    const verifyRes = await fetch('/api/verify-payment', {
+                    const verifyRes = await fetch(`${API_BASE}/api/verify-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
