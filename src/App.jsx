@@ -1,16 +1,15 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Landing from '@/pages/Landing';
-import Programs from '@/pages/Programs';
+import Enroll from '@/pages/Enroll';
 
-import PageNotFound from './lib/PageNotFound';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/programs" element={<Programs />} />
-        <Route path="*" element={<PageNotFound />} />
+        <Route path="/enroll" element={<Enroll />} />
+
       </Routes>
     </Router>
   );
