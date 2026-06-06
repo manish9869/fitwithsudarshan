@@ -291,7 +291,7 @@ export default function FeaturesSection() {
                             <motion.div initial={{ opacity: 0, x: 40 }} animate={recodeInView ? { opacity: 1, x: 0 } : {}}
                                 transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className="relative">
                                 {/* Connecting vertical line */}
-                                <motion.div className="absolute left-[19px] top-6 bottom-6 w-0.5 rounded-full"
+                                <motion.div className="absolute top-0 bottom-6 w-0.5 rounded-full"
                                     style={{ background: 'linear-gradient(to bottom, #e71763 0%, rgba(231,23,99,0.2) 100%)' }}
                                     initial={{ scaleY: 0, originY: 0 }}
                                     animate={recodeInView ? { scaleY: 1 } : {}}
