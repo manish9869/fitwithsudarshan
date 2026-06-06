@@ -142,7 +142,144 @@ export const services = [
     },
 ];
 
-// ─── PRICING ──────────────────────────────────────────────────────────────────
+// ─── COACHING TYPES ──────────────────────────────────────────────────────────
+export const coachingTypes = [
+    {
+        id: "online",
+        name: "RECODE Online Coaching",
+        shortName: "Online",
+        tagline: "Diet, workout, habit guidance and WhatsApp-led support.",
+        description:
+            "Best for clients who want structured diet, workout, habit guidance and WhatsApp-led accountability without video calls or in-person sessions. Ideal for fat loss, muscle gain, routine correction and sustainable transformation from anywhere.",
+        features: [
+            "Customized workout plan",
+            "Nutrition and diet guidance",
+            "Indian meal strategy",
+            "Habit and routine correction",
+            "Weekly progress review",
+            "WhatsApp-led support after enrollment",
+            "Daily / weekly check-in system",
+            "Lifestyle and recovery guidance",
+            "Progress tracking",
+            "Plan updates based on progress",
+        ],
+        cta: "Enroll in Online Coaching",
+    },
+    {
+        id: "video",
+        name: "RECODE Video Coaching",
+        shortName: "Video",
+        tagline: "Online coaching plus video review and consultation support.",
+        description:
+            "Best for clients who want online coaching plus direct video call guidance, review and correction. Ideal for people who need deeper explanation, personal review and stronger accountability.",
+        features: [
+            "Everything included in Online Coaching",
+            "Scheduled video consultation / review calls",
+            "Exercise form discussion",
+            "Diet and routine review on call",
+            "Progress discussion",
+            "Roadmap correction based on video review",
+            "Better for clients who need personal guidance and clarity",
+        ],
+        cta: "Enroll in Video Coaching",
+    },
+    {
+        id: "personal",
+        name: "RECODE Mumbai Personal Training",
+        shortName: "Mumbai PT",
+        tagline: "1-on-1 in-person training in Mumbai with nutrition and habit support.",
+        description:
+            "Premium one-to-one personal training in Mumbai for clients who want direct coaching, form correction, accountability and structured transformation support. Available for home, society gym, private gym or hybrid training.",
+        features: [
+            "12 one-to-one sessions per month",
+            "Exercise form correction",
+            "Strength and conditioning plan",
+            "Fat-loss or muscle-building workout structure",
+            "Nutrition and diet guidance",
+            "Indian meal strategy",
+            "Habit and routine correction",
+            "Weekly progress review",
+            "WhatsApp-led support after enrollment",
+            "Mobility, posture and recovery guidance",
+            "Progress tracking",
+            "Plan adjustments based on progress",
+        ],
+        note: "Mumbai Personal Training includes 12 one-to-one sessions per month. Final onboarding depends on location, timing and trainer availability.",
+        cta: "Enroll in Mumbai Personal Training",
+    },
+];
+
+// ─── PRICING TABLE ────────────────────────────────────────────────────────────
+// pricing[coachingTypeId][planType][duration] = price
+export const pricingTable = {
+    online: {
+        individual: {
+            "1": 2999,
+            "3": 7999,
+            "6": 14999,
+            "12": 24999,
+        },
+        couple: {
+            "1": 4999,
+            "3": 12999,
+            "6": 22999,
+            "12": 38999,
+        },
+    },
+    video: {
+        individual: {
+            "1": 4999,
+            "3": 12999,
+            "6": 22999,
+            "12": 38999,
+        },
+        couple: {
+            "1": 7999,
+            "3": 19999,
+            "6": 35999,
+            "12": 59999,
+        },
+    },
+    personal: {
+        individual: {
+            "1": 9999,
+            "3": 26999,
+            "6": 49999,
+            "12": 89999,
+        },
+        couple: {
+            "1": 14999,
+            "3": 39999,
+            "6": 74999,
+            "12": 134999,
+        },
+    },
+};
+
+export const durations = [
+    { months: "1", label: "1 Month", sublabel: "Starter", description: "Start with structure and direction." },
+    { months: "3", label: "3 Months", sublabel: "Foundation", description: "Build routine, food control and visible progress." },
+    { months: "6", label: "6 Months", sublabel: "Most Popular", description: "Best for serious transformation and consistency.", popular: true },
+    { months: "12", label: "12 Months", sublabel: "Best Value", description: "Best for complete body and lifestyle rebuild." },
+];
+
+// ─── WHAT'S INCLUDED IN ALL PLANS ────────────────────────────────────────────
+export const planInclusions = [
+    "Personalized workout structure",
+    "Nutrition and diet guidance",
+    "Indian food-based meal strategy",
+    "Habit and routine correction",
+    "Weekly progress review",
+    "WhatsApp onboarding and support after enrollment",
+    "Check-in system",
+    "Lifestyle and recovery guidance",
+    "Mindset and consistency support",
+    "Progress tracking",
+    "Plan updates based on response",
+    "Plateau correction when needed",
+];
+
+// ─── LEGACY PRICING (kept for reference) ─────────────────────────────────────
 export const pricing = [
     {
         name: "RECODE FOUNDATION",
@@ -150,13 +287,7 @@ export const pricing = [
         regularPrice: 599,
         foundingPrice: 599,
         isFoundingDifferent: false,
-        features: [
-            "Monthly Workout Plan",
-            "Monthly Nutrition Guidelines",
-            "RECODE Community Access",
-            "Educational Resources",
-            "Monthly Check-In",
-        ],
+        features: ["Monthly Workout Plan", "Monthly Nutrition Guidelines", "RECODE Community Access", "Educational Resources", "Monthly Check-In"],
         popular: false,
         cta: "Get Started",
         badge: null,
@@ -167,14 +298,7 @@ export const pricing = [
         regularPrice: 4999,
         foundingPrice: 2999,
         isFoundingDifferent: true,
-        features: [
-            "Customized Workout Plan",
-            "Customized Nutrition Plan",
-            "Weekly Accountability",
-            "WhatsApp Support",
-            "Habit Coaching",
-            "Progress Tracking",
-        ],
+        features: ["Customized Workout Plan", "Customized Nutrition Plan", "Weekly Accountability", "WhatsApp Support", "Habit Coaching", "Progress Tracking"],
         popular: false,
         cta: "Apply Now",
         badge: null,
@@ -185,14 +309,7 @@ export const pricing = [
         regularPrice: 11999,
         foundingPrice: 7999,
         isFoundingDifferent: true,
-        features: [
-            "Everything in RECODE START",
-            "3-Month Structured Program",
-            "Bi-Weekly Check-ins",
-            "Nutrition Plan Updates",
-            "Recovery Protocols",
-            "Movement Assessment",
-        ],
+        features: ["Everything in RECODE START", "3-Month Structured Program", "Bi-Weekly Check-ins", "Nutrition Plan Updates", "Recovery Protocols", "Movement Assessment"],
         popular: true,
         cta: "Apply Now",
         badge: "Most Popular",
@@ -203,15 +320,7 @@ export const pricing = [
         regularPrice: 20999,
         foundingPrice: 14999,
         isFoundingDifferent: true,
-        features: [
-            "Everything in TRANSFORM",
-            "6-Month Full Transformation",
-            "Weekly Strategy Calls",
-            "Advanced Tracking",
-            "Lifestyle Systems",
-            "Priority WhatsApp",
-            "Mobility Program",
-        ],
+        features: ["Everything in TRANSFORM", "6-Month Full Transformation", "Weekly Strategy Calls", "Advanced Tracking", "Lifestyle Systems", "Priority WhatsApp", "Mobility Program"],
         popular: false,
         cta: "Apply Now",
         badge: "Recommended",
@@ -222,16 +331,7 @@ export const pricing = [
         regularPrice: 35999,
         foundingPrice: 24999,
         isFoundingDifferent: true,
-        features: [
-            "Everything in EVOLVE",
-            "12-Month Full Journey",
-            "Weekly 1:1 Calls",
-            "Full Lifestyle Audit",
-            "Custom Recovery Plan",
-            "Competition Prep Ready",
-            "Lifetime Community Access",
-            "1-on-1 Accountability Partner",
-        ],
+        features: ["Everything in EVOLVE", "12-Month Full Journey", "Weekly 1:1 Calls", "Full Lifestyle Audit", "Custom Recovery Plan", "Competition Prep Ready", "Lifetime Community Access", "1-on-1 Accountability Partner"],
         popular: false,
         cta: "Apply Now",
         badge: "Best Value",
@@ -246,8 +346,7 @@ export const testimonials = [
         role: "RECODE Client",
         transformation: "82kg → 71kg",
         weightLost: "11kg Lost",
-        quote:
-            "RECODE changed the way I think about fitness. It wasn't just about losing weight — it was about understanding my body and building habits that actually last. Sudarshan's approach is unlike anything I've tried before.",
+        quote: "RECODE changed the way I think about fitness. It wasn't just about losing weight — it was about understanding my body and building habits that actually last. Sudarshan's approach is unlike anything I've tried before.",
         rating: 5,
         avatar: null,
     },
@@ -257,8 +356,7 @@ export const testimonials = [
         role: "RECODE Client",
         transformation: "15kg Lost",
         weightLost: "15kg Lost",
-        quote:
-            "I was skeptical about online coaching but the results speak for themselves. 15kg down, energy levels through the roof, and I've never felt stronger. The recovery focus made all the difference.",
+        quote: "I was skeptical about online coaching but the results speak for themselves. 15kg down, energy levels through the roof, and I've never felt stronger. The recovery focus made all the difference.",
         rating: 5,
         avatar: null,
     },
@@ -268,8 +366,7 @@ export const testimonials = [
         role: "RECODE Client",
         transformation: "85kg → 70kg",
         weightLost: "15kg Lost",
-        quote:
-            "As a busy professional, I needed something structured and flexible. RECODE gave me exactly that. The WhatsApp support and weekly accountability kept me on track even during the most hectic weeks.",
+        quote: "As a busy professional, I needed something structured and flexible. RECODE gave me exactly that. The WhatsApp support and weekly accountability kept me on track even during the most hectic weeks.",
         rating: 5,
         avatar: null,
     },
@@ -279,8 +376,7 @@ export const testimonials = [
         role: "Anaesthesiologist",
         transformation: "Lifestyle Transformation",
         weightLost: "Body Recomposition",
-        quote:
-            "As a doctor, I appreciate the evidence-based approach Sudarshan brings to coaching. The recovery-first methodology is exactly what the body needs. My sleep, energy, and performance have all improved significantly.",
+        quote: "As a doctor, I appreciate the evidence-based approach Sudarshan brings to coaching. The recovery-first methodology is exactly what the body needs. My sleep, energy, and performance have all improved significantly.",
         rating: 5,
         avatar: null,
     },
@@ -290,8 +386,7 @@ export const testimonials = [
         role: "Coach & Founder",
         transformation: "85kg → 56kg",
         weightLost: "29kg Lost",
-        quote:
-            "My own 29kg transformation taught me that lasting change requires fixing the foundation first — recovery, regulation, structure. That's what RECODE is built on. Every client deserves a method that truly works.",
+        quote: "My own 29kg transformation taught me that lasting change requires fixing the foundation first — recovery, regulation, structure. That's what RECODE is built on. Every client deserves a method that truly works.",
         rating: 5,
         avatar: null,
     },
@@ -300,17 +395,12 @@ export const testimonials = [
 // ─── BLOG POSTS ───────────────────────────────────────────────────────────────
 export const blogPosts = [
     {
-        id: 1,
-        slug: "why-recovery-is-the-missing-piece",
+        id: 1, slug: "why-recovery-is-the-missing-piece",
         title: "Why Recovery Is the Missing Piece in Your Transformation",
-        excerpt:
-            "Most people train harder when results stall. The real answer is almost always the opposite. Here's why recovery is the most underrated tool in fitness.",
-        category: "Recovery",
-        readTime: "5 min read",
-        date: "Jan 10, 2025",
+        excerpt: "Most people train harder when results stall. The real answer is almost always the opposite. Here's why recovery is the most underrated tool in fitness.",
+        category: "Recovery", readTime: "5 min read", date: "Jan 10, 2025",
         image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=340&fit=crop&q=80",
-        content: `
-## Why Recovery Is the Missing Piece in Your Transformation
+        content: `## Why Recovery Is the Missing Piece in Your Transformation
 
 Most people train harder when results stall. More sessions. More cardio. Stricter diet.
 
@@ -342,35 +432,17 @@ In RECODE™, recovery is the first pillar for a reason. Before we optimize nutr
 3. **Movement quality** — reducing compensations that create chronic fatigue
 4. **Nutrition timing** — supporting recovery through strategic eating
 
-### Practical Steps to Improve Recovery
-
-**Prioritize sleep consistency.** Go to bed and wake at the same time daily, even on weekends. This regulates your circadian rhythm and dramatically improves recovery quality.
-
-**Create a wind-down routine.** 30-60 minutes before bed: dim lights, no screens, reduce stimulation. This shifts your nervous system from sympathetic (fight/flight) to parasympathetic (rest/digest).
-
-**Eat enough.** Chronic undereating is one of the most common hidden saboteurs of recovery. You cannot repair and rebuild without adequate calories and protein.
-
-**Move, don't just train.** Daily walks, light mobility work, and stretching actively support recovery without adding stress.
-
 ### The Bottom Line
 
-If you've been grinding harder with diminishing returns, recovery is likely the missing piece. Train smart, recover harder, and watch your results accelerate.
-
-This is the foundation of RECODE™.
-    `,
+If you've been grinding harder with diminishing returns, recovery is likely the missing piece. Train smart, recover harder, and watch your results accelerate.`,
     },
     {
-        id: 2,
-        slug: "fat-loss-without-starving",
+        id: 2, slug: "fat-loss-without-starving",
         title: "Fat Loss Without Starving: The RECODE Nutrition Approach",
-        excerpt:
-            "Extreme calorie restriction slows your metabolism, kills muscle, and destroys your relationship with food. Here's a smarter way.",
-        category: "Fat Loss",
-        readTime: "6 min read",
-        date: "Jan 18, 2025",
+        excerpt: "Extreme calorie restriction slows your metabolism, kills muscle, and destroys your relationship with food. Here's a smarter way.",
+        category: "Fat Loss", readTime: "6 min read", date: "Jan 18, 2025",
         image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=340&fit=crop&q=80",
-        content: `
-## Fat Loss Without Starving: The RECODE Nutrition Approach
+        content: `## Fat Loss Without Starving: The RECODE Nutrition Approach
 
 Extreme calorie restriction slows your metabolism, kills muscle, and destroys your relationship with food.
 
@@ -380,106 +452,40 @@ There is a smarter way.
 
 Most diets operate on one principle: eat as little as possible.
 
-This works temporarily. Then it stops working. Here's why:
+**Metabolic adaptation** — your body is smart. When you chronically undereat, it downregulates metabolism to match your intake.
 
-**Metabolic adaptation** — your body is smart. When you chronically undereat, it downregulates metabolism to match your intake. Fat loss stalls.
+**Muscle loss** — without adequate protein and progressive training, your body breaks down muscle for energy.
 
-**Muscle loss** — without adequate protein and progressive training, your body breaks down muscle for energy. You get lighter but not leaner.
-
-**Hormonal disruption** — severe restriction elevates cortisol, suppresses testosterone and thyroid function, and disrupts hunger hormones (leptin and ghrelin).
-
-**Rebound** — after the diet ends, your suppressed metabolism causes rapid fat regain. This is why most diets fail long-term.
+**Hormonal disruption** — severe restriction elevates cortisol, suppresses testosterone and thyroid function.
 
 ### The RECODE Nutrition Philosophy
 
-RECODE approaches nutrition around four principles:
-
-**1. Eat enough to support transformation**
-
-Fat loss requires a calorie deficit, but a moderate one. Typically 300-500 calories below your maintenance level. Enough to lose fat, not enough to destroy metabolism or muscle.
-
-**2. Prioritize protein**
-
-Protein is the foundation of every RECODE nutrition plan. It:
-- Preserves muscle during fat loss
-- Increases satiety (you feel full longer)
-- Has the highest thermic effect (burns more calories digesting)
-- Supports recovery and repair
-
-Target: 1.6-2.2g per kg of bodyweight daily.
-
-**3. Build structure, not restriction**
-
-Rigid food rules create a combative relationship with food. RECODE builds a flexible structure — target macros and food categories — that allows for real life while progressing toward goals.
-
-**4. Adjust, don't crash**
-
-As fat loss progresses, calories need adjusting. RECODE monitors progress biweekly and makes small, strategic adjustments rather than dramatic cuts.
-
-### Practical Nutrition Habits
-
-- Eat protein at every meal
-- Prioritize whole foods 80% of the time
-- Drink 2.5-3L water daily
-- Don't skip breakfast — it sets your hunger regulation for the day
-- Allow planned flexibility (meals out, social events) without guilt
+1. **Eat enough to support transformation** — a moderate deficit of 300-500 calories
+2. **Prioritize protein** — 1.6-2.2g per kg of bodyweight daily
+3. **Build structure, not restriction** — flexible approach that allows real life
+4. **Adjust, don't crash** — small strategic adjustments over time
 
 ### The Result
 
-Sustainable fat loss. Preserved muscle. Better energy. A healthy relationship with food.
-
-Not a temporary transformation — a permanent one.
-    `,
+Sustainable fat loss. Preserved muscle. Better energy. A healthy relationship with food.`,
     },
     {
-        id: 3,
-        slug: "mobility-the-forgotten-component",
+        id: 3, slug: "mobility-the-forgotten-component",
         title: "Mobility: The Forgotten Component That Unlocks Everything",
-        excerpt:
-            "If you can't squat without your heels lifting, press overhead without pain, or sit on the floor comfortably — mobility training is non-negotiable.",
-        category: "Mobility",
-        readTime: "5 min read",
-        date: "Jan 25, 2025",
+        excerpt: "If you can't squat without your heels lifting, press overhead without pain, or sit on the floor comfortably — mobility training is non-negotiable.",
+        category: "Mobility", readTime: "5 min read", date: "Jan 25, 2025",
         image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=340&fit=crop&q=80",
-        content: `
-## Mobility: The Forgotten Component That Unlocks Everything
+        content: `## Mobility: The Forgotten Component That Unlocks Everything
 
 If you can't squat without your heels lifting, press overhead without pain, or sit comfortably on the floor — mobility training is non-negotiable.
 
 ### What Is Mobility?
 
-Mobility is active control through a joint's range of motion. It's different from flexibility (passive range) because mobility requires strength and control.
-
-Good mobility means:
+Mobility is active control through a joint's range of motion. Good mobility means:
 - Moving freely without compensation
 - Loading joints safely through full range
 - Reducing injury risk
 - Improving performance in every movement
-
-### Why Most People Are Immobile
-
-Modern life creates predictable mobility restrictions:
-
-**Hip flexors** — tight from sitting 8-10 hours daily. This pulls the pelvis forward, creates lower back pain, and limits squat depth.
-
-**Thoracic spine** — stiff from desk posture. This forces the lower back and neck to compensate, creating pain and limiting overhead movements.
-
-**Ankle dorsiflexion** — restricted from years of poor footwear and limited movement. This causes heel rise in squats and compensatory knee valgus.
-
-**Shoulder internal/external rotation** — tight from chest-dominant training and poor posture. This creates impingement in pressing and pulling movements.
-
-### The RECODE Mobility Protocol
-
-In RECODE™, mobility is integrated into the RESTRUCTURE phase. The approach:
-
-**Daily movement prep (10-15 minutes)**
-Before any training session, a targeted mobility sequence addresses the key restrictions above. This isn't static stretching — it's active, controlled movement that builds range and control simultaneously.
-
-**Training through full range**
-Every exercise is performed through complete range of motion. This builds mobility while building strength — the most efficient approach.
-
-**Corrective work for individual restrictions**
-Each client is assessed for their specific mobility limitations and given targeted drills to address them.
 
 ### Simple Daily Mobility Routine
 
@@ -489,245 +495,161 @@ Each client is assessed for their specific mobility limitations and given target
 4. **Cat-cow** — 10 slow reps
 5. **Deep squat hold** — 60 seconds
 
-Perform this daily. Results appear within 2-4 weeks.
-
-### Why Mobility Unlocks Everything
-
-Better mobility means:
-- Safer, more effective training
-- Less pain and injury
-- Better posture and appearance
-- Improved athletic performance
-- Higher quality of daily movement
-
-Don't train around restrictions. Eliminate them.
-    `,
+Perform this daily. Results appear within 2-4 weeks.`,
     },
     {
-        id: 4,
-        slug: "building-muscle-the-smart-way",
+        id: 4, slug: "building-muscle-the-smart-way",
         title: "Building Muscle the Smart Way: The RECODE Approach to Hypertrophy",
-        excerpt:
-            "More volume isn't always better. More intensity isn't always better. Here's what the science actually says about building muscle efficiently.",
-        category: "Muscle Building",
-        readTime: "7 min read",
-        date: "Feb 3, 2025",
+        excerpt: "More volume isn't always better. More intensity isn't always better. Here's what the science actually says about building muscle efficiently.",
+        category: "Muscle Building", readTime: "7 min read", date: "Feb 3, 2025",
         image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&h=340&fit=crop&q=80",
-        content: `
-## Building Muscle the Smart Way: The RECODE Approach to Hypertrophy
+        content: `## Building Muscle the Smart Way
 
 More volume isn't always better. More intensity isn't always better.
 
-Here's what the science actually says about building muscle efficiently.
-
 ### The Three Mechanisms of Hypertrophy
 
-Muscle growth occurs through three primary mechanisms:
+**1. Mechanical tension** — the force applied to muscle fibers during contraction. The most important driver.
 
-**1. Mechanical tension** — the force applied to muscle fibers during contraction. This is the most important driver of hypertrophy. It's created by lifting heavy with full range of motion.
+**2. Metabolic stress** — the accumulation of metabolites during training. The "pump."
 
-**2. Metabolic stress** — the accumulation of metabolites (lactate, hydrogen ions) during training. The "pump" is a signal of this. It contributes to hypertrophy but is secondary to tension.
-
-**3. Muscle damage** — microtrauma to muscle fibers that triggers repair and growth. Novelty, eccentric loading, and range of motion drive this.
-
-Effective training programs address all three.
+**3. Muscle damage** — microtrauma to muscle fibers that triggers repair and growth.
 
 ### Progressive Overload: The Non-Negotiable
 
-The single most important principle in muscle building is progressive overload — consistently increasing the demands on your muscles over time.
-
-This can be achieved by:
+The single most important principle in muscle building. Achieve it by:
 - Adding weight to the bar
 - Adding reps with the same weight
-- Adding sets
-- Reducing rest periods
 - Improving range of motion
-- Slowing the eccentric (lowering) phase
-
-Without progressive overload, you maintain muscle. You don't build it.
-
-### Volume and Frequency
-
-Research suggests:
-- **Minimum effective volume**: ~10 sets per muscle group per week
-- **Optimal volume**: 15-20 sets per muscle group per week for most
-- **Frequency**: Each muscle group should be trained 2x per week minimum
-
-More volume only benefits you if you can recover from it. This is why recovery is the first RECODE pillar.
-
-### The RECODE REBUILD Phase
-
-When clients enter the REBUILD phase of RECODE™:
-
-1. Mobility and movement quality are already established (RESTRUCTURE phase)
-2. Recovery capacity is optimized (RECOVER phase)
-3. Nutrition supports muscle gain (REGULATE phase)
-
-This creates the foundation for efficient, injury-free muscle building.
-
-Programs are periodized — volume and intensity change strategically over time to drive continuous adaptation.
-
-### The Overlooked Muscle Building Factors
-
-**Sleep** — growth hormone is released primarily during deep sleep. Poor sleep directly impairs muscle protein synthesis.
-
-**Protein timing** — distribute protein intake across 4-5 meals of 30-50g each for optimal muscle protein synthesis stimulation.
-
-**Mind-muscle connection** — consciously contracting the target muscle during exercise increases muscle activation and hypertrophy stimulus.
-
-**Stress management** — chronically elevated cortisol is catabolic. It breaks down muscle. Stress management is part of training.
-
-### The Result
-
-Structured, progressive muscle building that compounds over months and years — not a 30-day challenge that fades.
-    `,
+- Slowing the eccentric (lowering) phase`,
     },
     {
-        id: 5,
-        slug: "sleep-your-secret-weapon",
+        id: 5, slug: "sleep-your-secret-weapon",
         title: "Sleep: Your Most Powerful Transformation Tool",
-        excerpt:
-            "You can have the perfect training program and nutrition plan. If you're sleeping 5 hours a night, you're leaving 70% of your results on the table.",
-        category: "Recovery",
-        readTime: "5 min read",
-        date: "Feb 12, 2025",
+        excerpt: "You can have the perfect training program and nutrition plan. If you're sleeping 5 hours a night, you're leaving 70% of your results on the table.",
+        category: "Recovery", readTime: "5 min read", date: "Feb 12, 2025",
         image: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=600&h=340&fit=crop&q=80",
-        content: `
-## Sleep: Your Most Powerful Transformation Tool
-
-You can have the perfect training program and nutrition plan.
+        content: `## Sleep: Your Most Powerful Transformation Tool
 
 If you're sleeping 5 hours a night, you're leaving 70% of your results on the table.
 
-### What Happens When You Sleep
-
-Sleep is not passive recovery. It's an active biological process:
-
-**Growth hormone release** — 70-80% of daily growth hormone secretion occurs during slow-wave sleep. This drives fat metabolism and muscle protein synthesis.
-
-**Cortisol regulation** — sleep normalizes cortisol patterns. Poor sleep chronically elevates cortisol, promoting fat storage (especially visceral fat) and muscle breakdown.
-
-**Leptin and ghrelin regulation** — sleep controls hunger hormones. One night of poor sleep increases ghrelin (hunger hormone) by 28% and decreases leptin (satiety hormone) by 18%. This is why you crave calorie-dense food after poor sleep.
-
-**Memory consolidation** — motor patterns learned in training are consolidated during sleep. Better sleep literally makes you learn movement faster.
-
-**Immune function** — recovery from training requires immune function. Poor sleep suppresses immunity and slows recovery.
-
-### The Research Is Clear
-
-Studies consistently show:
-- Subjects sleeping 5.5 hours lost 55% less fat and 60% more muscle compared to those sleeping 8.5 hours on identical calorie deficits
-- One night of partial sleep deprivation reduces insulin sensitivity by 25%
-- Athletes sleeping 10 hours showed improved reaction time, sprint speed, and mood compared to their 7-hour baseline
-
-### Sleep Quality vs. Sleep Quantity
-
-Hours matter, but quality matters equally. Poor quality sleep (frequent waking, light sleep stages) reduces the hormonal and recovery benefits even with adequate duration.
-
-Factors that destroy sleep quality:
-- Blue light exposure before bed (screens)
-- Irregular sleep schedule
-- Caffeine after 2pm
-- Alcohol (disrupts REM sleep)
-- High stress/overthinking
-- Hot sleeping environment
-
 ### Building a Sleep Protocol
 
-**Consistency first** — same bedtime and wake time 7 days a week. This is the most impactful single change.
+**Consistency first** — same bedtime and wake time 7 days a week.
 
 **Temperature** — cool room (18-20°C) promotes deeper sleep.
 
-**Darkness** — blackout curtains or sleep mask. Even small amounts of light disrupt melatonin production.
+**Darkness** — blackout curtains or sleep mask.
 
-**Wind-down routine** — 30-60 minutes of low stimulation before bed. Reading, stretching, journaling. No screens.
+**Wind-down routine** — 30-60 minutes of low stimulation before bed.
 
-**Limit caffeine** — half-life of caffeine is 5-7 hours. Coffee at 3pm still affects you at 10pm.
-
-**Limit alcohol** — alcohol may help you fall asleep but destroys sleep architecture. Avoid within 3 hours of bed.
-
-### The Bottom Line
-
-Sleep is the single most cost-effective performance and body composition tool available. It's free. It's powerful. And most people ignore it.
-
-In RECODE™, sleep optimization is the first intervention. Everything builds from here.
-    `,
+**Limit caffeine** — half-life of caffeine is 5-7 hours. Coffee at 3pm still affects you at 10pm.`,
     },
     {
-        id: 6,
-        slug: "mindset-for-sustainable-transformation",
+        id: 6, slug: "mindset-for-sustainable-transformation",
         title: "The Mindset Shift That Makes Transformation Sustainable",
-        excerpt:
-            "The difference between people who transform permanently and those who yo-yo forever isn't discipline. It's identity.",
-        category: "Mindset",
-        readTime: "6 min read",
-        date: "Feb 20, 2025",
+        excerpt: "The difference between people who transform permanently and those who yo-yo forever isn't discipline. It's identity.",
+        category: "Mindset", readTime: "6 min read", date: "Feb 20, 2025",
         image: "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=600&h=340&fit=crop&q=80",
-        content: `
-## The Mindset Shift That Makes Transformation Sustainable
+        content: `## The Mindset Shift That Makes Transformation Sustainable
 
 The difference between people who transform permanently and those who yo-yo forever isn't discipline.
 
 It's identity.
 
-### The Discipline Trap
-
-Most people approach transformation with discipline as the goal. "I need to be more disciplined." "I just need to stick to it."
-
-The problem: discipline is finite. It depletes. And it relies on constant motivation to function.
-
-When motivation runs out — after a hard week, during a stressful period, after missing a few days — discipline collapses. And the whole system falls apart.
-
-### Identity-Based Change
-
-The permanent solution isn't more discipline. It's changing your identity.
-
-When someone identifies as "a person who trains" rather than "someone trying to lose weight," their decisions change automatically. They don't deliberate over whether to work out. It's just what they do.
-
-This is the core of RECODE's REDEFINE phase — the fifth and final pillar.
-
 ### How to Build a New Identity
 
-**1. Vote for who you want to become**
+**1. Vote for who you want to become** — every workout, every nutritious meal is a vote.
 
-Every action is a vote for your identity. Each workout, each nutritious meal, each good night of sleep is a vote for your health-focused identity.
+**2. Change your environment** — set up your space to make healthy choices easy.
 
-You don't need a perfect record. You need enough votes. 70% consistency compounds into transformation.
+**3. Join a community** — identity is social. We become who we're surrounded by.
 
-**2. Change your environment**
+**4. Celebrate process, not outcomes** — process goals create a permanent lifestyle.
 
-Your environment shapes your behavior more than your willpower. Set up your space to make healthy choices easy and unhealthy choices hard.
+**5. Reframe setbacks** — missing a workout isn't failure. What matters is the response.`,
+    },
+    {
+        id: 7, slug: "protein-101-how-much-do-you-really-need",
+        title: "Protein 101: How Much Do You Really Need to Build Muscle?",
+        excerpt: "The fitness industry is obsessed with protein — but most people are either eating way too little or way too much. Here's what the science says.",
+        category: "Nutrition", readTime: "6 min read", date: "Mar 5, 2025",
+        image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=600&h=340&fit=crop&q=80",
+        content: `## Protein 101: How Much Do You Really Need?
 
-Training gear visible. Healthy food at eye level in the fridge. Phone out of the bedroom. Walking shoes by the door.
+The fitness industry is obsessed with protein. Shake ads, meal preps, macro trackers — protein is everywhere. But most people are eating too little or too much.
 
-**3. Join a community**
+### What Does Protein Actually Do?
 
-Identity is social. We become who we're surrounded by. Being around people who prioritize health and fitness accelerates identity formation.
+Protein is the raw material for muscle repair and growth. It also:
+- Keeps you feeling full longer
+- Has the highest thermic effect of food (burns ~25% of calories to digest)
+- Supports immune function, hormones, and enzymes
 
-This is why RECODE includes community access at every level.
+### The Research-Backed Sweet Spot
 
-**4. Celebrate process, not outcomes**
+Current evidence points to **1.6–2.2g per kg of bodyweight** per day for most active people.
 
-Outcome goals (lose 10kg) create a destination that ends. Process goals (train 4x weekly, hit protein daily) create a permanent lifestyle.
+- 70kg person → 112–154g protein/day
+- 80kg person → 128–176g protein/day
 
-Celebrate showing up. Celebrate consistency. The outcomes follow.
+Going higher (up to 3g/kg) isn't harmful for most people, but offers diminishing returns.
 
-**5. Reframe setbacks**
+### Best Protein Sources
 
-Perfectionists fail because they expect perfection. Permanent transformers expect imperfection and have a plan for it.
+**Animal:** Chicken breast, eggs, Greek yogurt, cottage cheese, lean beef, fish
+**Plant:** Lentils, chickpeas, tofu, tempeh, edamame, seitan
 
-Missing a workout isn't failure. It's normal. What matters is the response — getting back to the process immediately, without guilt.
+### Timing Matters — But Less Than You Think
 
-### The RECODE REDEFINE Philosophy
+**Distribute across meals.** Aim for 30–40g per meal rather than trying to eat it all at once. Post-workout protein within 2 hours helps, but the total daily intake matters far more.`,
+    },
+    {
+        id: 8, slug: "hiit-vs-steady-state-cardio",
+        title: "HIIT vs Steady-State Cardio: Which Burns More Fat?",
+        excerpt: "Both have a place in a smart training plan. But depending on your goal, recovery capacity, and schedule — one will serve you significantly better.",
+        category: "Workouts", readTime: "5 min read", date: "Mar 14, 2025",
+        image: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&h=340&fit=crop&q=80",
+        content: `## HIIT vs Steady-State Cardio: Which Burns More Fat?
 
-REDEFINE isn't the end of RECODE. It's the phase where coaching becomes unnecessary because the identity and systems are in place.
+The debate has raged for years. Both camps have passionate followers. But the real answer is nuanced.
 
-The goal of RECODE is not to create dependence on a coach. The goal is to create a version of you that doesn't need a coach — because you've internalized the principles and built the identity.
+### What Is HIIT?
 
-### The Bottom Line
+High-Intensity Interval Training alternates short bursts of maximum effort with recovery periods. Example: 30 seconds sprint / 90 seconds walk, repeated 8–10 times.
 
-Sustainable transformation is an identity shift, not a willpower battle. Build the identity. Build the systems. The results are inevitable.
-    `,
+**Benefits:**
+- Burns more calories in less time
+- Elevates metabolism for hours after (EPOC effect)
+- Preserves muscle mass better than long cardio
+- Improves cardiovascular fitness rapidly
+
+**Drawbacks:**
+- High recovery demand — limits training frequency
+- Can increase cortisol if overused
+- Not ideal when already stressed or under-recovered
+
+### What Is Steady-State Cardio?
+
+Low-to-moderate intensity maintained for 30–60+ minutes. Think: brisk walk, jog, cycling.
+
+**Benefits:**
+- Low recovery cost — can be done daily
+- Reduces cortisol and aids recovery
+- Burns fat directly during activity
+- Improves aerobic base and heart health
+
+**Drawbacks:**
+- More time required for equivalent calorie burn
+- Can interfere with strength gains if overdone
+
+### The RECODE Verdict
+
+**Use both strategically.** For most clients, we recommend:
+- **2–3 days steady-state** (walks, light cycling) — great for recovery and fat burning
+- **1–2 days HIIT** — when energy is high and recovery is solid
+
+Never sacrifice sleep or recovery for more cardio.`,
     },
 ];
 

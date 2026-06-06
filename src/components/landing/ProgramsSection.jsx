@@ -12,8 +12,6 @@ export default function ProgramsSection() {
 
     return (
         <section id="programs" className="relative py-24 overflow-hidden">
-            <div className="absolute inset-0 bg-grid opacity-30" />
-
             <div ref={ref} className="relative container mx-auto px-4">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -21,12 +19,12 @@ export default function ProgramsSection() {
                     transition={{ duration: 0.5 }}
                     className="text-center mb-16"
                 >
-                    <span className="text-primary text-sm font-semibold uppercase tracking-widest">Services</span>
+                    <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: '#e71763' }}>Services</span>
                     <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-6">
-                        Choose Your <span className="text-primary">RECODE Path</span>
+                        Choose Your <span style={{ color: '#e71763' }}>RECODE Path</span>
                     </h2>
                     <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-                        Four ways to work with Sudarshan — online, via consultation, in-person in Mumbai, or as an elite client. Every path uses the RECODE™ system.
+                        Four ways to work with Sudarshan — online, via consultation, in-person in Mumbai, or as an elite client.
                     </p>
                 </motion.div>
 
@@ -41,40 +39,39 @@ export default function ProgramsSection() {
                                 transition={{ duration: 0.4, delay: 0.1 + index * 0.1 }}
                                 className="group relative"
                             >
-                                <div className="h-full glass-card rounded-2xl p-6 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1 flex flex-col">
-                                    {/* Badge */}
+                                <div className="h-full rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 flex flex-col"
+                                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(231,23,99,0.3)'}
+                                    onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
+                                >
                                     {service.badge && (
                                         <div className="absolute -top-3 left-6">
-                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white">
+                                            <span className="px-3 py-1 rounded-full text-xs font-bold text-white"
+                                                style={{ background: '#e71763' }}>
                                                 {service.badge}
                                             </span>
                                         </div>
                                     )}
-
-                                    {/* Icon */}
-                                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${service.color} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
-                                        <Icon className="h-6 w-6 text-foreground" />
+                                    <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform"
+                                        style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.2)' }}>
+                                        <Icon className="h-6 w-6" style={{ color: '#e71763' }} />
                                     </div>
-
-                                    {/* Title */}
-                                    <h3 className={`text-lg font-bold mb-1 group-hover:${service.accent} transition-colors`}>
-                                        {service.title}
-                                    </h3>
+                                    <h3 className="text-lg font-bold mb-1 text-white">{service.title}</h3>
                                     <p className="text-sm text-muted-foreground mb-5 leading-relaxed">{service.subtitle}</p>
-
-                                    {/* Features */}
                                     <ul className="space-y-2 mb-6 flex-1">
                                         {service.features.map((f) => (
                                             <li key={f} className="flex items-center gap-2 text-sm">
-                                                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${service.accent}`} />
+                                                <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e71763' }} />
                                                 <span className="text-muted-foreground">{f}</span>
                                             </li>
                                         ))}
                                     </ul>
-
-                                    {/* CTA */}
                                     <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
-                                        <Button variant="ghost" className={`w-full group/btn hover:bg-primary/10 hover:text-primary`}>
+                                        <Button variant="ghost" className="w-full group/btn hover:text-white"
+                                            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(231,23,99,0.1)'; e.currentTarget.style.borderColor = 'rgba(231,23,99,0.3)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                                        >
                                             Apply Now
                                             <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                                         </Button>
@@ -93,7 +90,10 @@ export default function ProgramsSection() {
                 >
                     <p className="text-muted-foreground mb-6">Not sure which path is right for you?</p>
                     <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
-                        <Button size="lg" className="glow-lime text-white font-bold">Book a Free Consultation</Button>
+                        <Button size="lg" className="text-white font-bold"
+                            style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.35)' }}>
+                            Book a Free Consultation
+                        </Button>
                     </a>
                 </motion.div>
             </div>
