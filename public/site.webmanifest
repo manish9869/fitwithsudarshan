@@ -1,0 +1,8 @@
+{
+    "name": "FitWithSudarshan",
+    "short_name": "FitWithSudarshan",
+    "icons": [],
+    "theme_color": "#e71763",
+    "background_color": "#0a0a0a",
+    "display": "standalone"
+  }
