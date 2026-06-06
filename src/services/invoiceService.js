@@ -1,254 +1,339 @@
 /**
- * invoiceService.js
- * Generates a professional PDF invoice and triggers a browser download.
- * Uses jsPDF which is already listed in package.json.
+ * invoiceService.js — Clean, professional A4 invoice for FitWithSudarshan
  */
 
 import { jsPDF } from 'jspdf';
 
-// Brand palette
-const BRAND_RED = '#e71763';
-const DARK_BG = '#0a0a0a';
-const DARK_MID = '#1a1a1a';
-const LIGHT_TEXT = '#ffffff';
-const MUTED = '#888888';
+// ── Palette ───────────────────────────────────────────────────────────────────
+const BRAND = [231, 23, 99];
+const BG = [10, 10, 14];
+const CARD = [18, 18, 24];
+const CARD2 = [24, 24, 32];
+const BORDER = [42, 42, 56];
+const WHITE = [255, 255, 255];
+const GREY60 = [153, 153, 168];
+const GREY35 = [90, 90, 105];
+const GREEN = [52, 211, 153];
+const GREEN_BG = [18, 52, 38];
 
-function formatCurrency(amount) {
+const LOGO_URL = 'https://media.base44.com/images/public/6a244cc0243fbecf2bcfeff3/b8bc19776_logo.png';
+
+// ── Tiny helpers ──────────────────────────────────────────────────────────────
+const tc = (d, c) => d.setTextColor(...c);
+const fc = (d, c) => d.setFillColor(...c);
+const dc = (d, c) => d.setDrawColor(...c);
+
+function fmt(amount) {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency', currency: 'INR', maximumFractionDigits: 0,
     }).format(amount);
 }
-
-function formatDate(isoStr) {
-    return new Intl.DateTimeFormat('en-IN', {
-        day: '2-digit', month: 'long', year: 'numeric',
-        timeZone: 'Asia/Kolkata',
-    }).format(new Date(isoStr));
+function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d) ? '—' : new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata',
+    }).format(d);
+}
+async function loadPng(url) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const c = document.createElement('canvas');
+            c.width = img.width; c.height = img.height;
+            c.getContext('2d').drawImage(img, 0, 0);
+            resolve(c.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+    });
 }
 
-// ─── Draw helpers ──────────────────────────────────────────────────────────────
-
-function hexToRGB(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return [r, g, b];
-}
-
-function setFillHex(doc, hex) {
-    doc.setFillColor(...hexToRGB(hex));
-}
-
-function setTextHex(doc, hex) {
-    doc.setTextColor(...hexToRGB(hex));
-}
-
-function setDrawHex(doc, hex) {
-    doc.setDrawColor(...hexToRGB(hex));
-}
-
-// ─── Main generator ────────────────────────────────────────────────────────────
-export function generateInvoicePDF(enrollment) {
+// ── Main generator ────────────────────────────────────────────────────────────
+export async function generateInvoicePDF(enrollment) {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const W = 210; // A4 width mm
-    const H = 297; // A4 height mm
+    const PW = 210, PH = 297;
+    const ML = 16, MR = 16;           // left / right margin
+    const CW = PW - ML - MR;          // content width  = 178 mm
 
-    // ── Dark background ──
-    setFillHex(doc, DARK_BG);
-    doc.rect(0, 0, W, H, 'F');
+    // ── Full page background ───────────────────────────────────────────────────
+    fc(doc, BG); doc.rect(0, 0, PW, PH, 'F');
 
-    // ── Accent header bar ──
-    setFillHex(doc, BRAND_RED);
-    doc.rect(0, 0, W, 22, 'F');
+    // ── Load logo ──────────────────────────────────────────────────────────────
+    const logoData = await loadPng(LOGO_URL);
 
-    // ── Header text ──
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    setTextHex(doc, LIGHT_TEXT);
-    doc.text('FIT WITH SUDARSHAN', 14, 14);
+    // ══════════════════════════════════════════════════════════════════════════
+    // HEADER
+    // ══════════════════════════════════════════════════════════════════════════
+    const HDR_H = 62;
+    fc(doc, CARD); doc.rect(0, 0, PW, HDR_H, 'F');
+    // top accent stripe
+    fc(doc, BRAND); doc.rect(0, 0, PW, 3, 'F');
 
-    // Invoice label right-aligned
-    doc.setFontSize(10);
-    doc.text('INVOICE', W - 14, 9, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`# ${enrollment.enrollmentId}`, W - 14, 15, { align: 'right' });
-
-    // ── Divider strip ──
-    setFillHex(doc, DARK_MID);
-    doc.rect(0, 22, W, 1, 'F');
-
-    // ── Company info block ──
-    let y = 34;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    setTextHex(doc, LIGHT_TEXT);
-    doc.text('FIT WITH SUDARSHAN', 14, y);
-    doc.setFont('helvetica', 'normal');
-    setTextHex(doc, MUTED);
-    doc.setFontSize(8);
-    doc.text('RECODE™ — Recovery-Based Transformation', 14, y + 5);
-    doc.text('Mumbai, Maharashtra, India', 14, y + 10);
-    doc.text('Fitwithsudarshanofficial@gmail.com', 14, y + 15);
-    doc.text('+91 96197 08124', 14, y + 20);
-
-    // ── Invoice meta right ──
-    const metaX = W - 14;
-    doc.setFont('helvetica', 'bold');
-    setTextHex(doc, LIGHT_TEXT);
-    doc.text('Invoice Date', metaX, y, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    setTextHex(doc, MUTED);
-    doc.text(formatDate(enrollment.paymentDate), metaX, y + 5, { align: 'right' });
-
-    doc.setFont('helvetica', 'bold');
-    setTextHex(doc, LIGHT_TEXT);
-    doc.text('Payment Status', metaX, y + 12, { align: 'right' });
-    setTextHex(doc, '#22c55e'); // green
-    doc.text('PAID', metaX, y + 17, { align: 'right' });
-
-    // ── Section separator ──
-    y += 30;
-    setDrawHex(doc, '#333333');
-    doc.setLineWidth(0.3);
-    doc.line(14, y, W - 14, y);
-    y += 8;
-
-    // ── Bill To ──
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    setTextHex(doc, BRAND_RED);
-    doc.text('BILL TO', 14, y);
-    y += 6;
-    doc.setFont('helvetica', 'bold');
-    setTextHex(doc, LIGHT_TEXT);
-    doc.setFontSize(10);
-    doc.text(enrollment.customerName, 14, y);
-    doc.setFont('helvetica', 'normal');
-    setTextHex(doc, MUTED);
-    doc.setFontSize(8);
-    doc.text(enrollment.customerEmail, 14, y + 5);
-    if (enrollment.customerPhone) {
-        doc.text(enrollment.customerPhone, 14, y + 10);
+    // Logo
+    const LS = 32;
+    if (logoData) {
+        doc.addImage(logoData, 'PNG', ML, (HDR_H - LS) / 2 + 1, LS, LS);
+    } else {
+        fc(doc, BRAND);
+        doc.circle(ML + LS / 2, HDR_H / 2, LS / 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+        tc(doc, WHITE); doc.text('FS', ML + LS / 2, HDR_H / 2 + 4, { align: 'center' });
     }
 
-    // ── Payment Reference right ──
-    const refY = y;
-    doc.setFont('helvetica', 'bold');
-    setTextHex(doc, BRAND_RED);
-    doc.text('PAYMENT REFERENCE', metaX, refY, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    setTextHex(doc, MUTED);
-    doc.text(`Enrollment ID: ${enrollment.enrollmentId}`, metaX, refY + 6, { align: 'right' });
-    doc.text(`Payment ID: ${enrollment.razorpayPaymentId}`, metaX, refY + 11, { align: 'right' });
-    doc.text(`Order ID: ${enrollment.razorpayOrderId}`, metaX, refY + 16, { align: 'right' });
+    // Brand name — left side, beside logo
+    const BX = ML + LS + 7;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+    tc(doc, WHITE);
+    const fw = doc.getTextWidth('FitWith');
+    doc.text('FitWith', BX, 30);
+    tc(doc, BRAND);
+    doc.text('Sudarshan', BX + fw, 30);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+    tc(doc, GREY35);
+    doc.text('your transformation coach', BX, 36.5);
 
-    // ── Line items table ──
-    y += 28;
-    setDrawHex(doc, '#333333');
-    doc.line(14, y, W - 14, y);
-    y += 1;
+    // Right side — "INVOICE" word + invoice number
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(28);
+    tc(doc, WHITE);
+    doc.text('INVOICE', PW - MR, 30, { align: 'right' });
 
-    // Table header
-    setFillHex(doc, DARK_MID);
-    doc.rect(14, y, W - 28, 10, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    setTextHex(doc, MUTED);
-    doc.text('DESCRIPTION', 18, y + 6.5);
-    doc.text('PROGRAM', 90, y + 6.5);
-    doc.text('DURATION', 135, y + 6.5);
-    doc.text('AMOUNT', W - 18, y + 6.5, { align: 'right' });
-    y += 10;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    tc(doc, GREY35);
+    doc.text(`No.  ${enrollment.enrollmentId || '—'}`, PW - MR, 37.5, { align: 'right' });
 
-    // Table row
-    setFillHex(doc, '#111111');
-    doc.rect(14, y, W - 28, 14, 'F');
-    doc.setFont('helvetica', 'normal');
-    setTextHex(doc, LIGHT_TEXT);
-    doc.text('RECODE™ Coaching Plan', 18, y + 9);
-    setTextHex(doc, MUTED);
-    doc.text(enrollment.coachingType || 'Online', 90, y + 9);
+    // PAID badge — bottom-right of header
+    const BADGE_W = 34, BADGE_H = 10;
+    const BADGE_X = PW - MR - BADGE_W;
+    const BADGE_Y = HDR_H - BADGE_H - 8;
+    fc(doc, GREEN_BG); doc.roundedRect(BADGE_X, BADGE_Y, BADGE_W, BADGE_H, 2, 2, 'F');
+    dc(doc, GREEN); doc.setLineWidth(0.5);
+    doc.roundedRect(BADGE_X, BADGE_Y, BADGE_W, BADGE_H, 2, 2, 'S');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    tc(doc, GREEN);
+    doc.text('PAID', BADGE_X + BADGE_W / 2, BADGE_Y + BADGE_H / 2 + 2.8, { align: 'center' });
+
+    // Bottom accent stripe
+    fc(doc, BRAND); doc.rect(0, HDR_H, PW, 2.5, 'F');
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // FROM / BILL TO / DATE  —  3-column row
+    // ══════════════════════════════════════════════════════════════════════════
+    let y = HDR_H + 2.5 + 12;   // start 12mm below accent stripe
+
+    const COL1 = ML;
+    const COL2 = ML + CW * 0.38;
+    const COL3 = ML + CW * 0.68;
+
+    // Section label helper
+    function sectionLabel(x, yy, text) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
+        tc(doc, BRAND);
+        doc.text(text, x, yy);
+    }
+    function bodyLine(x, yy, text, bold = false, color = GREY60) {
+        doc.setFont('helvetica', bold ? 'bold' : 'normal');
+        doc.setFontSize(bold ? 9 : 7.8);
+        tc(doc, bold ? WHITE : color);
+        doc.text(String(text || '—'), x, yy);
+    }
+
+    // FROM
+    sectionLabel(COL1, y, 'FROM');
+    bodyLine(COL1, y + 6, 'FitWithSudarshan', true);
+    bodyLine(COL1, y + 12, 'RECODE™ Transformation Program');
+    bodyLine(COL1, y + 17, 'Mumbai, Maharashtra, India');
+    bodyLine(COL1, y + 22, 'Fitwithsudarshanofficial@gmail.com');
+    bodyLine(COL1, y + 27, '+91 96197 08124');
+
+    // BILL TO
+    sectionLabel(COL2, y, 'BILL TO');
+    bodyLine(COL2, y + 6, enrollment.customerName, true);
+    bodyLine(COL2, y + 12, enrollment.customerEmail);
+    bodyLine(COL2, y + 17, enrollment.customerPhone || '');
+
+    // DATE / STATUS
+    sectionLabel(COL3, y, 'INVOICE DATE');
+    bodyLine(COL3, y + 6, fmtDate(enrollment.paymentDate), true);
+
+    sectionLabel(COL3, y + 14, 'PAYMENT STATUS');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+    tc(doc, GREEN);
+    doc.text('VERIFIED & PAID', COL3, y + 20);
+
+    y += 36;
+
+    // Thin divider
+    dc(doc, BORDER); doc.setLineWidth(0.2);
+    doc.line(ML, y, PW - MR, y);
+    y += 8;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // REFERENCE IDs  —  one card, grid of 3 cells
+    // ══════════════════════════════════════════════════════════════════════════
+    const REF_H = 18;
+    fc(doc, CARD); doc.roundedRect(ML, y, CW, REF_H, 2.5, 2.5, 'F');
+    dc(doc, BORDER); doc.setLineWidth(0.18);
+    doc.roundedRect(ML, y, CW, REF_H, 2.5, 2.5, 'S');
+
+    // vertical separators
+    const C1W = CW / 3, C2W = CW / 3;
+    dc(doc, BORDER); doc.setLineWidth(0.18);
+    doc.line(ML + C1W, y + 3, ML + C1W, y + REF_H - 3);
+    doc.line(ML + C1W + C2W, y + 3, ML + C1W + C2W, y + REF_H - 3);
+
+    function refCell(cx, label, value) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+        tc(doc, GREY35); doc.text(label, cx, y + 7);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
+        tc(doc, WHITE); doc.text(String(value || '—'), cx, y + 13);
+    }
+
+    refCell(ML + 5, 'ENROLLMENT ID', enrollment.enrollmentId || '—');
+    refCell(ML + C1W + 5, 'PAYMENT ID', enrollment.razorpayPaymentId || '—');
+    refCell(ML + C1W + C2W + 5, 'ORDER ID', enrollment.razorpayOrderId || '—');
+
+    y += REF_H + 8;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // LINE-ITEMS TABLE
+    // ══════════════════════════════════════════════════════════════════════════
+    const TBL_X = ML, TBL_W = CW;
+
+    // Col positions  (left-aligned except Amount which is right-aligned)
+    const C_DESC = TBL_X + 5;
+    const C_TYPE = TBL_X + 100;
+    const C_DUR = TBL_X + 130;
+    const C_AMT = TBL_X + TBL_W - 5;   // right-align anchor
+
+    // Header
+    const TH = 10;
+    fc(doc, BRAND); doc.rect(TBL_X, y, TBL_W, TH, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+    tc(doc, WHITE);
+    doc.text('DESCRIPTION', C_DESC, y + 6.8);
+    doc.text('TYPE', C_TYPE, y + 6.8);
+    doc.text('DURATION', C_DUR, y + 6.8);
+    doc.text('AMOUNT', C_AMT, y + 6.8, { align: 'right' });
+    y += TH;
+
+    // Row
+    const TR = 16;
+    fc(doc, CARD2); doc.rect(TBL_X, y, TBL_W, TR, 'F');
+    dc(doc, BORDER); doc.setLineWidth(0.18);
+    doc.rect(TBL_X, y, TBL_W, TR, 'S');
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+    tc(doc, WHITE);
+    doc.text('RECODE™ Coaching Plan', C_DESC, y + TR / 2 + 3);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+    tc(doc, GREY60);
+    doc.text(enrollment.coachingType || 'Online', C_TYPE, y + TR / 2 + 3);
     doc.text(
-        enrollment.durationMonths ? `${enrollment.durationMonths} Month${enrollment.durationMonths > 1 ? 's' : ''}` : '—',
-        135, y + 9
+        enrollment.durationMonths
+            ? `${enrollment.durationMonths} Month${enrollment.durationMonths > 1 ? 's' : ''}`
+            : '—',
+        C_DUR, y + TR / 2 + 3,
     );
-    setTextHex(doc, LIGHT_TEXT);
-    doc.text(formatCurrency(enrollment.amountPaid), W - 18, y + 9, { align: 'right' });
-    y += 14;
+    // Amount — bold white, right-aligned
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    tc(doc, WHITE);
+    doc.text(fmt(enrollment.amountPaid), C_AMT, y + TR / 2 + 3, { align: 'right' });
 
-    // ── Totals ──
-    y += 4;
-    setDrawHex(doc, '#333333');
-    doc.line(120, y, W - 14, y);
-    y += 6;
+    y += TR + 6;
 
-    const totalRows = [
-        ['Subtotal', formatCurrency(enrollment.amountPaid)],
-        ['GST / Tax', 'Included'],
-        ['TOTAL PAID', formatCurrency(enrollment.amountPaid)],
-    ];
+    // ══════════════════════════════════════════════════════════════════════════
+    // TOTALS BLOCK  —  aligned to right edge, same width as table
+    // ══════════════════════════════════════════════════════════════════════════
+    const TOT_W = 90;                         // fixed width
+    const TOT_X = TBL_X + TBL_W - TOT_W;     // flush right with table
+    const LAB_X = TOT_X + 6;                  // label left pad
+    const VAL_X = TOT_X + TOT_W - 6;          // value right anchor
 
-    totalRows.forEach(([label, val], i) => {
-        const isLast = i === totalRows.length - 1;
-        if (isLast) {
-            setFillHex(doc, BRAND_RED);
-            doc.rect(120, y - 2, W - 14 - 120, 10, 'F');
-            doc.setFont('helvetica', 'bold');
-            setTextHex(doc, LIGHT_TEXT);
-        } else {
-            doc.setFont('helvetica', 'normal');
-            setTextHex(doc, MUTED);
-        }
-        doc.text(label, 124, y + 4.5);
-        doc.text(val, W - 18, y + 4.5, { align: 'right' });
-        y += isLast ? 12 : 8;
-    });
+    // Subtotal row
+    fc(doc, CARD); doc.rect(TOT_X, y, TOT_W, 9, 'F');
+    dc(doc, BORDER); doc.setLineWidth(0.15);
+    doc.rect(TOT_X, y, TOT_W, 9, 'S');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); tc(doc, GREY60);
+    doc.text('Subtotal', LAB_X, y + 5.8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); tc(doc, WHITE);
+    doc.text(fmt(enrollment.amountPaid), VAL_X, y + 5.8, { align: 'right' });
+    y += 9;
 
-    // ── Next steps ──
-    y += 6;
-    setFillHex(doc, DARK_MID);
-    doc.rect(14, y, W - 28, 40, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    setTextHex(doc, BRAND_RED);
-    doc.text('WHAT HAPPENS NEXT', 18, y + 8);
-    doc.setFont('helvetica', 'normal');
-    setTextHex(doc, MUTED);
-    doc.setFontSize(8);
+    // GST row
+    fc(doc, CARD2); doc.rect(TOT_X, y, TOT_W, 9, 'F');
+    dc(doc, BORDER); doc.setLineWidth(0.15);
+    doc.rect(TOT_X, y, TOT_W, 9, 'S');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); tc(doc, GREY60);
+    doc.text('GST / Tax', LAB_X, y + 5.8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); tc(doc, GREY60);
+    doc.text('Included', VAL_X, y + 5.8, { align: 'right' });
+    y += 9;
+
+    // Total row — brand accent
+    const TOT_ROW_H = 14;
+    fc(doc, BRAND); doc.rect(TOT_X, y, TOT_W, TOT_ROW_H, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); tc(doc, WHITE);
+    doc.text('TOTAL PAID', LAB_X, y + TOT_ROW_H / 2 + 2.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); tc(doc, WHITE);
+    doc.text(fmt(enrollment.amountPaid), VAL_X, y + TOT_ROW_H / 2 + 2.5, { align: 'right' });
+    y += TOT_ROW_H + 10;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // WHAT HAPPENS NEXT
+    // ══════════════════════════════════════════════════════════════════════════
+    const NEXT_H = 52;
+    fc(doc, CARD); doc.roundedRect(ML, y, CW, NEXT_H, 3, 3, 'F');
+    // left accent bar
+    fc(doc, BRAND); doc.roundedRect(ML, y, 4, NEXT_H, 2, 2, 'F');
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
+    tc(doc, BRAND);
+    doc.text('WHAT HAPPENS NEXT', ML + 10, y + 9);
+
     const steps = [
-        '① Our coaching team will review your enrollment within 24 hours.',
-        '② You will receive your onboarding instructions via WhatsApp & email.',
-        '③ Your personalized RECODE™ fitness plan will be prepared.',
-        '④ Begin your transformation journey!',
+        '1   Our coaching team reviews your enrollment details within 24 hours.',
+        '2   Onboarding instructions sent via WhatsApp & email.',
+        '3   Sudarshan crafts your personalised RECODE™ workout & nutrition plan.',
+        '4   Begin your recovery-based transformation with full coach support!',
     ];
-    steps.forEach((s, i) => {
-        doc.text(s, 18, y + 16 + i * 7);
-    });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+    tc(doc, GREY60);
+    steps.forEach((s, i) => doc.text(s, ML + 10, y + 17 + i * 8));
 
-    // ── Footer ──
-    y = H - 16;
-    setFillHex(doc, DARK_MID);
-    doc.rect(0, y, W, 16, 'F');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    setTextHex(doc, MUTED);
-    doc.text('FitWithSudarshan.com  |  Fitwithsudarshanofficial@gmail.com  |  +91 96197 08124', W / 2, y + 6, { align: 'center' });
-    doc.text('This is a computer-generated invoice. No signature required.', W / 2, y + 12, { align: 'center' });
+    y += NEXT_H + 6;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // FOOTER
+    // ══════════════════════════════════════════════════════════════════════════
+    const FY = PH - 20;
+    fc(doc, CARD); doc.rect(0, FY, PW, 20, 'F');
+    fc(doc, BRAND); doc.rect(0, FY, PW, 1.5, 'F');
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+    tc(doc, GREY60);
+    doc.text(
+        'FitWithSudarshan  ·  Fitwithsudarshanofficial@gmail.com  ·  +91 96197 08124  ·  Mumbai, India',
+        PW / 2, FY + 8, { align: 'center' },
+    );
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
+    tc(doc, GREY35);
+    doc.text(
+        'This is a computer-generated invoice and does not require a physical signature.',
+        PW / 2, FY + 14, { align: 'center' },
+    );
 
     return doc;
 }
 
-// ─── Download trigger ──────────────────────────────────────────────────────────
-export function downloadInvoice(enrollment) {
-    const doc = generateInvoicePDF(enrollment);
-    const filename = `RECODE-Invoice-${enrollment.enrollmentId}.pdf`;
-    doc.save(filename);
+export async function downloadInvoice(enrollment) {
+    const doc = await generateInvoicePDF(enrollment);
+    doc.save(`RECODE-Invoice-${enrollment.enrollmentId}.pdf`);
 }
 
-// ─── Return as blob URL (for inline preview / email attachment) ────────────────
-export function getInvoiceBlobUrl(enrollment) {
-    const doc = generateInvoicePDF(enrollment);
-    const blob = doc.output('blob');
-    return URL.createObjectURL(blob);
+export async function getInvoiceBlobUrl(enrollment) {
+    const doc = await generateInvoicePDF(enrollment);
+    return URL.createObjectURL(doc.output('blob'));
 }
