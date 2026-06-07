@@ -1,12 +1,4 @@
-/**
- * Enroll.jsx  (UPDATED)
- *
- * Key changes vs original:
- *  - Removed the inline PaymentModal (success / error / dismissed states).
- *  - On success → navigate to /payment-success with the enrollment object as route state.
- *  - On error / dismissed → show inline toast-style banner only.
- *  - Passes programName, planType, durationMonths, coachingType to useRazorpay.
- */
+
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
