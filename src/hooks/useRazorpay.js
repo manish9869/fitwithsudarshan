@@ -88,7 +88,7 @@ export function useRazorpay() {
             currency: order.currency,
             name: 'FitWithSudarshan',
             description,
-            image: 'https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/8f822062b_logo.png',
+            image: 'https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png',
             order_id: order.order_id,
             prefill: { name, email, contact },
             theme: { color: '#e71763' },

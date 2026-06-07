@@ -186,7 +186,7 @@ export default function PaymentPage() {
                         <ArrowLeft className="w-4 h-4" /> Back
                     </Link>
                     <img
-                        src="https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/8f822062b_logo.png"
+                        src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png"
                         alt="FitWithSudarshan"
                         className="h-10"
                     />

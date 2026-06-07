@@ -16,7 +16,7 @@ const GREY35 = [90, 90, 105];
 const GREEN = [52, 211, 153];
 const GREEN_BG = [18, 52, 38];
 
-const LOGO_URL = 'https://media.base44.com/images/public/6a244cc0243fbecf2bcfeff3/b8bc19776_logo.png';
+const LOGO_URL = 'https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png';
 
 // ── Tiny helpers ──────────────────────────────────────────────────────────────
 const tc = (d, c) => d.setTextColor(...c);

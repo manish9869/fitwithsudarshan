@@ -118,7 +118,7 @@ export default function FooterSection() {
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                         transition={{ duration: 0.6 }} className="col-span-2 lg:col-span-1">
                         <a href="#home" className="flex items-center gap-2 mb-4 group">
-                            <img src="https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/8f822062b_logo.png"
+                            <img src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png"
                                 alt="FitWithSudarshan" className="h-10 group-hover:scale-105 transition-transform" />
                         </a>
                         <div className="flex items-center gap-1.5 mb-3">

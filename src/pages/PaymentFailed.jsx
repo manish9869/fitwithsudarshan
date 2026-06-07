@@ -143,7 +143,7 @@ export default function PaymentFailed() {
                 <div className="container mx-auto px-6 py-3 flex items-center justify-between max-w-5xl">
                     <div className="flex items-center gap-2.5">
                         <img
-                            src="https://media.base44.com/images/public/6a244cc0243fbecf2bcfeff3/d6a9d28b0_WhatsAppImage2026-05-31at40432AM.jpg"
+                            src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/Black-bg%20Logo.jpeg"
                             alt="FitWithSudarshan"
                             className="w-9 h-9 rounded-lg object-cover"
                             style={{ border: '1px solid rgba(239,68,68,0.25)' }}
