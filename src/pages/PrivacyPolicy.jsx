@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Lock } from 'lucide-react';
-import { Navbar } from '@/components/landing/Navbar';
 import FooterSection from '@/components/landing/FooterSection';
 import CustomCursor from '@/components/CustomCursor';
 const sections = [
@@ -49,10 +48,10 @@ export default function PrivacyPolicy() {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            <Navbar />
+
             <CustomCursor />
             {/* Hero */}
-            <section className="relative pt-32 pb-16 overflow-hidden">
+            <section className="relative pt-20 pb-16 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[100px]"
                         style={{ background: 'rgba(231,23,99,0.07)' }} />
