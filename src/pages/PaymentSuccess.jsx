@@ -3,7 +3,7 @@
  * Premium payment success page — luxury dark cinematic aesthetic.
  * Receives enrollment data via React Router state.
  */
-
+import { Navbar } from '../components/landing/Navbar';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -110,7 +110,7 @@ function SuccessIcon() {
     }, []);
 
     return (
-        <div className="relative flex items-center justify-center w-40 h-40 mx-auto mb-10">
+        <div className="relative flex items-center justify-center w-32 h-28 mx-auto mb-7 mt-19">
             {/* Pulse rings */}
             {[1, 2, 3].map((i) => (
                 <motion.div
@@ -143,7 +143,7 @@ function SuccessIcon() {
 
             {/* Main circle */}
             <motion.div
-                className="relative z-10 w-32 h-32 rounded-full flex items-center justify-center"
+                className="relative z-10 w-20 h-20 rounded-full flex items-center justify-center"
                 style={{
                     background: 'linear-gradient(135deg, rgba(231,23,99,0.2) 0%, rgba(231,23,99,0.05) 100%)',
                     border: '1.5px solid rgba(231,23,99,0.5)',
@@ -160,7 +160,7 @@ function SuccessIcon() {
                 >
                     <CheckCircle
                         strokeWidth={1.5}
-                        className="w-16 h-16"
+                        className="w-10 h-10"
                         style={{ color: '#e71763', filter: 'drop-shadow(0 0 12px rgba(231,23,99,0.6))' }}
                     />
                 </motion.div>
@@ -199,7 +199,7 @@ function CopyText({ value }) {
 function DetailRow({ icon: Icon, label, value, accent, mono, copyable }) {
     return (
         <div
-            className="flex items-center gap-4 py-3.5 group"
+            className="flex items-center gap-3 py-2.5 group"
             style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
         >
             <div
@@ -321,35 +321,16 @@ export default function PaymentSuccess() {
             <FloatingOrbs />
 
             {/* ── Nav ─────────────────────────────────────────────────────────── */}
-            <div
-                className="relative z-20 sticky top-0 backdrop-blur-2xl"
-                style={{ background: 'rgba(8,8,8,0.85)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-            >
-                <div className="container mx-auto px-6 py-3.5 flex items-center justify-between max-w-6xl">
-                    <div className="flex items-center gap-2.5">
-                        <div
-                            className="w-6 h-6 rounded-full flex items-center justify-center"
-                            style={{ background: '#e71763', boxShadow: '0 0 16px rgba(231,23,99,0.5)' }}
-                        >
-                            <CheckCircle className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
-                        </div>
-                        <span className="text-sm font-bold text-white/90">FitWith<span style={{ color: '#e71763' }}>Sudarshan</span></span>
-                    </div>
-                    <div
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
-                        style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e' }}
-                    >
-                        <Shield className="w-3 h-3" />
-                        Payment Verified
-                    </div>
-                </div>
+            {/* Your existing site Navbar */}
+            <div className="relative" style={{ zIndex: 50 }}>
+                <Navbar />
             </div>
 
-            <div className="relative z-10 container mx-auto px-4 py-16 max-w-6xl">
+            <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
 
                 {/* ── Hero ────────────────────────────────────────────────────── */}
                 <motion.div
-                    className="text-center mb-20"
+                    className="text-center mb-10"
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
@@ -388,7 +369,7 @@ export default function PaymentSuccess() {
                             </span>
                         </h1>
 
-                        <p className="text-white/45 max-w-md mx-auto text-base leading-relaxed mb-8">
+                        <p className="text-white/40 max-w-md mx-auto text-base leading-relaxed mb-8">
                             Your payment has been verified and your transformation journey officially begins today.
                         </p>
 
