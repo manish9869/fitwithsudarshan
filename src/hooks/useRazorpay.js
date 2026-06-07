@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { buildEnrollment } from '../services/enrollmentService';
-import { sendEnrollmentEmails } from '../services/emailService';
+import { sendEmail } from '../services/emailService';
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
@@ -92,10 +92,6 @@ export function useRazorpay() {
             order_id: order.order_id,
             prefill: { name, email, contact },
             theme: { color: '#e71763' },
-            // ── Suppress Razorpay's own success screen ──────────────────────
-            // The modal closes immediately after payment.captured; our handler
-            // fires before Razorpay can render its "Payment Successful" overlay.
-            // We close the iframe manually in the handler so no native modal flashes.
             modal: {
                 backdropclose: false,
                 escape: false,
@@ -107,15 +103,11 @@ export function useRazorpay() {
             },
             config: {
                 display: {
-                    // Prevents the built-in success/failure screens from rendering
                     hide_topbar: false,
                 },
             },
             handler: async (response) => {
-                // Close the Razorpay iframe immediately so their success modal
-                // never appears — we handle everything in our own UI
                 try {
-                    // rzp instance is closed below; store ref for cleanup
                     if (window.__rzpInstance) {
                         window.__rzpInstance.close();
                         window.__rzpInstance = null;
@@ -159,7 +151,7 @@ export function useRazorpay() {
                     console.log('[Razorpay] ✅ Enrollment built:', enrollment);
 
                     // ── 5. Emails (fire-and-forget) ─────────────────────────
-                    sendEnrollmentEmails(enrollment);
+                    sendEmail({ type: 'enrollment_both', to: null, data: enrollment });
 
                     console.log('[Razorpay] ✅ Calling onSuccess.');
                     console.groupEnd();
@@ -180,13 +172,11 @@ export function useRazorpay() {
         });
 
         const rzp = new window.Razorpay(options);
-        // Store reference so handler can close it before their success screen renders
         window.__rzpInstance = rzp;
 
         rzp.on('payment.failed', (response) => {
             console.error('[Razorpay] ❌ payment.failed event:', response.error);
             console.groupEnd();
-            // Close modal so their failure screen doesn't show either
             try { rzp.close(); window.__rzpInstance = null; } catch (_) { }
             onError?.(response.error?.description || 'Payment failed. Please try again.');
         });
