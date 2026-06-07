@@ -62,7 +62,7 @@ export function Navbar() {
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "20px", borderBottom: "1px solid rgba(255,255,255,0.1)",
             }}>
-                <img src="https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/8f822062b_logo.png" alt="FitWithSudarshan" style={{ height: "48px" }} />
+                <img src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png" alt="FitWithSudarshan" style={{ height: "48px" }} />
                 <button onClick={closeMenu} style={{
                     padding: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.1)",
                     border: "none", cursor: "pointer", color: "white",
@@ -114,7 +114,7 @@ export function Navbar() {
             >
                 <div className="container mx-auto flex items-center justify-between px-4">
                     <a href="#home" className="flex items-center gap-2">
-                        <img src="https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/8f822062b_logo.png" alt="FitWithSudarshan" className="h-12 lg:h-14" />
+                        <img src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png" alt="FitWithSudarshan" className="h-12 lg:h-14" />
                     </a>
 
                     <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 gap-1">

@@ -33,8 +33,8 @@ const transformations = [
         weightLost: "29kg Lost", category: "Founder's Journey",
         quote: "RECODE was born from my own transformation journey. After struggling with inconsistency, extreme approaches, and the cycle of starting over, I realized that lasting results come from structure, not restriction. I transformed from 85kg to 56kg and built a lifestyle I could actually sustain.",
         stats: { before: "85kg", after: "56kg", bodyFat: "-18%" },
-        photoBefore: "https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/c63bad9b6_sudarshan-before.png",
-        photoAfter: "https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/5a9c44bd6_sudarshan-after.jpg",
+        photoBefore: "https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan-before.png",
+        photoAfter: "https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan-after.jpeg",
     },
 ];
 

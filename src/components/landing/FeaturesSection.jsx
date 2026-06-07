@@ -129,7 +129,7 @@ export default function FeaturesSection() {
                                     style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(231,23,99,0.22) 0%, transparent 70%)' }} />
                                 <MagneticCard className="relative rounded-3xl overflow-hidden cursor-default"
                                     style={{ aspectRatio: '3/4', border: '1px solid rgba(231,23,99,0.3)', boxShadow: '0 0 60px rgba(231,23,99,0.15), 0 40px 80px rgba(0,0,0,0.6)' }}>
-                                    <img src="https://media.base44.com/images/public/6a2381461c7fbce9d10aa67e/d9df4e285_sudarshan.jpg"
+                                    <img src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan.jpeg"
                                         alt={coach.name} className="absolute inset-0 w-full h-full object-cover object-center" />
                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.15) 45%, transparent 70%)' }} />
                                     {/* Name tag */}
