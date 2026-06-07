@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Instagram, Youtube, MessageCircle, Mail, Dumbbell, Heart, Zap, ArrowRight, Activity, Target, Flame } from "lucide-react";
+import { Link } from "react-router-dom";
 import { contact, brand } from "@/data/SiteData";
 
 const navSections = [
@@ -26,6 +27,12 @@ const resources = [
     { name: "Apply for Coaching", href: contact.social.whatsapp, external: true },
 ];
 
+const legalLinks = [
+    { name: "Privacy Policy", to: "/privacy-policy" },
+    { name: "Terms & Conditions", to: "/terms" },
+    { name: "Refund Policy", to: "/refund-policy" },
+];
+
 const socialLinks = [
     { icon: Instagram, label: "Instagram", href: contact.social.instagram },
     { icon: Youtube, label: "YouTube", href: contact.social.youtube },
@@ -33,7 +40,6 @@ const socialLinks = [
     { icon: Mail, label: "Email", href: `mailto:${contact.email}` },
 ];
 
-// Tiny floating fitness icons scattered in bg
 const bgIcons = [Activity, Flame, Target, Heart, Zap, Dumbbell];
 
 export default function FooterSection() {
@@ -58,10 +64,8 @@ export default function FooterSection() {
                         <Icon className="w-12 h-12 text-primary" />
                     </motion.div>
                 ))}
-                {/* Top border glow line */}
                 <div className="absolute top-0 left-0 right-0 h-px"
                     style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(231,23,99,0.6) 30%, rgba(231,23,99,1) 50%, rgba(231,23,99,0.6) 70%, transparent 100%)' }} />
-                {/* Radial glow */}
                 <motion.div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] rounded-full blur-[100px]"
                     style={{ background: 'rgba(231,23,99,0.07)' }}
                     animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 5, repeat: Infinity }} />
@@ -74,7 +78,6 @@ export default function FooterSection() {
                     transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                     className="relative rounded-3xl p-8 md:p-12 mb-20 overflow-hidden"
                     style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.12) 0%, rgba(231,23,99,0.04) 50%, rgba(0,0,0,0.4) 100%)', border: '1px solid rgba(231,23,99,0.25)' }}>
-                    {/* Inner glow */}
                     <motion.div className="absolute inset-0 rounded-3xl pointer-events-none"
                         style={{ background: 'radial-gradient(ellipse at 20% 50%, rgba(231,23,99,0.12) 0%, transparent 60%)' }}
                         animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 4, repeat: Infinity }} />
@@ -165,11 +168,29 @@ export default function FooterSection() {
                             </ul>
                         </motion.div>
                     ))}
+
+                    {/* Legal col */}
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}>
+                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 mb-5">Legal</h4>
+                        <ul className="space-y-2.5">
+                            {legalLinks.map((link) => (
+                                <li key={link.name}>
+                                    <Link
+                                        to={link.to}
+                                        className="text-sm text-white/35 transition-all hover:text-white flex items-center gap-1.5 group"
+                                    >
+                                        <span className="w-0 group-hover:w-3 h-px transition-all duration-300" style={{ background: '#e71763' }} />
+                                        {link.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </motion.div>
                 </div>
 
                 {/* ── Divider + bottom ── */}
                 <div className="relative pt-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    {/* Glow on divider */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-px"
                         style={{ background: 'linear-gradient(90deg, transparent, rgba(231,23,99,0.6), transparent)' }} />
 
@@ -182,8 +203,11 @@ export default function FooterSection() {
                             <span>Powered by RECODE™ System</span>
                         </div>
                         <div className="flex items-center gap-5 text-xs text-white/25">
-                            <a href="#" className="hover:text-white/60 transition-colors">Privacy Policy</a>
-                            <a href="#" className="hover:text-white/60 transition-colors">Terms of Service</a>
+                            {legalLinks.map((link) => (
+                                <Link key={link.name} to={link.to} className="hover:text-white/60 transition-colors">
+                                    {link.name}
+                                </Link>
+                            ))}
                         </div>
                     </div>
                 </div>
