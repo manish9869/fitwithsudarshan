@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, FileText } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import FooterSection from '@/components/landing/FooterSection';
-
+import CustomCursor from '@/components/CustomCursor';
 const sections = [
     {
         title: '1. Services',
@@ -116,6 +116,7 @@ export default function Terms() {
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Navbar />
+            <CustomCursor />
 
             {/* Hero */}
             <section className="relative pt-32 pb-16 overflow-hidden">
