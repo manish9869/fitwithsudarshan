@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+import { buildEnrollment } from '../services/enrollmentService';
+import { sendEnrollmentEmails } from '../services/emailService';
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
@@ -21,6 +23,10 @@ export function useRazorpay() {
         email = '',
         contact = '',
         description = 'RECODE™ Coaching Plan',
+        programName = '',
+        planType = 'individual',
+        durationMonths = '3',
+        coachingType = 'online',
         onSuccess,
         onError,
         onDismiss,
@@ -31,26 +37,23 @@ export function useRazorpay() {
         console.log('VITE_RAZORPAY_KEY_ID:', RAZORPAY_KEY_ID ?? '❌ MISSING');
         console.log('API_BASE:', API_BASE || '(relative — dev proxy)');
 
-        // Guard: key must be present
         if (!RAZORPAY_KEY_ID) {
-            console.error('[Razorpay] ❌ VITE_RAZORPAY_KEY_ID is undefined. Check your .env file and restart Vite.');
+            console.error('[Razorpay] ❌ VITE_RAZORPAY_KEY_ID is undefined.');
             console.groupEnd();
             onError?.('Razorpay key is not configured. Check VITE_RAZORPAY_KEY_ID in your .env file.');
             return;
         }
 
-        // ── Load script ───────────────────────────────────────────────────────
         console.log('[Razorpay] Loading checkout.js…');
         const loaded = await loadRazorpayScript();
         console.log('[Razorpay] Script loaded:', loaded, '| window.Razorpay:', typeof window.Razorpay);
         if (!loaded) {
-            console.error('[Razorpay] ❌ Failed to load checkout.js');
             console.groupEnd();
             onError?.('Failed to load payment gateway. Check your internet connection.');
             return;
         }
 
-        // ── 1. Create order ───────────────────────────────────────────────────
+        // ── 1. Create order ─────────────────────────────────────────────────
         console.log('[Razorpay] POST /api/create-order  amount:', amountPaise);
         let order;
         try {
@@ -70,16 +73,15 @@ export function useRazorpay() {
             return;
         }
 
-        // Guard: order_id must be a non-empty string
-        console.log('[Razorpay] order_id:', order?.order_id, '| amount:', order?.amount, '| currency:', order?.currency);
+        console.log('[Razorpay] order_id:', order?.order_id, '| amount:', order?.amount);
         if (!order?.order_id || typeof order.order_id !== 'string') {
-            console.error('[Razorpay] ❌ order_id is missing or not a string. Full response:', order);
+            console.error('[Razorpay] ❌ order_id missing. Full response:', order);
             console.groupEnd();
             onError?.('Invalid order response from server. Please try again.');
             return;
         }
 
-        // ── 2. Open modal ─────────────────────────────────────────────────────
+        // ── 2. Open modal ───────────────────────────────────────────────────
         const options = {
             key: RAZORPAY_KEY_ID,
             amount: order.amount,
@@ -90,16 +92,39 @@ export function useRazorpay() {
             order_id: order.order_id,
             prefill: { name, email, contact },
             theme: { color: '#e71763' },
+            // ── Suppress Razorpay's own success screen ──────────────────────
+            // The modal closes immediately after payment.captured; our handler
+            // fires before Razorpay can render its "Payment Successful" overlay.
+            // We close the iframe manually in the handler so no native modal flashes.
             modal: {
+                backdropclose: false,
+                escape: false,
+                handleback: true,
                 ondismiss: () => {
                     console.log('[Razorpay] Modal dismissed by user');
                     onDismiss?.();
                 },
             },
+            config: {
+                display: {
+                    // Prevents the built-in success/failure screens from rendering
+                    hide_topbar: false,
+                },
+            },
             handler: async (response) => {
+                // Close the Razorpay iframe immediately so their success modal
+                // never appears — we handle everything in our own UI
+                try {
+                    // rzp instance is closed below; store ref for cleanup
+                    if (window.__rzpInstance) {
+                        window.__rzpInstance.close();
+                        window.__rzpInstance = null;
+                    }
+                } catch (_) { /* safe to ignore */ }
+
                 console.log('[Razorpay] ✅ Payment captured:', response);
 
-                // ── 3. Verify signature ───────────────────────────────────────
+                // ── 3. Verify signature ─────────────────────────────────────
                 console.log('[Razorpay] POST /api/verify-payment…');
                 try {
                     const verifyRes = await fetch(`${API_BASE}/api/verify-payment`, {
@@ -116,9 +141,29 @@ export function useRazorpay() {
                     if (!verifyRes.ok || !verifyData.success) {
                         throw new Error(verifyData.error || 'Payment verification failed');
                     }
-                    console.log('[Razorpay] ✅ Signature verified. Calling onSuccess.');
+
+                    // ── 4. Build enrollment ─────────────────────────────────
+                    const enrollment = buildEnrollment({
+                        customerName: name,
+                        customerEmail: email,
+                        customerPhone: contact,
+                        programName,
+                        planType,
+                        durationMonths,
+                        coachingType,
+                        amountPaid: amountPaise / 100,
+                        razorpayOrderId: response.razorpay_order_id,
+                        razorpayPaymentId: response.razorpay_payment_id,
+                    });
+
+                    console.log('[Razorpay] ✅ Enrollment built:', enrollment);
+
+                    // ── 5. Emails (fire-and-forget) ─────────────────────────
+                    sendEnrollmentEmails(enrollment);
+
+                    console.log('[Razorpay] ✅ Calling onSuccess.');
                     console.groupEnd();
-                    onSuccess?.(response);
+                    onSuccess?.(enrollment);
                 } catch (err) {
                     console.error('[Razorpay] ❌ Verification failed:', err.message);
                     console.groupEnd();
@@ -135,11 +180,17 @@ export function useRazorpay() {
         });
 
         const rzp = new window.Razorpay(options);
+        // Store reference so handler can close it before their success screen renders
+        window.__rzpInstance = rzp;
+
         rzp.on('payment.failed', (response) => {
             console.error('[Razorpay] ❌ payment.failed event:', response.error);
             console.groupEnd();
+            // Close modal so their failure screen doesn't show either
+            try { rzp.close(); window.__rzpInstance = null; } catch (_) { }
             onError?.(response.error?.description || 'Payment failed. Please try again.');
         });
+
         rzp.open();
     }, []);
 
