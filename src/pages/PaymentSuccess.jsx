@@ -13,7 +13,6 @@ import {
     Dumbbell, Clock, ArrowRight, Shield, Sparkles,
     ChevronRight, Star, Copy, Check, ExternalLink,
 } from 'lucide-react';
-import { downloadInvoice } from '../services/invoiceService';
 import CustomCursor from '../components/CustomCursor';
 
 // ─── Floating orbs background ─────────────────────────────────────────────────
@@ -222,10 +221,27 @@ export default function PaymentSuccess() {
 
     const handleDownload = async () => {
         setInvoiceLoading(true);
-        try { downloadInvoice(enrollment); } catch (e) { console.error(e); }
-        finally { setTimeout(() => setInvoiceLoading(false), 900); }
+        try {
+            const API_BASE = import.meta.env.VITE_API_URL ?? '';
+            const res = await fetch(`${API_BASE}/api/invoice`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(enrollment),
+            });
+            if (!res.ok) throw new Error('Failed to generate invoice');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `RECODE-Invoice-${enrollment.enrollmentId}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setInvoiceLoading(false);
+        }
     };
-
     return (
         <motion.div className="min-h-screen text-white" style={{ background: '#080808' }} initial={{ opacity: 0 }} animate={{ opacity: entered ? 1 : 0 }} transition={{ duration: 0.5 }}>
             <CustomCursor />
