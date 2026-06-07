@@ -3,7 +3,10 @@ import Landing from '@/pages/Landing';
 import Enroll from '@/pages/Enroll';
 import PaymentPage from '@/pages/PaymentPage';
 import PaymentSuccess from '@/pages/PaymentSuccess';
-import PaymentFailed from './pages/PaymentFailed';
+import PaymentFailed from '@/pages/PaymentFailed';
+import Terms from '@/pages/Terms';
+import RefundPolicy from '@/pages/RefundPolicy';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import { SpeedInsights } from '@vercel/speed-insights/react'
 function App() {
   return (
@@ -14,6 +17,9 @@ function App() {
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/payment-failed" element={<PaymentFailed />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
       <SpeedInsights />
     </Router>
