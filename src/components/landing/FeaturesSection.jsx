@@ -25,11 +25,9 @@ function ScatteredIcons({ count = 8, sectionSeed = 0 }) {
     );
 }
 
-// ── Animated background noise / texture ───────────────────────────────────────
 function SectionAtmosphere({ children }) {
     return (
         <div className="relative">
-            {/* Vertical line grid */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 {Array.from({ length: 6 }).map((_, i) => (
                     <motion.div key={i} className="absolute top-0 bottom-0 w-px"
@@ -43,7 +41,6 @@ function SectionAtmosphere({ children }) {
     );
 }
 
-// ── Glow orb ──────────────────────────────────────────────────────────────────
 function Orb({ style, delay = 0, duration = 8 }) {
     return (
         <motion.div className="absolute rounded-full blur-3xl pointer-events-none"
@@ -53,7 +50,6 @@ function Orb({ style, delay = 0, duration = 8 }) {
     );
 }
 
-// ── Magnetic card — real spring on mouse ────────────────────────────────────
 function MagneticCard({ children, className, style, hoverStyle }) {
     const ref = useRef(null);
 
@@ -95,9 +91,7 @@ export default function FeaturesSection() {
     return (
         <section id="about" className="relative overflow-hidden bg-background">
 
-            {/* ═══════════════════════════════════════════════════════════════
-                MEET SUDARSHAN
-            ════════════════════════════════════════════════════════════════ */}
+            {/* ═══ MEET SUDARSHAN ═══ */}
             <SectionAtmosphere>
                 <div className="absolute inset-0 pointer-events-none">
                     <Orb style={{ left: '-10%', top: '20%', width: 500, height: 500, background: 'rgba(231,23,99,0.07)' }} delay={0} />
@@ -105,12 +99,12 @@ export default function FeaturesSection() {
                     <ScatteredIcons count={10} sectionSeed={0} />
                 </div>
 
-                <div ref={coachRef} className="relative py-24 md:py-32">
+                {/* FIX: py-12 sm:py-20 md:py-32 instead of py-24 md:py-32 */}
+                <div ref={coachRef} className="relative py-12 sm:py-20 md:py-32">
                     <div className="container mx-auto px-4 max-w-6xl">
 
-                        {/* Label */}
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={coachInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }}
-                            className="mb-14">
+                            className="mb-10 sm:mb-14">
                             <motion.span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full"
                                 style={{ color: '#e71763', border: '1px solid rgba(231,23,99,0.28)', background: 'rgba(231,23,99,0.07)' }}
                                 animate={{ boxShadow: ['0 0 0px transparent', '0 0 20px rgba(231,23,99,0.3)', '0 0 0px transparent'] }}
@@ -119,26 +113,24 @@ export default function FeaturesSection() {
                             </motion.span>
                         </motion.div>
 
-                        <div className="grid lg:grid-cols-[420px_1fr] gap-14 items-start">
+                        <div className="grid lg:grid-cols-[420px_1fr] gap-10 sm:gap-14 items-start">
 
                             {/* Photo */}
                             <motion.div initial={{ opacity: 0, x: -60 }} animate={coachInView ? { opacity: 1, x: 0 } : {}}
                                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} className="relative">
-                                {/* Glow halo */}
                                 <div className="absolute -inset-6 rounded-[32px] blur-3xl pointer-events-none"
                                     style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(231,23,99,0.22) 0%, transparent 70%)' }} />
+                                {/* FIX: added maxHeight to prevent excessively tall image on mobile */}
                                 <MagneticCard className="relative rounded-3xl overflow-hidden cursor-default"
-                                    style={{ aspectRatio: '3/4', border: '1px solid rgba(231,23,99,0.3)', boxShadow: '0 0 60px rgba(231,23,99,0.15), 0 40px 80px rgba(0,0,0,0.6)' }}>
+                                    style={{ aspectRatio: '3/4', maxHeight: '420px', border: '1px solid rgba(231,23,99,0.3)', boxShadow: '0 0 60px rgba(231,23,99,0.15), 0 40px 80px rgba(0,0,0,0.6)' }}>
                                     <img src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan.jpeg"
                                         alt={coach.name} className="absolute inset-0 w-full h-full object-cover object-center" />
                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.15) 45%, transparent 70%)' }} />
-                                    {/* Name tag */}
                                     <div className="absolute bottom-0 left-0 right-0 p-6">
                                         <h3 className="text-2xl font-black text-white">{coach.name}</h3>
                                         <p className="text-sm font-bold mt-0.5" style={{ color: '#e71763' }}>Founder, RECODE™</p>
                                         <p className="text-xs mt-1 text-white/40">{coach.certifications?.[0]}</p>
                                     </div>
-                                    {/* Floating badges */}
                                     <motion.div initial={{ opacity: 0, scale: 0.7 }} animate={coachInView ? { opacity: 1, scale: 1 } : {}} transition={{ delay: 0.7, type: 'spring' }}
                                         className="absolute top-4 right-4 rounded-xl px-3 py-2"
                                         style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(16px)', border: '1px solid rgba(231,23,99,0.45)' }}>
@@ -153,7 +145,6 @@ export default function FeaturesSection() {
                                     </motion.div>
                                 </MagneticCard>
 
-                                {/* Stats row */}
                                 <div className="grid grid-cols-2 gap-3 mt-4">
                                     {(coach.stats || []).slice(0, 2).map((s, i) => (
                                         <motion.div key={s.label}
@@ -173,7 +164,8 @@ export default function FeaturesSection() {
                             <motion.div initial={{ opacity: 0, x: 60 }} animate={coachInView ? { opacity: 1, x: 0 } : {}}
                                 transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className="space-y-8 pt-2">
                                 <div>
-                                    <h2 className="text-5xl md:text-7xl font-black leading-[0.92] text-white mb-6">
+                                    {/* FIX: text-3xl sm:text-5xl md:text-7xl — was text-5xl md:text-7xl (too big at 320px) */}
+                                    <h2 className="text-3xl sm:text-5xl md:text-7xl font-black leading-[0.92] text-white mb-6">
                                         Meet<br />
                                         <motion.span style={{ color: '#e71763' }}
                                             animate={{ textShadow: ['0 0 20px rgba(231,23,99,0.3)', '0 0 50px rgba(231,23,99,0.6)', '0 0 20px rgba(231,23,99,0.3)'] }}
@@ -190,7 +182,6 @@ export default function FeaturesSection() {
                                     <p className="text-white/40 leading-relaxed text-sm">{coach.longBio}</p>
                                 </div>
 
-                                {/* Highlight strips */}
                                 <div className="space-y-2.5">
                                     {[
                                         "ACSM Certified with 8+ years of real-world coaching experience",
@@ -216,9 +207,7 @@ export default function FeaturesSection() {
                 </div>
             </SectionAtmosphere>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                WHAT IS RECODE™
-            ════════════════════════════════════════════════════════════════ */}
+            {/* ═══ WHAT IS RECODE™ ═══ */}
             <SectionAtmosphere>
                 <div className="absolute inset-0 pointer-events-none">
                     <motion.div className="absolute inset-0"
@@ -229,9 +218,10 @@ export default function FeaturesSection() {
                     <ScatteredIcons count={8} sectionSeed={1} />
                 </div>
 
-                <div ref={recodeRef} className="relative py-24 md:py-32">
+                {/* FIX: py-12 sm:py-20 md:py-32 */}
+                <div ref={recodeRef} className="relative py-12 sm:py-20 md:py-32">
                     <div className="container mx-auto px-4 max-w-6xl">
-                        <div className="grid lg:grid-cols-2 gap-20 items-start">
+                        <div className="grid lg:grid-cols-2 gap-12 sm:gap-20 items-start">
 
                             {/* Left */}
                             <motion.div initial={{ opacity: 0, y: 40 }} animate={recodeInView ? { opacity: 1, y: 0 } : {}}
@@ -243,7 +233,8 @@ export default function FeaturesSection() {
                                     <Sparkles className="w-3 h-3" /> The System
                                 </motion.span>
 
-                                <h2 className="text-5xl md:text-7xl font-black leading-[0.92] text-white mb-6">
+                                {/* FIX: text-3xl sm:text-5xl md:text-7xl */}
+                                <h2 className="text-3xl sm:text-5xl md:text-7xl font-black leading-[0.92] text-white mb-6">
                                     What is<br />
                                     <motion.span style={{ color: '#e71763' }}
                                         animate={{ textShadow: ['0 0 20px rgba(231,23,99,0.3)', '0 0 60px rgba(231,23,99,0.65)', '0 0 20px rgba(231,23,99,0.3)'] }}
@@ -290,7 +281,6 @@ export default function FeaturesSection() {
                             {/* Right — 5R timeline */}
                             <motion.div initial={{ opacity: 0, x: 40 }} animate={recodeInView ? { opacity: 1, x: 0 } : {}}
                                 transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className="relative">
-                                {/* Connecting vertical line */}
                                 <motion.div className="absolute top-0 bottom-6 w-0.5 rounded-full"
                                     style={{ background: 'linear-gradient(to bottom, #e71763 0%, rgba(231,23,99,0.2) 100%)' }}
                                     initial={{ scaleY: 0, originY: 0 }}
@@ -323,17 +313,15 @@ export default function FeaturesSection() {
                 </div>
             </SectionAtmosphere>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                WHY RECODE IS DIFFERENT — DRAMATIC DESIGN
-            ════════════════════════════════════════════════════════════════ */}
+            {/* ═══ WHY RECODE IS DIFFERENT ═══ */}
             <SectionAtmosphere>
                 <div className="absolute inset-0 pointer-events-none">
                     <Orb style={{ left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 500, background: 'rgba(231,23,99,0.06)' }} delay={0} />
                     <ScatteredIcons count={8} sectionSeed={3} />
                 </div>
 
-                <div ref={whyRef} className="relative py-20 md:py-28 overflow-hidden">
-                    {/* Big diagonal label watermark */}
+                {/* FIX: py-12 sm:py-20 md:py-28 */}
+                <div ref={whyRef} className="relative py-12 sm:py-20 md:py-28 overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
                         <span className="text-[18vw] font-black tracking-tighter whitespace-nowrap"
                             style={{ color: 'rgba(231,23,99,0.03)', transform: 'rotate(-8deg)' }}>
@@ -343,19 +331,19 @@ export default function FeaturesSection() {
 
                     <div className="container mx-auto px-4 max-w-5xl relative">
                         <motion.div initial={{ opacity: 0, y: 30 }} animate={whyInView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.7 }} className="text-center mb-16">
+                            transition={{ duration: 0.7 }} className="text-center mb-10 sm:mb-16">
                             <motion.span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full mb-6"
                                 style={{ color: '#e71763', border: '1px solid rgba(231,23,99,0.28)', background: 'rgba(231,23,99,0.07)' }}>
                                 <Target className="w-3 h-3" /> Why It Works
                             </motion.span>
-                            <h3 className="text-4xl md:text-6xl font-black text-white">
+                            {/* FIX: text-2xl sm:text-4xl md:text-6xl */}
+                            <h3 className="text-2xl sm:text-4xl md:text-6xl font-black text-white">
                                 Why <motion.span style={{ color: '#e71763' }}
                                     animate={{ textShadow: ['0 0 20px rgba(231,23,99,0.3)', '0 0 60px rgba(231,23,99,0.7)', '0 0 20px rgba(231,23,99,0.3)'] }}
                                     transition={{ duration: 3, repeat: Infinity }}>RECODE</motion.span> is different
                             </h3>
                         </motion.div>
 
-                        {/* Row-by-row comparison — dramatic staggered list */}
                         <div className="space-y-4">
                             {[
                                 ...(whyRecode.others || []).map((other, i) => ({
@@ -373,20 +361,21 @@ export default function FeaturesSection() {
                                     style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
 
                                     {/* Bad side */}
-                                    <div className="p-4 flex items-center gap-3 group"
+                                    <div className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3 group"
                                         style={{ background: 'rgba(239,68,68,0.04)' }}>
                                         <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                                             style={{ background: 'rgba(239,68,68,0.1)' }}>
                                             <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(239,68,68,0.7)' }} />
                                         </div>
-                                        <span className="text-sm text-white/30 line-through decoration-red-500/30">{row.bad}</span>
+                                        {/* FIX: text-xs sm:text-sm */}
+                                        <span className="text-xs sm:text-sm text-white/30 line-through decoration-red-500/30 leading-snug">{row.bad}</span>
                                     </div>
 
                                     {/* Center VS pill */}
-                                    <div className="flex items-center justify-center px-3"
+                                    <div className="flex items-center justify-center px-2 sm:px-3"
                                         style={{ background: 'rgba(0,0,0,0.3)' }}>
                                         <motion.div
-                                            className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-black text-white flex-shrink-0"
+                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[8px] sm:text-[9px] font-black text-white flex-shrink-0"
                                             style={{ background: i === 0 ? '#e71763' : 'rgba(231,23,99,0.7)' }}
                                             animate={i === 0 ? { boxShadow: ['0 0 0px rgba(231,23,99,0)', '0 0 20px rgba(231,23,99,0.8)', '0 0 0px rgba(231,23,99,0)'] } : {}}
                                             transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}>
@@ -395,38 +384,36 @@ export default function FeaturesSection() {
                                     </div>
 
                                     {/* Good side */}
-                                    <div className="p-4 flex items-center gap-3"
+                                    <div className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3"
                                         style={{ background: 'rgba(231,23,99,0.04)' }}>
                                         <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                                             style={{ background: 'rgba(231,23,99,0.15)' }}>
                                             <CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#e71763' }} />
                                         </div>
-                                        <span className="text-sm text-white/85 font-medium">{row.good}</span>
+                                        {/* FIX: text-xs sm:text-sm */}
+                                        <span className="text-xs sm:text-sm text-white/85 font-medium leading-snug">{row.good}</span>
                                     </div>
                                 </motion.div>
                             ))}
                         </div>
 
-                        {/* Bottom summary badge */}
                         <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={whyInView ? { opacity: 1, y: 0, scale: 1 } : {}}
                             transition={{ duration: 0.6, delay: 0.7 }}
-                            className="mt-10 text-center">
-                            <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl"
+                            className="mt-8 sm:mt-10 text-center">
+                            <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl"
                                 style={{ background: 'rgba(231,23,99,0.08)', border: '1px solid rgba(231,23,99,0.3)', boxShadow: '0 0 40px rgba(231,23,99,0.1)' }}>
-                                <Sparkles className="w-5 h-5" style={{ color: '#e71763' }} />
-                                <span className="text-sm font-black text-white">RECODE™ — Recovery-based. Science-backed. Built for <span style={{ color: '#e71763' }}>real life.</span></span>
-                                <Sparkles className="w-5 h-5" style={{ color: '#e71763' }} />
+                                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: '#e71763' }} />
+                                <span className="text-xs sm:text-sm font-black text-white">RECODE™ — Recovery-based. Science-backed. Built for <span style={{ color: '#e71763' }}>real life.</span></span>
+                                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: '#e71763' }} />
                             </div>
                         </motion.div>
                     </div>
                 </div>
             </SectionAtmosphere>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                RECODE IS BUILT FOR YOU
-            ════════════════════════════════════════════════════════════════ */}
-            <div ref={audienceRef} className="relative py-20 md:py-28 overflow-hidden">
-                {/* Marquee bg text */}
+            {/* ═══ RECODE IS BUILT FOR YOU ═══ */}
+            {/* FIX: py-12 sm:py-20 md:py-28 */}
+            <div ref={audienceRef} className="relative py-12 sm:py-20 md:py-28 overflow-hidden">
                 <div className="absolute inset-0 flex flex-col justify-center gap-8 pointer-events-none overflow-hidden select-none">
                     {[0, 1].map((row) => (
                         <motion.div key={row} className="flex gap-20 whitespace-nowrap"
@@ -442,19 +429,19 @@ export default function FeaturesSection() {
                     ))}
                 </div>
 
-                {/* Orbs + scattered icons */}
                 <Orb style={{ left: '10%', top: '20%', width: 300, height: 300, background: 'rgba(231,23,99,0.05)' }} delay={1} />
                 <Orb style={{ right: '5%', bottom: '10%', width: 250, height: 250, background: 'rgba(231,23,99,0.04)' }} delay={3} />
                 <ScatteredIcons count={7} sectionSeed={5} />
 
                 <div className="container mx-auto px-4 max-w-5xl relative">
                     <motion.div initial={{ opacity: 0, y: 30 }} animate={audienceInView ? { opacity: 1, y: 0 } : {}}
-                        transition={{ duration: 0.7 }} className="text-center mb-12">
+                        transition={{ duration: 0.7 }} className="text-center mb-10 sm:mb-12">
                         <motion.span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full mb-6"
                             style={{ color: '#e71763', border: '1px solid rgba(231,23,99,0.28)', background: 'rgba(231,23,99,0.07)' }}>
                             Who It's For
                         </motion.span>
-                        <h3 className="text-4xl md:text-6xl font-black text-white mt-4">
+                        {/* FIX: text-2xl sm:text-4xl md:text-6xl */}
+                        <h3 className="text-2xl sm:text-4xl md:text-6xl font-black text-white mt-4">
                             RECODE is built for{" "}
                             <motion.span style={{ color: '#e71763' }}
                                 animate={{ textShadow: ['0 0 20px rgba(231,23,99,0.3)', '0 0 60px rgba(231,23,99,0.7)', '0 0 20px rgba(231,23,99,0.3)'] }}

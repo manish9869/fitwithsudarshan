@@ -28,7 +28,8 @@ export default function TestimonialsSection() {
     const t = testimonials[currentIndex];
 
     return (
-        <section id="testimonials" className="relative py-28 overflow-hidden">
+        // FIX: py-14 sm:py-20 md:py-28 — was flat py-28 (112px) on all screens
+        <section id="testimonials" className="relative py-14 sm:py-20 md:py-28 overflow-hidden">
             {/* Atmosphere */}
             <div className="absolute inset-0 pointer-events-none">
                 <motion.div className="absolute inset-0"
@@ -45,9 +46,10 @@ export default function TestimonialsSection() {
 
             <div ref={ref} className="relative container mx-auto px-4 max-w-6xl">
 
-                {/* Header — FIXED responsive text sizes */}
+                {/* Header */}
+                {/* FIX: mb-8 sm:mb-12 md:mb-16 — was flat mb-16 */}
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} className="text-center mb-16">
+                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} className="text-center mb-8 sm:mb-12 md:mb-16">
                     <motion.span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full mb-6"
                         style={{ color: '#e71763', border: '1px solid rgba(231,23,99,0.28)', background: 'rgba(231,23,99,0.07)' }}
                         animate={{ boxShadow: ['0 0 0px transparent', '0 0 22px rgba(231,23,99,0.35)', '0 0 0px transparent'] }}
@@ -55,7 +57,6 @@ export default function TestimonialsSection() {
                         Results
                     </motion.span>
 
-                    {/* Responsive heading — no forced line break on mobile */}
                     <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 leading-tight">
                         Real People.{" "}
                         <motion.span
@@ -70,8 +71,9 @@ export default function TestimonialsSection() {
                 </motion.div>
 
                 {/* Hero testimonial */}
+                {/* FIX: mb-8 sm:mb-10 md:mb-14 */}
                 <motion.div initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className="max-w-4xl mx-auto mb-14">
+                    transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className="max-w-4xl mx-auto mb-8 sm:mb-10 md:mb-14">
                     <div className="relative rounded-3xl p-6 sm:p-8 md:p-12 overflow-hidden"
                         style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 40px 80px rgba(0,0,0,0.5)' }}>
                         <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none"

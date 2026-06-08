@@ -91,7 +91,8 @@ function PulseButton({ children, href, onClick, style }) {
                     animate={{ scale: [1, 1.3, 1.6], opacity: [0.4, 0.15, 0] }}
                     transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: 0.6 }}
                     style={{ background: 'rgba(231,23,99,0.25)' }} />
-                <Button size="lg" className="relative text-lg px-8 py-6 text-white font-bold group rounded-full"
+                {/* FIX: reduced px/py on mobile to prevent overflow at 320px */}
+                <Button size="lg" className="relative text-sm sm:text-lg px-5 sm:px-8 py-4 sm:py-6 text-white font-bold group rounded-full"
                     style={style}>
                     {children}
                 </Button>
@@ -163,7 +164,8 @@ export default function HeroSection() {
             {/* Floating particles */}
             <Particles />
 
-            <div className="relative container mx-auto px-4 pt-24 pb-20">
+            {/* FIX: reduced pt on smallest screens (320px) */}
+            <div className="relative container mx-auto px-4 pt-20 sm:pt-24 pb-14 sm:pb-20">
                 <div className="max-w-5xl mx-auto text-center">
 
                     {/* Badge */}
@@ -239,7 +241,7 @@ export default function HeroSection() {
                         </a>
                     </motion.div>
 
-                    {/* Stats */}
+                    {/* Stats — FIX: tighter padding on mobile */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                         {stats.map((stat, index) => (
                             <motion.div
@@ -252,7 +254,7 @@ export default function HeroSection() {
                                     ease: [0.22, 1, 0.36, 1],
                                 }}
                                 whileHover={{ scale: 1.07, y: -4 }}
-                                className="rounded-2xl p-4 md:p-6 cursor-default relative overflow-hidden group"
+                                className="rounded-2xl p-3 sm:p-4 md:p-6 cursor-default relative overflow-hidden group"
                                 style={{
                                     background: 'rgba(255,255,255,0.04)',
                                     border: '1px solid rgba(255,255,255,0.08)',
@@ -268,7 +270,6 @@ export default function HeroSection() {
                                     e.currentTarget.style.boxShadow = 'none';
                                 }}
                             >
-                                {/* Animated glow sweep on enter */}
                                 <motion.div
                                     className="absolute inset-0 rounded-2xl pointer-events-none"
                                     initial={{ opacity: 0 }}
