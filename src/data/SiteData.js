@@ -258,8 +258,8 @@ export const pricingTable = {
 
 export const durations = [
     { months: "1", label: "1 Month", sublabel: "Starter", description: "Start with structure and direction." },
-    { months: "3", label: "3 Months", sublabel: "Foundation", description: "Build routine, food control and visible progress." },
-    { months: "6", label: "6 Months", sublabel: "Most Popular", description: "Best for serious transformation and consistency.", popular: true },
+    { months: "3", label: "3 Months", sublabel: "Foundation", description: "Build routine, food control and visible progress.", popular: true },
+    { months: "6", label: "6 Months", sublabel: "Most Popular", description: "Best for serious transformation and consistency." },
     { months: "12", label: "12 Months", sublabel: "Best Value", description: "Best for complete body and lifestyle rebuild." },
 ];
 

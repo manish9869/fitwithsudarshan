@@ -1,40 +1,112 @@
-import { useState, useRef } from "react"
-import { motion, useInView } from "framer-motion"
+import { useState, useRef, useEffect } from "react"
+import { motion, useInView, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight, Scale, Clock, TrendingDown, Quote } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const transformations = [
     {
-        id: 1, name: "Prajvati", role: "Anesthetist", duration: "1 Month",
-        weightLost: "Lifestyle Transformation", category: "Lifestyle",
-        quote: "As an anesthetist, maintaining my own health while caring for others can be challenging. What stood out about RECODE was its focus on sustainability and lifestyle integration. It wasn't about following a strict diet — it was about building habits that fit my routine and delivered lasting results.",
-        stats: { before: "82kg", after: "71kg", bodyFat: "-9%" }, photoBefore: null, photoAfter: null,
+        id: 1,
+        name: "Prajvati",
+        role: "Anesthetist",
+        duration: "6 Months",
+        weightLost: "24kg Lost",
+        category: "Lifestyle Transformation",
+        quote:
+            "As an anesthetist, maintaining my own health while caring for others can be challenging. What stood out about RECODE was its focus on sustainability and lifestyle integration. It wasn't about following a strict diet—it was about building habits that fit my routine and delivered lasting results. Over 6 months, I lost 24kg while creating a healthier lifestyle that I could maintain long-term.",
+        stats: { before: "80kg", after: "56kg", bodyFat: "-24kg" },
+        photoBefore: "/Testimonials/prajvati-before.jpg",
+        photoAfter: "/Testimonials/prajvati-after.jpg",
     },
     {
-        id: 2, name: "Aayush", role: "Finance Professional", duration: "3 Months",
-        weightLost: "11kg Lost", category: "Fat Loss",
-        quote: "As someone working in finance, consistency was always my biggest challenge. RECODE helped me build sustainable habits around nutrition and training, leading to an 11kg transformation without extreme dieting.",
-        stats: { before: "82kg", after: "71kg", bodyFat: "-9%" }, photoBefore: null, photoAfter: null,
+        id: 2,
+        name: "Aayush",
+        role: "Finance Professional",
+        duration: "3 Months",
+        weightLost: "11kg Lost",
+        category: "Fat Loss",
+        quote:
+            "As someone working in finance, consistency was always my biggest challenge. RECODE helped me build sustainable habits around nutrition and training, leading to an 11kg transformation without extreme dieting. The process was practical, easy to follow, and fit perfectly into my busy schedule.",
+        stats: { before: "82kg", after: "71kg", bodyFat: "-11kg" },
+        photoBefore: "/Testimonials/aayush-before.jpg",
+        photoAfter: "/Testimonials/aayush-after.jpg",
     },
     {
-        id: 3, name: "Joshua", role: "Producer", duration: "3 Months",
-        weightLost: "15kg Lost", category: "Fat Loss",
-        quote: "As a producer, my schedule is fast-paced, stressful, and constantly changing. RECODE gave me a practical structure that fit my lifestyle instead of forcing me into a restrictive diet. Over 3 months, I lost 15kg while building habits that I could realistically maintain long-term.",
-        stats: { before: "82kg", after: "71kg", bodyFat: "-9%" }, photoBefore: null, photoAfter: null,
+        id: 3,
+        name: "Joshua",
+        role: "Producer",
+        duration: "3 Months",
+        weightLost: "15kg Lost",
+        category: "Fat Loss",
+        quote:
+            "As a producer, my schedule is fast-paced, stressful, and constantly changing. RECODE gave me a practical structure that fit my lifestyle instead of forcing me into a restrictive diet. Over 3 months, I lost 15kg while building habits that I could realistically maintain long-term.",
+        stats: { before: "95kg", after: "80kg", bodyFat: "-15kg" },
+        photoBefore: "/Testimonials/joshua-before.jpg",
+        photoAfter: "/Testimonials/joshua-after.jpg",
     },
     {
-        id: 4, name: "Raj", role: "Actor", duration: "3 Months",
-        weightLost: "15kg Lost", category: "Transformation",
-        quote: "As an actor, staying camera-ready is part of the profession. RECODE gave me a structured and sustainable approach to nutrition and training that fit my schedule. In just 3 months, I transformed from 85kg to 70kg while improving my energy, confidence, and overall physique.",
-        stats: { before: "85kg", after: "70kg", bodyFat: "-10%" }, photoBefore: null, photoAfter: null,
+        id: 4,
+        name: "Raj",
+        role: "Actor",
+        duration: "3 Months",
+        weightLost: "15kg Lost",
+        category: "Transformation",
+        quote:
+            "As an actor, staying camera-ready is part of the profession. RECODE gave me a structured and sustainable approach to nutrition and training that fit my schedule. In just 3 months, I transformed from 85kg to 70kg while improving my energy, confidence, and overall physique.",
+        stats: { before: "85kg", after: "70kg", bodyFat: "-15kg" },
+        photoBefore: "/Testimonials/raj-before.jpg",
+        photoAfter: "/Testimonials/raj-after.jpg",
     },
     {
-        id: 5, name: "Sudarshan Chavan", role: "Founder, RECODE™", duration: "4 Months",
-        weightLost: "29kg Lost", category: "Founder's Journey",
-        quote: "RECODE was born from my own transformation journey. After struggling with inconsistency, extreme approaches, and the cycle of starting over, I realized that lasting results come from structure, not restriction. I transformed from 85kg to 56kg and built a lifestyle I could actually sustain.",
-        stats: { before: "85kg", after: "56kg", bodyFat: "-18%" },
-        photoBefore: "https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan-before.png",
-        photoAfter: "https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan-after.jpeg",
+        id: 5,
+        name: "Jinal",
+        role: "Working Professional",
+        duration: "3 Months",
+        weightLost: "8kg Lost",
+        category: "Fat Loss",
+        quote:
+            "I had already tried many trainers and diets before, but nothing was working properly for me. With RECODE, I finally understood how to follow fitness in a structured and sustainable way. The plan was simple, practical, and easy to follow with my lifestyle. In 3 months, I went from 65kg to 58kg and lost 8kg. For the first time, I felt like I was not just dieting—I was actually building a better routine.",
+        stats: { before: "65kg", after: "58kg", bodyFat: "-8kg" },
+        photoBefore: "/Testimonials/jinal-before.jpg",
+        photoAfter: "/Testimonials/jinal-after.jpg",
+    },
+    {
+        id: 6,
+        name: "Juzer",
+        role: "Business Professional",
+        duration: "3 Months",
+        weightLost: "10kg Lost",
+        category: "Transformation",
+        quote:
+            "My biggest struggle was consistency. Because of travelling and work, maintaining diet and workouts was always difficult for me. I was not able to lose weight properly before. With RECODE, things became more structured and manageable. I lost 10kg in 3 months, and the process felt practical even with my lifestyle.",
+        stats: { before: "85kg", after: "75kg", bodyFat: "-10kg" },
+        photoBefore: "/Testimonials/juzer-before.jpg",
+        photoAfter: "/Testimonials/juzer-after.jpg",
+    },
+    {
+        id: 7,
+        name: "Lalitesh",
+        role: "Business Owner",
+        duration: "2 Months",
+        weightLost: "7kg Lost",
+        category: "Body Recomposition",
+        quote:
+            "As a business owner, my schedule was always packed. I wanted to improve my physique and get a sharper body, but I could never stay consistent with diet and training. RECODE made the process simple for me. It gave me structure, accountability, and a plan that actually fit my lifestyle. This is the first time fitness did not feel forced or complicated. In just 2 months, I lost 7kg and gained lean muscle.",
+        stats: { before: "87kg", after: "80kg", bodyFat: "-7kg" },
+        photoBefore: "/Testimonials/lalitesh-before.jpg",
+        photoAfter: "/Testimonials/lalitesh-after.jpg",
+    },
+    {
+        id: 8,
+        name: "Sudarshan Chavan",
+        role: "Founder, RECODE™",
+        duration: "4 Months",
+        weightLost: "29kg Lost",
+        category: "Founder's Journey",
+        quote:
+            "RECODE was born from my own transformation journey. After struggling with inconsistency, extreme approaches, and the cycle of starting over, I realized that lasting results come from structure, not restriction. I transformed from 85kg to 56kg and built a lifestyle I could actually sustain.",
+        stats: { before: "85kg", after: "56kg", bodyFat: "-29kg" },
+        photoBefore: "/Testimonials/sudarshan-before.png",
+        photoAfter: "/Testimonials/sudarshan-after.jpeg",
     },
 ];
 
@@ -143,108 +215,397 @@ function BeforeAfterSlider({ transformation }) {
     );
 }
 
+// Smooth scroll helper — uses requestAnimationFrame for buttery scrolling
+function smoothScrollTo(el, targetLeft, duration = 400) {
+    const start = el.scrollLeft;
+    const distance = targetLeft - start;
+    const startTime = performance.now();
+    function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease in-out cubic
+        const ease = progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        el.scrollLeft = start + distance * ease;
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
 export function TransformationsSection() {
     const ref = useRef(null);
+    const thumbnailScrollRef = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
     const selected = transformations[selectedIndex];
-    const nextSlide = () => setSelectedIndex((prev) => (prev + 1) % transformations.length);
-    const prevSlide = () => setSelectedIndex((prev) => (prev - 1 + transformations.length) % transformations.length);
+
+    // Check scroll position to show/hide fade arrows
+    const updateScrollState = () => {
+        const el = thumbnailScrollRef.current;
+        if (!el) return;
+        setCanScrollLeft(el.scrollLeft > 4);
+        setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    };
+
+    useEffect(() => {
+        const el = thumbnailScrollRef.current;
+        if (!el) return;
+        updateScrollState();
+        el.addEventListener("scroll", updateScrollState, { passive: true });
+        return () => el.removeEventListener("scroll", updateScrollState);
+    }, []);
+
+    // After transformations load, re-check
+    useEffect(() => { updateScrollState(); }, []);
+
+    const handleThumbnailClick = (index) => {
+        setDirection(index > selectedIndex ? 1 : -1);
+        setSelectedIndex(index);
+        const container = thumbnailScrollRef.current;
+        if (!container) return;
+        const buttons = container.querySelectorAll("button");
+        if (!buttons[index]) return;
+        const btn = buttons[index];
+        const containerRect = container.getBoundingClientRect();
+        const btnRect = btn.getBoundingClientRect();
+        const offset = btnRect.left - containerRect.left - containerRect.width / 2 + btnRect.width / 2;
+        smoothScrollTo(container, container.scrollLeft + offset, 450);
+    };
+
+    const nextSlide = () => {
+        const next = (selectedIndex + 1) % transformations.length;
+        setDirection(1);
+        handleThumbnailClick(next);
+    };
+
+    const prevSlide = () => {
+        const prev = (selectedIndex - 1 + transformations.length) % transformations.length;
+        setDirection(-1);
+        handleThumbnailClick(prev);
+    };
+
+    const scrollStrip = (dir) => {
+        const el = thumbnailScrollRef.current;
+        if (!el) return;
+        smoothScrollTo(el, el.scrollLeft + dir * 200, 400);
+    };
+
+    // Slide animation variants
+    const variants = {
+        enter: (dir) => ({ opacity: 0, x: dir > 0 ? 40 : -40 }),
+        center: { opacity: 1, x: 0 },
+        exit: (dir) => ({ opacity: 0, x: dir > 0 ? -40 : 40 }),
+    };
 
     return (
         <section id="transformations" className="relative py-24 overflow-hidden">
+            <style>{`
+                .thumbnail-scroll::-webkit-scrollbar { display: none; }
+                .thumbnail-scroll { scroll-behavior: auto; }
+                .strip-arrow {
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    z-index: 10;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: opacity 0.25s, transform 0.2s, background 0.2s;
+                    background: rgba(20, 20, 20, 0.75);
+                    border: 1px solid rgba(231,23,99,0.35);
+                    backdrop-filter: blur(8px);
+                    color: #fff;
+                }
+                .strip-arrow:hover {
+                    background: rgba(231,23,99,0.18);
+                    border-color: rgba(231,23,99,0.7);
+                    transform: translateY(-50%) scale(1.1);
+                }
+                .strip-arrow:active { transform: translateY(-50%) scale(0.95); }
+                .strip-arrow svg { width: 16px; height: 16px; stroke-width: 2.5; }
+                .strip-fade-left {
+                    background: linear-gradient(to right, var(--strip-fade-color, #000) 0%, transparent 100%);
+                    pointer-events: none;
+                }
+                .strip-fade-right {
+                    background: linear-gradient(to left, var(--strip-fade-color, #000) 0%, transparent 100%);
+                    pointer-events: none;
+                }
+            `}</style>
+
             <div ref={ref} className="relative container mx-auto px-4">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="text-center mb-16">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.5 }}
+                    className="text-center mb-16"
+                >
                     <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: '#e71763' }}>Real Results</span>
-                    <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-6">Client <span style={{ color: '#e71763' }}>Transformations</span></h2>
-                    <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">Real people, real results. Sustainable transformations built through structure, not restriction.</p>
+                    <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-6">
+                        Client <span style={{ color: '#e71763' }}>Transformations</span>
+                    </h2>
+                    <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
+                        Real people, real results. Sustainable transformations built through structure, not restriction.
+                    </p>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.2 }}
-                    className="grid lg:grid-cols-2 gap-8 items-center max-w-5xl mx-auto mb-16">
-                    <BeforeAfterSlider transformation={selected} />
-                    <div className="space-y-6">
-                        <div>
-                            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#e71763' }}>{selected.category}</span>
-                            <h3 className="text-3xl font-bold mt-1 text-white">{selected.name}</h3>
-                            <p className="text-muted-foreground text-sm mt-1">{selected.role}</p>
-                        </div>
-                        <div className="relative">
-                            <Quote className="absolute -top-2 -left-1 h-7 w-7" style={{ color: 'rgba(231,23,99,0.2)' }} />
-                            <blockquote className="text-muted-foreground italic leading-relaxed pl-5">"{selected.quote}"</blockquote>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3">
-                            {[
-                                { icon: Scale, label: "Result", value: selected.weightLost },
-                                { icon: Clock, label: "Duration", value: selected.duration },
-                                { icon: TrendingDown, label: "Body Fat", value: selected.stats.bodyFat, highlight: true },
-                            ].map(({ icon: Icon, label, value, highlight }) => (
-                                <div key={label} className="rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                    <Icon className="h-4 w-4 mx-auto mb-2" style={{ color: '#e71763' }} />
-                                    <p className="text-xs text-muted-foreground">{label}</p>
-                                    <p className={`text-sm font-bold mt-0.5 ${highlight ? '' : 'text-white'}`} style={highlight ? { color: '#e71763' } : {}}>{value}</p>
-                                </div>
-                            ))}
-                        </div>
-                        {selected.stats.before && selected.stats.after && (
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                    <p className="text-xs text-muted-foreground">Before</p>
-                                    <p className="text-xl font-bold text-muted-foreground">{selected.stats.before}</p>
-                                </div>
-                                <ChevronRight className="h-5 w-5 flex-shrink-0" style={{ color: '#e71763' }} />
-                                <div className="flex-1 rounded-xl p-3 text-center" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.2)' }}>
-                                    <p className="text-xs text-muted-foreground">After</p>
-                                    <p className="text-xl font-bold" style={{ color: '#e71763' }}>{selected.stats.after}</p>
-                                </div>
+                {/* Main card */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="grid lg:grid-cols-2 gap-8 items-center max-w-5xl mx-auto mb-16"
+                >
+                    {/* Before/after image — re-mounts smoothly on index change */}
+                    <AnimatePresence mode="wait" custom={direction}>
+                        <motion.div
+                            key={selectedIndex + "-img"}
+                            custom={direction}
+                            variants={variants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                        >
+                            <BeforeAfterSlider transformation={selected} />
+                        </motion.div>
+                    </AnimatePresence>
+
+                    {/* Info panel — animates independently */}
+                    <AnimatePresence mode="wait" custom={direction}>
+                        <motion.div
+                            key={selectedIndex + "-info"}
+                            custom={direction}
+                            variants={variants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1], delay: 0.04 }}
+                            className="space-y-6"
+                        >
+                            <div>
+                                <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#e71763' }}>{selected.category}</span>
+                                <h3 className="text-3xl font-bold mt-1 text-white">{selected.name}</h3>
+                                <p className="text-muted-foreground text-sm mt-1">{selected.role}</p>
                             </div>
-                        )}
-                        <div className="flex items-center gap-4">
-                            <Button variant="outline" size="icon" onClick={prevSlide} className="rounded-full border-white/10 text-white hover:bg-white/5">
-                                <ChevronLeft className="h-5 w-5" />
-                            </Button>
-                            <div className="flex-1 flex items-center justify-center gap-2">
-                                {transformations.map((_, index) => (
-                                    <button key={index} onClick={() => setSelectedIndex(index)}
-                                        className="h-2 rounded-full transition-all"
-                                        style={{ width: index === selectedIndex ? '32px' : '8px', background: index === selectedIndex ? '#e71763' : 'rgba(255,255,255,0.2)' }} />
+                            <div className="relative">
+                                <Quote className="absolute -top-2 -left-1 h-7 w-7" style={{ color: 'rgba(231,23,99,0.2)' }} />
+                                <blockquote className="text-muted-foreground italic leading-relaxed pl-5">"{selected.quote}"</blockquote>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { icon: Scale, label: "Result", value: selected.weightLost },
+                                    { icon: Clock, label: "Duration", value: selected.duration },
+                                    { icon: TrendingDown, label: "Body Fat", value: selected.stats.bodyFat, highlight: true },
+                                ].map(({ icon: Icon, label, value, highlight }) => (
+                                    <div key={label} className="rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                        <Icon className="h-4 w-4 mx-auto mb-2" style={{ color: '#e71763' }} />
+                                        <p className="text-xs text-muted-foreground">{label}</p>
+                                        <p className={`text-sm font-bold mt-0.5 ${highlight ? '' : 'text-white'}`} style={highlight ? { color: '#e71763' } : {}}>{value}</p>
+                                    </div>
                                 ))}
                             </div>
-                            <Button variant="outline" size="icon" onClick={nextSlide} className="rounded-full border-white/10 text-white hover:bg-white/5">
-                                <ChevronRight className="h-5 w-5" />
-                            </Button>
+                            {selected.stats.before && selected.stats.after && (
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-1 rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                        <p className="text-xs text-muted-foreground">Before</p>
+                                        <p className="text-xl font-bold text-muted-foreground">{selected.stats.before}</p>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 flex-shrink-0" style={{ color: '#e71763' }} />
+                                    <div className="flex-1 rounded-xl p-3 text-center" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.2)' }}>
+                                        <p className="text-xs text-muted-foreground">After</p>
+                                        <p className="text-xl font-bold" style={{ color: '#e71763' }}>{selected.stats.after}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Prev / Next navigation */}
+                            <div className="flex items-center gap-4">
+                                {/* Styled prev arrow */}
+                                <motion.button
+                                    onClick={prevSlide}
+                                    whileHover={{ scale: 1.08 }}
+                                    whileTap={{ scale: 0.93 }}
+                                    className="relative flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.04)',
+                                        border: '1px solid rgba(231,23,99,0.3)',
+                                        boxShadow: '0 0 0 0 rgba(231,23,99,0)',
+                                        transition: 'box-shadow 0.25s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 14px rgba(231,23,99,0.35)'}
+                                    onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 0 0 rgba(231,23,99,0)'}
+                                    aria-label="Previous"
+                                >
+                                    {/* Subtle pink glow ring on hover handled via js above */}
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M11 14L6 9L11 4" stroke="#e71763" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </motion.button>
+
+                                {/* Dot indicators */}
+                                <div className="flex-1 flex items-center justify-center gap-2">
+                                    {transformations.map((_, index) => (
+                                        <motion.button
+                                            key={index}
+                                            onClick={() => handleThumbnailClick(index)}
+                                            className="h-2 rounded-full"
+                                            animate={{
+                                                width: index === selectedIndex ? 28 : 8,
+                                                background: index === selectedIndex ? '#e71763' : 'rgba(255,255,255,0.2)',
+                                            }}
+                                            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                                            style={{ minWidth: 8 }}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Styled next arrow */}
+                                <motion.button
+                                    onClick={nextSlide}
+                                    whileHover={{ scale: 1.08 }}
+                                    whileTap={{ scale: 0.93 }}
+                                    className="relative flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden"
+                                    style={{
+                                        background: 'rgba(231,23,99,0.12)',
+                                        border: '1px solid rgba(231,23,99,0.45)',
+                                        boxShadow: '0 0 0 0 rgba(231,23,99,0)',
+                                        transition: 'box-shadow 0.25s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 16px rgba(231,23,99,0.45)'}
+                                    onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 0 0 rgba(231,23,99,0)'}
+                                    aria-label="Next"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7 4L12 9L7 14" stroke="#e71763" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    </AnimatePresence>
+                </motion.div>
+
+                {/* Thumbnail strip */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                    className="max-w-2xl mx-auto"
+                >
+                    <div className="relative">
+                        {/* Left fade + arrow */}
+                        <motion.div
+                            className="absolute left-0 top-0 bottom-0 w-16 strip-fade-left z-10 flex items-center"
+                            animate={{ opacity: canScrollLeft ? 1 : 0 }}
+                            transition={{ duration: 0.2 }}
+                            style={{ pointerEvents: canScrollLeft ? 'auto' : 'none' }}
+                        >
+                            <button
+                                onClick={() => scrollStrip(-1)}
+                                className="strip-arrow"
+                                style={{ left: '2px' }}
+                                aria-label="Scroll thumbnails left"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </motion.div>
+
+                        {/* Right fade + arrow */}
+                        <motion.div
+                            className="absolute right-0 top-0 bottom-0 w-16 strip-fade-right z-10 flex items-center justify-end"
+                            animate={{ opacity: canScrollRight ? 1 : 0 }}
+                            transition={{ duration: 0.2 }}
+                            style={{ pointerEvents: canScrollRight ? 'auto' : 'none' }}
+                        >
+                            <button
+                                onClick={() => scrollStrip(1)}
+                                className="strip-arrow"
+                                style={{ right: '2px' }}
+                                aria-label="Scroll thumbnails right"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 6L15 12L9 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </motion.div>
+
+                        {/* Scrollable strip */}
+                        <div
+                            ref={thumbnailScrollRef}
+                            className="thumbnail-scroll flex gap-3 overflow-x-auto px-2 pb-2"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
+                            {transformations.map((t, index) => (
+                                <motion.button
+                                    key={t.id}
+                                    onClick={() => handleThumbnailClick(index)}
+                                    initial={{ opacity: 0, scale: 0.88 }}
+                                    animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                                    transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
+                                    whileHover={{ scale: 1.06, y: -2 }}
+                                    whileTap={{ scale: 0.96 }}
+                                    className="relative rounded-xl overflow-hidden flex-shrink-0"
+                                    style={{
+                                        width: '80px',
+                                        height: '80px',
+                                        border: index === selectedIndex
+                                            ? '2px solid #e71763'
+                                            : '2px solid rgba(255,255,255,0.1)',
+                                        boxShadow: index === selectedIndex
+                                            ? '0 0 0 3px rgba(231,23,99,0.18), 0 4px 20px rgba(231,23,99,0.3)'
+                                            : '0 2px 8px rgba(0,0,0,0.3)',
+                                        transition: 'border-color 0.25s, box-shadow 0.25s',
+                                    }}
+                                >
+                                    {t.photoAfter ? (
+                                        <>
+                                            <img src={t.photoAfter} alt={t.name} className="w-full h-full object-cover object-top" />
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-4 pb-1.5 px-1">
+                                                <p className="text-[9px] text-white font-semibold text-center leading-tight truncate">{t.name.split(" ")[0]}</p>
+                                            </div>
+                                            {/* Active overlay pulse ring */}
+                                            {index === selectedIndex && (
+                                                <motion.div
+                                                    className="absolute inset-0 rounded-xl"
+                                                    style={{ border: '2px solid rgba(231,23,99,0.6)' }}
+                                                    animate={{ opacity: [0.6, 0, 0.6] }}
+                                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                                />
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center gap-1" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(231,23,99,0.2)', border: '1px solid rgba(231,23,99,0.3)' }}>
+                                                <span className="text-[10px] font-bold" style={{ color: '#e71763' }}>{getInitials(t.name)}</span>
+                                            </div>
+                                            <p className="text-[8px] text-white/50 font-medium leading-tight px-1 text-center truncate w-full">{t.name.split(" ")[0]}</p>
+                                        </div>
+                                    )}
+                                </motion.button>
+                            ))}
                         </div>
                     </div>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.4 }}
-                    className="grid grid-cols-5 gap-3 max-w-2xl mx-auto">
-                    {transformations.map((t, index) => (
-                        <motion.button key={t.id} onClick={() => setSelectedIndex(index)}
-                            initial={{ opacity: 0, scale: 0.9 }} animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                            transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
-                            className="relative aspect-square rounded-xl overflow-hidden border-2 transition-all"
-                            style={{ borderColor: index === selectedIndex ? '#e71763' : 'rgba(255,255,255,0.1)', boxShadow: index === selectedIndex ? '0 0 12px rgba(231,23,99,0.4)' : 'none' }}>
-                            {t.photoAfter ? (
-                                <>
-                                    <img src={t.photoAfter} alt={t.name} className="w-full h-full object-cover object-top" />
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-4 pb-1.5 px-1">
-                                        <p className="text-[9px] text-white font-semibold text-center leading-tight truncate">{t.name.split(" ")[0]}</p>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center gap-1" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(231,23,99,0.2)', border: '1px solid rgba(231,23,99,0.3)' }}>
-                                        <span className="text-[10px] font-bold" style={{ color: '#e71763' }}>{getInitials(t.name)}</span>
-                                    </div>
-                                    <p className="text-[8px] text-white/50 font-medium leading-tight px-1 text-center truncate w-full">{t.name.split(" ")[0]}</p>
-                                </div>
-                            )}
-                        </motion.button>
-                    ))}
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.6 }} className="text-center mt-16">
+                {/* CTA */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.5, delay: 0.6 }}
+                    className="text-center mt-16"
+                >
                     <p className="text-muted-foreground mb-4">Ready to write your own success story?</p>
                     <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
                         <Button size="lg" className="text-white font-bold" style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.35)' }}>
