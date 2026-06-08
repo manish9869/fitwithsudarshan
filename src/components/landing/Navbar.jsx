@@ -113,7 +113,7 @@ export function Navbar() {
                     }`}
             >
                 <div className="container mx-auto flex items-center justify-between px-4">
-                    <a href="#home" className="flex items-center gap-2">
+                    <a href="/" className="flex items-center gap-2">
                         <img src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png" alt="FitWithSudarshan" className="h-12 lg:h-14" />
                     </a>
 
