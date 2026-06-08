@@ -214,10 +214,10 @@ export const coachingTypes = [
 export const pricingTable = {
     online: {
         individual: {
-            "1": 2999,
-            "3": 7999,
-            "6": 14999,
-            "12": 24999,
+            "1": 1999,
+            "3": 3999,
+            "6": 6999,
+            "12": 15999,
         },
         couple: {
             "1": 4999,
@@ -242,7 +242,7 @@ export const pricingTable = {
     },
     personal: {
         individual: {
-            "1": 15000,
+            "1": 14999,
             "3": 40000,
             "6": 75000,
             "12": 140000,
@@ -255,6 +255,7 @@ export const pricingTable = {
         },
     },
 };
+
 
 export const durations = [
     { months: "1", label: "1 Month", sublabel: "Starter", description: "Start with structure and direction." },
@@ -342,56 +343,85 @@ export const pricing = [
 export const testimonials = [
     {
         id: 1,
-        name: "Aayush",
-        role: "RECODE Client",
-        transformation: "82kg → 71kg",
-        weightLost: "11kg Lost",
-        quote: "RECODE changed the way I think about fitness. It wasn't just about losing weight — it was about understanding my body and building habits that actually last. Sudarshan's approach is unlike anything I've tried before.",
+        name: "Prajvati",
+        role: "Anesthetist",
+        transformation: "80kg → 56kg",
+        weightLost: "24kg Lost",
+        quote: "What stood out about RECODE was its focus on sustainability and lifestyle integration. It wasn't about following a strict diet — it was about building habits that fit my routine and delivered lasting results.",
         rating: 5,
         avatar: null,
     },
     {
         id: 2,
-        name: "Joshua",
-        role: "RECODE Client",
-        transformation: "15kg Lost",
-        weightLost: "15kg Lost",
-        quote: "I was skeptical about online coaching but the results speak for themselves. 15kg down, energy levels through the roof, and I've never felt stronger. The recovery focus made all the difference.",
+        name: "Aayush",
+        role: "Finance Professional",
+        transformation: "82kg → 71kg",
+        weightLost: "11kg Lost",
+        quote: "RECODE helped me build sustainable habits around nutrition and training, leading to an 11kg transformation without extreme dieting. The process was practical, easy to follow, and fit perfectly into my busy schedule.",
         rating: 5,
         avatar: null,
     },
     {
         id: 3,
-        name: "Raj",
-        role: "RECODE Client",
-        transformation: "85kg → 70kg",
+        name: "Joshua",
+        role: "Producer",
+        transformation: "95kg → 80kg",
         weightLost: "15kg Lost",
-        quote: "As a busy professional, I needed something structured and flexible. RECODE gave me exactly that. The WhatsApp support and weekly accountability kept me on track even during the most hectic weeks.",
+        quote: "RECODE gave me a practical structure that fit my lifestyle instead of forcing me into a restrictive diet. Over 3 months, I lost 15kg while building habits that I could realistically maintain long-term.",
         rating: 5,
         avatar: null,
     },
     {
         id: 4,
-        name: "Dr. Pramod",
-        role: "Anaesthesiologist",
-        transformation: "Lifestyle Transformation",
-        weightLost: "Body Recomposition",
-        quote: "As a doctor, I appreciate the evidence-based approach Sudarshan brings to coaching. The recovery-first methodology is exactly what the body needs. My sleep, energy, and performance have all improved significantly.",
+        name: "Raj",
+        role: "Actor",
+        transformation: "85kg → 70kg",
+        weightLost: "15kg Lost",
+        quote: "RECODE gave me a structured and sustainable approach to nutrition and training that fit my schedule. In just 3 months, I transformed my physique while improving my energy and confidence.",
         rating: 5,
         avatar: null,
     },
     {
         id: 5,
-        name: "Sudarshan",
-        role: "Coach & Founder",
+        name: "Jinal",
+        role: "Working Professional",
+        transformation: "65kg → 58kg",
+        weightLost: "8kg Lost",
+        quote: "I had tried many trainers and diets before but nothing worked. With RECODE, I finally understood how to follow fitness in a structured and sustainable way. For the first time, I felt like I was building a better routine, not just dieting.",
+        rating: 5,
+        avatar: null,
+    },
+    {
+        id: 6,
+        name: "Juzer",
+        role: "Business Professional",
+        transformation: "85kg → 75kg",
+        weightLost: "10kg Lost",
+        quote: "Because of travelling and work, maintaining diet and workouts was always difficult. With RECODE, things became more structured and manageable. I lost 10kg in 3 months and the process felt practical even with my lifestyle.",
+        rating: 5,
+        avatar: null,
+    },
+    {
+        id: 7,
+        name: "Lalitesh",
+        role: "Business Owner",
+        transformation: "87kg → 80kg",
+        weightLost: "7kg Lost",
+        quote: "RECODE made the process simple for me. It gave me structure, accountability, and a plan that actually fit my lifestyle. This is the first time fitness did not feel forced or complicated.",
+        rating: 5,
+        avatar: null,
+    },
+    {
+        id: 8,
+        name: "Sudarshan Chavan",
+        role: "Founder, RECODE™",
         transformation: "85kg → 56kg",
         weightLost: "29kg Lost",
-        quote: "My own 29kg transformation taught me that lasting change requires fixing the foundation first — recovery, regulation, structure. That's what RECODE is built on. Every client deserves a method that truly works.",
+        quote: "After struggling with inconsistency, extreme approaches, and the cycle of starting over, I realized that lasting results come from structure, not restriction. I transformed from 85kg to 56kg and built a lifestyle I could actually sustain.",
         rating: 5,
         avatar: null,
     },
 ];
-
 // ─── BLOG POSTS ───────────────────────────────────────────────────────────────
 export const blogPosts = [
     {

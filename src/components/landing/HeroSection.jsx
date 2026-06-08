@@ -178,7 +178,7 @@ export default function HeroSection() {
                             animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
                             transition={{ duration: 1.4, repeat: Infinity }}
                         />
-                        <span className="text-xs md:text-sm font-medium text-white/70 text-center">Founding Member Pricing · Limited to First 50 Members</span>
+                        <span className="text-xs md:text-sm font-medium text-white/70 text-center">Founding Member Pricing · Limited to First 20 Members</span>
                     </motion.div>
 
                     {/* Brand tag */}
