@@ -53,7 +53,8 @@ function CalorieCalculator() {
     const tdee = bmr * activityMultipliers[activity]
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            {/* FIX: gap-3 instead of gap-4 — tighter on small screens */}
+            <div className="grid grid-cols-2 gap-3">
                 <div><Label className="mb-2 block">Age</Label><Input type="number" value={age} onChange={(e) => setAge(Number(e.target.value))} className="bg-muted/50" /></div>
                 <div><Label className="mb-2 block">Gender</Label>
                     <Select value={gender} onValueChange={setGender}><SelectTrigger className="bg-muted/50"><SelectValue /></SelectTrigger>
@@ -72,20 +73,20 @@ function CalorieCalculator() {
                         <SelectItem value="veryActive">Very Active (athlete)</SelectItem>
                     </SelectContent></Select>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-                <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                <div className="rounded-xl p-3 sm:p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <p className="text-xs text-muted-foreground mb-1">Cut</p>
-                    <p className="text-2xl font-bold text-blue-400">{Math.round(tdee - 500)}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-400">{Math.round(tdee - 500)}</p>
                     <p className="text-xs text-muted-foreground">kcal/day</p>
                 </div>
-                <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.2)' }}>
+                <div className="rounded-xl p-3 sm:p-4 text-center" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.2)' }}>
                     <p className="text-xs text-muted-foreground mb-1">Maintain</p>
-                    <p className="text-2xl font-bold" style={{ color: '#e71763' }}>{Math.round(tdee)}</p>
+                    <p className="text-xl sm:text-2xl font-bold" style={{ color: '#e71763' }}>{Math.round(tdee)}</p>
                     <p className="text-xs text-muted-foreground">kcal/day</p>
                 </div>
-                <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="rounded-xl p-3 sm:p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <p className="text-xs text-muted-foreground mb-1">Bulk</p>
-                    <p className="text-2xl font-bold text-orange-400">{Math.round(tdee + 300)}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-orange-400">{Math.round(tdee + 300)}</p>
                     <p className="text-xs text-muted-foreground">kcal/day</p>
                 </div>
             </div>
@@ -111,14 +112,14 @@ function MacroCalculator() {
                 <Select value={goal} onValueChange={setGoal}><SelectTrigger className="bg-muted/50"><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="balanced">Balanced</SelectItem><SelectItem value="lowCarb">Low Carb</SelectItem><SelectItem value="highProtein">High Protein</SelectItem><SelectItem value="keto">Keto</SelectItem></SelectContent></Select>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
                 {[{ label: "Protein", value: `${protein}g`, pct: ratios.protein, color: "#f87171" }, { label: "Carbs", value: `${carbs}g`, pct: ratios.carbs, color: "#e71763" }, { label: "Fat", value: `${fat}g`, pct: ratios.fat, color: "#facc15" }].map(({ label, value, pct, color }) => (
-                    <div key={label} className="rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div className="w-16 h-16 mx-auto mb-2 relative">
+                    <div key={label} className="rounded-xl p-3 sm:p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-2 relative">
                             <svg className="w-full h-full -rotate-90"><circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="none" className="text-muted" /><circle cx="32" cy="32" r="28" stroke={color} strokeWidth="4" fill="none" strokeDasharray={`${pct * 1.76} 176`} /></svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">{pct}%</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-xs sm:text-sm font-bold">{pct}%</span>
                         </div>
-                        <p className="text-2xl font-bold" style={{ color }}>{value}</p>
+                        <p className="text-xl sm:text-2xl font-bold" style={{ color }}>{value}</p>
                         <p className="text-xs text-muted-foreground">{label}</p>
                     </div>
                 ))}
@@ -193,7 +194,7 @@ function BodyFatCalculator() {
     }
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
                 <div><Label className="mb-2 block">Gender</Label>
                     <Select value={gender} onValueChange={setGender}><SelectTrigger className="bg-muted/50"><SelectValue /></SelectTrigger>
                         <SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select>
@@ -226,18 +227,20 @@ export function ToolsSection() {
     const ref = useRef(null)
     const isInView = useInView(ref, { once: true, margin: "-100px" })
     return (
-        <section id="tools" className="relative py-24 overflow-hidden">
+        // FIX: py-12 sm:py-20 md:py-24 — was flat py-24
+        <section id="tools" className="relative py-12 sm:py-20 md:py-24 overflow-hidden">
             <div ref={ref} className="relative container mx-auto px-4">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="text-center mb-16">
+                {/* FIX: mb-8 sm:mb-12 md:mb-16 — was flat mb-16 */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="text-center mb-8 sm:mb-12 md:mb-16">
                     <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: '#e71763' }}>Fitness Tools</span>
-                    <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-6">Smart <span style={{ color: '#e71763' }}>Calculators</span></h2>
-                    <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">Use these interactive tools to calculate your BMI, daily calorie needs, macro requirements, and more.</p>
+                    <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-4 sm:mb-6">Smart <span style={{ color: '#e71763' }}>Calculators</span></h2>
+                    <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">Use these interactive tools to calculate your BMI, daily calorie needs, macro requirements, and more.</p>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.2 }} className="max-w-2xl mx-auto">
                     <Tabs defaultValue="bmi" className="w-full">
-                        <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full mb-8 p-1 h-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full mb-6 sm:mb-8 p-1 h-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             {calculators.map((calc) => (
-                                <TabsTrigger key={calc.id} value={calc.id} className="flex flex-col items-center gap-1 py-3 data-[state=active]:text-white"
+                                <TabsTrigger key={calc.id} value={calc.id} className="flex flex-col items-center gap-1 py-2.5 sm:py-3 data-[state=active]:text-white"
                                     style={{ '--active-bg': '#e71763' }}
                                 >
                                     <calc.icon className="h-4 w-4" />
@@ -245,7 +248,8 @@ export function ToolsSection() {
                                 </TabsTrigger>
                             ))}
                         </TabsList>
-                        <div className="rounded-2xl p-6 md:p-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        {/* FIX: p-4 sm:p-6 md:p-8 — was flat p-6 md:p-8 */}
+                        <div className="rounded-2xl p-4 sm:p-6 md:p-8" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             <TabsContent value="bmi" className="mt-0"><BMICalculator /></TabsContent>
                             <TabsContent value="calories" className="mt-0"><CalorieCalculator /></TabsContent>
                             <TabsContent value="macros" className="mt-0"><MacroCalculator /></TabsContent>
@@ -255,7 +259,7 @@ export function ToolsSection() {
                         </div>
                     </Tabs>
                 </motion.div>
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.4 }} className="text-center mt-12">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.4 }} className="text-center mt-8 sm:mt-12">
                     <p className="text-muted-foreground mb-4">Want a personalized plan based on your results?</p>
                     <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
                         <Button size="lg" className="text-white font-bold group" style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.35)' }}>

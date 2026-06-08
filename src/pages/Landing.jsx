@@ -16,7 +16,7 @@ import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 
-// Reusable scroll-reveal wrapper with a punchy upward slide
+// Reusable scroll-reveal wrapper
 function Reveal({ children, delay = 0 }) {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-80px" });
@@ -45,10 +45,14 @@ export default function Landing() {
             <Reveal delay={0.05}><div id="pricing"><PricingSection /></div></Reveal>
             <Reveal delay={0.05}><div id="blog"><BlogSection /></div></Reveal>
 
-            {/* Final CTA Section */}
-            <section className="py-24 px-4 relative overflow-hidden">
+            {/* ── Final CTA Section ──
+                320px fixes:
+                - py-24 → py-12 sm:py-24  (was 96px top+bottom on mobile — way too much)
+                - px-4  → px-3 sm:px-4
+                - overflow-hidden already present, keeps the 600px glow orb clipped
+            */}
+            <section className="py-12 sm:py-24 px-3 sm:px-4 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
-                {/* Animated glow */}
                 <motion.div
                     className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full blur-3xl pointer-events-none"
                     style={{ background: 'rgba(231,23,99,0.06)' }}
@@ -58,44 +62,56 @@ export default function Landing() {
                 <Reveal>
                     <div className="max-w-3xl mx-auto text-center relative z-10">
                         <motion.span
-                            className="inline-block text-xs font-bold uppercase tracking-widest mb-4"
+                            className="inline-block text-xs font-bold uppercase tracking-widest mb-3 sm:mb-4"
                             style={{ color: '#e71763' }}
                             animate={{ opacity: [0.6, 1, 0.6] }}
                             transition={{ duration: 2.5, repeat: Infinity }}
                         >
                             Your Transformation Starts Now
                         </motion.span>
-                        <h2 className="text-3xl sm:text-5xl font-bold mb-6 text-white">
-                            Ready to <span style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.4)' }}>RECODE?</span>
+
+                        {/* 320px: text-2xl base (was text-3xl — "Ready to RECODE?" overflows at 320px) */}
+                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 sm:mb-6 text-white">
+                            Ready to{' '}
+                            <span style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.4)' }}>RECODE?</span>
                         </h2>
-                        <p className="text-lg text-muted-foreground mb-8">
+
+                        {/* 320px: text-base (was text-lg), tighter bottom margin */}
+                        <p className="text-sm sm:text-lg text-muted-foreground mb-6 sm:mb-8 px-2">
                             Join hundreds who've already started their transformation with Sudarshan. Your RECODE journey begins today.
                         </p>
-                        {/* Pulse CTA */}
-                        <div className="relative inline-flex">
-                            <motion.span
-                                className="absolute inset-0 rounded-full"
-                                animate={{ scale: [1, 1.6, 2.2], opacity: [0.4, 0.15, 0] }}
-                                transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut" }}
-                                style={{ background: 'rgba(231,23,99,0.35)' }}
-                            />
-                            <motion.span
-                                className="absolute inset-0 rounded-full"
-                                animate={{ scale: [1, 1.35, 1.7], opacity: [0.3, 0.1, 0] }}
-                                transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut", delay: 0.7 }}
-                                style={{ background: 'rgba(231,23,99,0.2)' }}
-                            />
-                            <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
-                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                                    <Button
-                                        size="lg"
-                                        className="relative text-white rounded-full py-7 text-lg font-bold px-12"
-                                        style={{ background: '#e71763', boxShadow: '0 0 40px rgba(231,23,99,0.5)' }}
-                                    >
-                                        Start My Transformation
-                                    </Button>
-                                </motion.div>
-                            </a>
+
+                        {/* Pulse CTA — flex justify-center wrapper prevents inline-flex overflow */}
+                        <div className="flex justify-center">
+                            <div className="relative">
+                                <motion.span
+                                    className="absolute inset-0 rounded-full"
+                                    animate={{ scale: [1, 1.6, 2.2], opacity: [0.4, 0.15, 0] }}
+                                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut" }}
+                                    style={{ background: 'rgba(231,23,99,0.35)' }}
+                                />
+                                <motion.span
+                                    className="absolute inset-0 rounded-full"
+                                    animate={{ scale: [1, 1.35, 1.7], opacity: [0.3, 0.1, 0] }}
+                                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut", delay: 0.7 }}
+                                    style={{ background: 'rgba(231,23,99,0.2)' }}
+                                />
+                                <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
+                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+                                        {/*
+                                            320px: px-6 py-4 base (was px-12 py-7 — button was ~260px wide,
+                                            nearly full viewport, text clipped with any font rendering variance)
+                                        */}
+                                        <Button
+                                            size="lg"
+                                            className="relative text-white rounded-full py-4 sm:py-7 text-sm sm:text-lg font-bold px-6 sm:px-12"
+                                            style={{ background: '#e71763', boxShadow: '0 0 40px rgba(231,23,99,0.5)' }}
+                                        >
+                                            Start My Transformation
+                                        </Button>
+                                    </motion.div>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </Reveal>
@@ -104,7 +120,6 @@ export default function Landing() {
             <Reveal><div id="contact"><ContactSection /></div></Reveal>
             <FooterSection />
 
-            {/* Always-visible floating elements */}
             <FloatingWhatsApp />
             <StickyCTABar />
             <CustomCursor />
