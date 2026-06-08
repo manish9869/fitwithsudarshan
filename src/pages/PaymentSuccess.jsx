@@ -2,10 +2,11 @@
  * PaymentSuccess.jsx
  * Premium payment success / thank-you page — RECODE™ brand.
  * Receives enrollment data via React Router state.
+ * Responsive down to 320px viewport width.
  */
 import { Navbar } from '../components/landing/Navbar';
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     CheckCircle, Download, MessageCircle, Home,
@@ -91,19 +92,18 @@ function SuccessParticles() {
 // ─── Animated success icon ────────────────────────────────────────────────────
 function SuccessIcon() {
     const [burst, setBurst] = useState(false);
-
     useEffect(() => {
         const t = setTimeout(() => setBurst(true), 600);
         return () => clearTimeout(t);
     }, []);
-
     return (
-        <div className="relative flex items-center justify-center w-32 h-28 mx-auto mb-7 mt-19">
+        // 320px safe: w-24 (96px) base, grows at sm
+        <div className="relative flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 mt-14 sm:mt-16">
             {[1, 2, 3].map((i) => (
                 <motion.div
                     key={i}
                     className="absolute rounded-full"
-                    style={{ inset: `-${i * 16}px`, border: `1px solid rgba(231,23,99,${0.4 - i * 0.1})` }}
+                    style={{ inset: `-${i * 14}px`, border: `1px solid rgba(231,23,99,${0.4 - i * 0.1})` }}
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: [0, 0.6, 0] }}
                     transition={{ duration: 2.4, delay: 0.4 + i * 0.2, repeat: Infinity, repeatDelay: 1.8, ease: 'easeOut' }}
@@ -117,7 +117,7 @@ function SuccessIcon() {
                 transition={{ duration: 0.6, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
             />
             <motion.div
-                className="relative z-10 w-20 h-20 rounded-full flex items-center justify-center"
+                className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center"
                 style={{
                     background: 'linear-gradient(135deg, rgba(231,23,99,0.2) 0%, rgba(231,23,99,0.05) 100%)',
                     border: '1.5px solid rgba(231,23,99,0.5)',
@@ -128,7 +128,7 @@ function SuccessIcon() {
                 transition={{ duration: 0.7, delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
             >
                 <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.4, delay: 0.6 }}>
-                    <CheckCircle strokeWidth={1.5} className="w-10 h-10" style={{ color: '#e71763', filter: 'drop-shadow(0 0 12px rgba(231,23,99,0.6))' }} />
+                    <CheckCircle strokeWidth={1.5} className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: '#e71763', filter: 'drop-shadow(0 0 12px rgba(231,23,99,0.6))' }} />
                 </motion.div>
                 {burst && <SuccessParticles />}
             </motion.div>
@@ -137,6 +137,7 @@ function SuccessIcon() {
 }
 
 // ─── Copyable text ────────────────────────────────────────────────────────────
+// 320px safe: hard cap on max-w so long Razorpay IDs never overflow
 function CopyText({ value }) {
     const [copied, setCopied] = useState(false);
     const copy = () => {
@@ -145,28 +146,39 @@ function CopyText({ value }) {
         setTimeout(() => setCopied(false), 1800);
     };
     return (
-        <button onClick={copy} className="flex items-center gap-1.5 group transition-all" title="Copy">
-            <span className="text-sm font-bold text-white font-mono tracking-tight">{value}</span>
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                {copied ? <Check className="w-3 h-3" style={{ color: '#22c55e' }} /> : <Copy className="w-3 h-3 text-white/30" />}
+        <button onClick={copy} className="flex items-center gap-1.5 group transition-all text-left min-w-0" title="Copy">
+            <span className="text-sm font-bold text-white font-mono tracking-tight truncate" style={{ maxWidth: '120px' }}>{value}</span>
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                {copied
+                    ? <Check className="w-3 h-3" style={{ color: '#22c55e' }} />
+                    : <Copy className="w-3 h-3 text-white/30" />
+                }
             </span>
         </button>
     );
 }
 
 // ─── Detail row ───────────────────────────────────────────────────────────────
+// 320px layout: 36px icon + 8px gap + remaining ~244px for text
 function DetailRow({ icon: Icon, label, value, accent, mono, copyable }) {
     return (
-        <div className="flex items-center gap-3 py-2.5 group" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
-                style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.18)' }}>
-                <Icon className="w-4 h-4" style={{ color: '#e71763' }} />
+        <div className="flex items-center gap-2 py-2.5 group" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
+                style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.18)' }}
+            >
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: '#e71763' }} />
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium tracking-wider uppercase text-white/30 mb-0.5">{label}</p>
+                <p className="text-[10px] sm:text-[11px] font-medium tracking-wide uppercase text-white/30 mb-0.5">{label}</p>
                 {copyable
                     ? <CopyText value={value} />
-                    : <p className={`text-sm font-semibold truncate ${mono ? 'font-mono tracking-tight' : ''}`} style={{ color: accent ? '#e71763' : 'rgba(255,255,255,0.92)' }}>{value || '—'}</p>
+                    : <p
+                        className={`text-xs sm:text-sm font-semibold truncate ${mono ? 'font-mono' : ''}`}
+                        style={{ color: accent ? '#e71763' : 'rgba(255,255,255,0.92)' }}
+                    >
+                        {value || '—'}
+                    </p>
                 }
             </div>
         </div>
@@ -176,16 +188,29 @@ function DetailRow({ icon: Icon, label, value, accent, mono, copyable }) {
 // ─── Step ────────────────────────────────────────────────────────────────────
 function Step({ n, title, desc, delay, active }) {
     return (
-        <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }} className="flex gap-4 group">
-            <div className="flex flex-col items-center gap-0">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all"
-                    style={{ background: active ? '#e71763' : 'rgba(231,23,99,0.12)', border: `1px solid ${active ? '#e71763' : 'rgba(231,23,99,0.25)'}`, color: active ? 'white' : '#e71763', boxShadow: active ? '0 0 20px rgba(231,23,99,0.4)' : 'none' }}>
+        <motion.div
+            initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+            className="flex gap-3 group"
+        >
+            <div className="flex flex-col items-center">
+                <div
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all"
+                    style={{
+                        background: active ? '#e71763' : 'rgba(231,23,99,0.12)',
+                        border: `1px solid ${active ? '#e71763' : 'rgba(231,23,99,0.25)'}`,
+                        color: active ? 'white' : '#e71763',
+                        boxShadow: active ? '0 0 20px rgba(231,23,99,0.4)' : 'none',
+                    }}
+                >
                     {n}
                 </div>
-                {n < 4 && <div className="w-px flex-1 mt-1" style={{ background: 'linear-gradient(to bottom, rgba(231,23,99,0.2), transparent)', minHeight: 20 }} />}
+                {n < 4 && (
+                    <div className="w-px flex-1 mt-1" style={{ background: 'linear-gradient(to bottom, rgba(231,23,99,0.2), transparent)', minHeight: 20 }} />
+                )}
             </div>
-            <div className="pb-5">
-                <p className="text-sm font-bold text-white mb-1">{title}</p>
+            <div className="pb-5 min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-white mb-1 leading-snug">{title}</p>
                 <p className="text-xs leading-relaxed text-white/40">{desc}</p>
             </div>
         </motion.div>
@@ -200,7 +225,28 @@ function formatDate(iso) {
     if (!iso) return '—';
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '—';
-    return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }).format(d);
+    return new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true,
+        timeZone: 'Asia/Kolkata',
+    }).format(d);
+}
+
+// ─── Section header pill (reusable) ──────────────────────────────────────────
+function SectionHeader({ icon: Icon, label }) {
+    return (
+        <div
+            className="flex items-center gap-2 px-3 sm:px-5 py-3"
+            style={{
+                background: 'linear-gradient(90deg, rgba(231,23,99,0.1) 0%, transparent 100%)',
+                borderBottom: '1px solid rgba(255,255,255,0.05)',
+            }}
+        >
+            <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e71763' }} />
+            {/* 320px: reduced tracking so label fits without wrapping */}
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.1em] sm:tracking-[0.15em] text-white/70 truncate">{label}</span>
+        </div>
+    );
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -242,8 +288,15 @@ export default function PaymentSuccess() {
             setInvoiceLoading(false);
         }
     };
+
     return (
-        <motion.div className="min-h-screen text-white" style={{ background: '#080808' }} initial={{ opacity: 0 }} animate={{ opacity: entered ? 1 : 0 }} transition={{ duration: 0.5 }}>
+        <motion.div
+            className="min-h-screen text-white overflow-x-hidden"
+            style={{ background: '#080808' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: entered ? 1 : 0 }}
+            transition={{ duration: 0.5 }}
+        >
             <CustomCursor />
             <FloatingOrbs />
 
@@ -251,66 +304,88 @@ export default function PaymentSuccess() {
                 <Navbar />
             </div>
 
-            <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+            {/* 320px: px-3 base (leaves 296px content), grows at sm→md→lg */}
+            <div className="relative z-10 w-full mx-auto px-3 sm:px-5 lg:px-8 py-6 sm:py-8 max-w-7xl">
 
                 {/* ── Hero ── */}
-                <motion.div className="text-center mb-10" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}>
+                <motion.div
+                    className="text-center mb-8 sm:mb-10"
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                >
                     <SuccessIcon />
                     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.7 }}>
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.15em] mb-6"
-                            style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}>
-                            <Sparkles className="w-3 h-3" /> Payment Successful
+
+                        {/* Badge */}
+                        <div className="flex justify-center mb-4 sm:mb-6">
+                            <div
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-[0.1em] sm:tracking-[0.15em]"
+                                style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}
+                            >
+                                <Sparkles className="w-3 h-3 flex-shrink-0" /> Payment Successful
+                            </div>
                         </div>
-                        <h1 className="text-5xl md:text-6xl font-black mb-4 leading-[1.05] tracking-tight">
+
+                        {/* 320px: text-3xl (30px) base keeps "Welcome to RECODE™" on ~2 lines cleanly */}
+                        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black mb-3 sm:mb-4 leading-[1.1] tracking-tight px-2">
                             Welcome to{' '}
                             <span style={{ color: '#e71763', textShadow: '0 0 60px rgba(231,23,99,0.4)' }}>RECODE™</span>
                         </h1>
-                        <p className="text-white/40 max-w-md mx-auto text-base leading-relaxed mb-6">
+
+                        <p className="text-white/40 max-w-md mx-auto text-xs sm:text-base leading-relaxed mb-5 sm:mb-6 px-2">
                             Your payment has been verified. Your transformation journey officially begins today.
                         </p>
-                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl cursor-pointer"
-                            style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
-                            <Hash className="w-4 h-4 flex-shrink-0" style={{ color: '#e71763' }} />
-                            <span className="text-xs text-white/40 font-medium">Enrollment ID</span>
-                            <CopyText value={enrollment.enrollmentId} />
+
+                        {/* Enrollment ID pill */}
+                        <div className="flex justify-center">
+                            <div
+                                className="flex flex-col items-center gap-1 px-3 sm:px-5 py-2.5 rounded-2xl cursor-pointer"
+                                style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}
+                            >
+                                <div className="flex items-center gap-1.5">
+                                    <Hash className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e71763' }} />
+                                    <span className="text-[10px] sm:text-xs text-white/40 font-medium whitespace-nowrap">Enrollment ID</span>
+                                </div>
+                                <CopyText value={enrollment.enrollmentId} />
+                            </div>
                         </div>
                     </motion.div>
                 </motion.div>
 
-                {/* ── Main Grid ── */}
-                <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
+                {/* ── Main Grid — single col mobile, two-col lg+ ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 sm:gap-6 items-start">
 
-                    {/* LEFT */}
-                    <div className="space-y-5">
+                    {/* ── LEFT ── */}
+                    <div className="space-y-4 sm:space-y-5">
 
-                        {/* ── Onboarding CTA ── */}
+                        {/* Onboarding CTA */}
                         <motion.div
                             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.55, delay: 0.85, ease: [0.22, 1, 0.36, 1] }}
-                            className="rounded-3xl overflow-hidden"
+                            className="rounded-2xl sm:rounded-3xl overflow-hidden"
                             style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.12) 0%, rgba(231,23,99,0.04) 60%)', border: '1px solid rgba(231,23,99,0.3)' }}
                         >
-                            <div className="flex items-center gap-3 px-7 py-4" style={{ background: 'linear-gradient(90deg, rgba(231,23,99,0.12) 0%, transparent 100%)', borderBottom: '1px solid rgba(231,23,99,0.15)' }}>
-                                <ArrowRight className="w-3.5 h-3.5" style={{ color: '#e71763' }} />
-                                <span className="text-xs font-black uppercase tracking-[0.15em] text-white/70">Your Next Step</span>
-                            </div>
-                            <div className="px-7 py-6">
-                                <h3 className="text-lg font-black text-white mb-2">Complete Your Onboarding Form</h3>
-                                <p className="text-sm text-white/50 leading-relaxed mb-5">
-                                    Please complete your onboarding form so Sudarshan can understand your current lifestyle, training access, nutrition habits, health background, and main goal. Once submitted, your details will be reviewed and your next steps shared within <strong className="text-white">24–48 hours</strong>.
+                            <SectionHeader icon={ArrowRight} label="Your Next Step" />
+                            <div className="px-3 sm:px-6 py-5">
+                                <h3 className="text-sm sm:text-lg font-black text-white mb-2">Complete Your Onboarding Form</h3>
+                                <p className="text-xs sm:text-sm text-white/50 leading-relaxed mb-4">
+                                    Please complete your onboarding form so Sudarshan can understand your lifestyle, training access, nutrition habits, health background, and main goal. Your next steps will be shared within <strong className="text-white">24–48 hours</strong>.
                                 </p>
                                 <p className="text-xs text-white/30 mb-5 italic">
-                                    Please fill the form honestly and in detail. The better we understand your current lifestyle, the better your roadmap can be.
+                                    Fill the form honestly and in detail — the better we understand your lifestyle, the better your roadmap.
                                 </p>
+                                {/* 320px: full-width block button */}
                                 <a
                                     href="https://wa.me/919619708124"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm text-white"
+                                    className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-black text-sm text-white"
                                     style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.4)' }}
                                 >
-                                    <MessageCircle className="w-4 h-4" /> Get Onboarding Form on WhatsApp
-                                    <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                                    <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate">Get Onboarding Form on WhatsApp</span>
+                                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
                                 </a>
                             </div>
                         </motion.div>
@@ -319,15 +394,13 @@ export default function PaymentSuccess() {
                         <motion.div
                             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.55, delay: 0.95, ease: [0.22, 1, 0.36, 1] }}
-                            className="rounded-3xl overflow-hidden"
+                            className="rounded-2xl sm:rounded-3xl overflow-hidden"
                             style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
                         >
-                            <div className="flex items-center gap-3 px-7 py-4" style={{ background: 'linear-gradient(90deg, rgba(231,23,99,0.1) 0%, transparent 100%)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <Star className="w-3.5 h-3.5" style={{ color: '#e71763' }} />
-                                <span className="text-xs font-black uppercase tracking-[0.15em] text-white/70">Enrollment Summary</span>
-                            </div>
-                            <div className="px-7 pb-3">
-                                <div className="grid md:grid-cols-2 gap-x-10">
+                            <SectionHeader icon={Star} label="Enrollment Summary" />
+                            {/* 320px: always single col; 2-col only from md */}
+                            <div className="px-3 sm:px-6 pb-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                                     <div>
                                         <DetailRow icon={User} label="Name" value={enrollment.customerName} />
                                         <DetailRow icon={Mail} label="Email" value={enrollment.customerEmail} />
@@ -348,12 +421,12 @@ export default function PaymentSuccess() {
                         <motion.div
                             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.55, delay: 1.05, ease: [0.22, 1, 0.36, 1] }}
-                            className="rounded-3xl p-7"
+                            className="rounded-2xl sm:rounded-3xl p-3 sm:p-7"
                             style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
                         >
-                            <div className="flex items-center gap-2.5 mb-7">
-                                <ArrowRight className="w-3.5 h-3.5" style={{ color: '#e71763' }} />
-                                <span className="text-xs font-black uppercase tracking-[0.15em] text-white/70">What Happens Next</span>
+                            <div className="flex items-center gap-2 mb-6">
+                                <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e71763' }} />
+                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.1em] sm:tracking-[0.15em] text-white/70">What Happens Next</span>
                             </div>
                             <div>
                                 <Step n={1} delay={1.1} active title="Complete Your Onboarding Form" desc="Fill the form Sudarshan sends via WhatsApp — current routine, lifestyle, training access, nutrition habits, and transformation goal." />
@@ -364,79 +437,111 @@ export default function PaymentSuccess() {
                         </motion.div>
                     </div>
 
-                    {/* RIGHT */}
+                    {/* ── RIGHT SIDEBAR — sticky only at lg+ ── */}
                     <motion.div
                         initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.55, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
-                        className="space-y-4 lg:sticky lg:top-24"
+                        className="space-y-3 sm:space-y-4 lg:sticky lg:top-24"
                     >
                         {/* Program card */}
-                        <div className="rounded-3xl p-6 relative overflow-hidden"
-                            style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.14) 0%, rgba(0,0,0,0.5) 60%)', border: '1px solid rgba(231,23,99,0.22)' }}>
-                            <motion.div className="absolute inset-0 rounded-3xl pointer-events-none"
+                        <div
+                            className="rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden"
+                            style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.14) 0%, rgba(0,0,0,0.5) 60%)', border: '1px solid rgba(231,23,99,0.22)' }}
+                        >
+                            <motion.div
+                                className="absolute inset-0 rounded-2xl sm:rounded-3xl pointer-events-none"
                                 style={{ background: 'radial-gradient(ellipse at 20% 0%, rgba(231,23,99,0.18) 0%, transparent 55%)' }}
-                                animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 4, repeat: Infinity }} />
+                                animate={{ opacity: [0.6, 1, 0.6] }}
+                                transition={{ duration: 4, repeat: Infinity }}
+                            />
                             <div className="relative">
-                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/30 mb-3">Your Plan</p>
-                                <p className="text-lg font-black text-white leading-snug mb-1.5">{enrollment.programName}</p>
-                                <p className="text-sm text-white/40 mb-5">
+                                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/30 mb-2">Your Plan</p>
+                                <p className="text-sm sm:text-lg font-black text-white leading-snug mb-1">{enrollment.programName}</p>
+                                <p className="text-xs sm:text-sm text-white/40 mb-4">
                                     {enrollment.durationMonths ? `${enrollment.durationMonths}-Month` : ''} · {enrollment.planType === 'couple' ? 'Couple Plan' : 'Individual Plan'}
                                 </p>
-                                <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                                <div
+                                    className="flex items-center justify-between pt-3"
+                                    style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                                >
                                     <span className="text-xs text-white/35 font-medium">Total Paid</span>
-                                    <span className="text-2xl font-black" style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.5)' }}>{formatCurrency(enrollment.amountPaid)}</span>
+                                    {/* 320px: text-lg base prevents currency value overflow */}
+                                    <span
+                                        className="text-lg sm:text-2xl font-black"
+                                        style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.5)' }}
+                                    >
+                                        {formatCurrency(enrollment.amountPaid)}
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="rounded-3xl p-5 space-y-2.5" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.18em] mb-4 px-1">Quick Actions</p>
+                        {/* Quick Actions */}
+                        <div
+                            className="rounded-2xl sm:rounded-3xl p-3 sm:p-5 space-y-2"
+                            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
+                        >
+                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.12em] mb-3 px-1">Quick Actions</p>
 
                             {/* Download Invoice */}
-                            <motion.button whileHover={{ scale: 1.015, boxShadow: '0 0 40px rgba(231,23,99,0.5)' }} whileTap={{ scale: 0.97 }}
-                                onClick={handleDownload} disabled={invoiceLoading}
-                                className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-sm text-white transition-all disabled:opacity-60 relative overflow-hidden"
-                                style={{ background: '#e71763', boxShadow: '0 0 28px rgba(231,23,99,0.35)' }}>
-                                <motion.div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}
-                                    animate={{ x: ['-100%', '200%'] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }} />
-                                <Download className="w-4 h-4 flex-shrink-0 relative z-10" />
-                                <span className="relative z-10">{invoiceLoading ? 'Generating…' : 'Download Invoice PDF'}</span>
-                                <ChevronRight className="w-4 h-4 ml-auto relative z-10" />
+                            <motion.button
+                                whileHover={{ scale: 1.015, boxShadow: '0 0 40px rgba(231,23,99,0.5)' }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={handleDownload}
+                                disabled={invoiceLoading}
+                                className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white transition-all disabled:opacity-60 relative overflow-hidden"
+                                style={{ background: '#e71763', boxShadow: '0 0 28px rgba(231,23,99,0.35)' }}
+                            >
+                                <motion.div
+                                    className="absolute inset-0 pointer-events-none"
+                                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}
+                                    animate={{ x: ['-100%', '200%'] }}
+                                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                                />
+                                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 relative z-10" />
+                                <span className="relative z-10 truncate">{invoiceLoading ? 'Generating…' : 'Download Invoice PDF'}</span>
+                                <ChevronRight className="w-3.5 h-3.5 ml-auto relative z-10 flex-shrink-0" />
                             </motion.button>
 
                             {/* WhatsApp */}
-                            <motion.a whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
-                                href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer"
-                                className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-sm text-white transition-all"
-                                style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.25)' }}>
-                                <MessageCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#25D366' }} />
-                                <span>Message Coach on WhatsApp</span>
-                                <ChevronRight className="w-4 h-4 ml-auto text-white/30" />
+                            <motion.a
+                                whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
+                                href="https://wa.me/919619708124"
+                                target="_blank" rel="noopener noreferrer"
+                                className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white transition-all"
+                                style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.25)' }}
+                            >
+                                <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" style={{ color: '#25D366' }} />
+                                <span className="truncate">Message Coach on WhatsApp</span>
+                                <ChevronRight className="w-3.5 h-3.5 ml-auto text-white/30 flex-shrink-0" />
                             </motion.a>
 
                             {/* Home */}
-                            <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
+                            <motion.button
+                                whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => navigate('/')}
-                                className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl font-bold text-sm transition-all"
-                                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
-                                <Home className="w-4 h-4 flex-shrink-0" />
+                                className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all"
+                                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
+                            >
+                                <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                                 <span>Go to Home</span>
-                                <ChevronRight className="w-4 h-4 ml-auto opacity-40" />
+                                <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-40 flex-shrink-0" />
                             </motion.button>
                         </div>
 
                         {/* Trust badge */}
-                        <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl"
-                            style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)' }}>
-                            <Shield className="w-4 h-4 flex-shrink-0" style={{ color: '#22c55e' }} />
-                            <p className="text-xs text-white/35 leading-relaxed">
+                        <div
+                            className="flex items-start gap-2.5 px-3 sm:px-4 py-3 rounded-xl"
+                            style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)' }}
+                        >
+                            <Shield className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#22c55e' }} />
+                            <p className="text-[11px] text-white/35 leading-relaxed">
                                 Payment verified via Razorpay. A confirmation has been sent to your email.
                             </p>
                         </div>
 
                         {/* Tagline */}
-                        <p className="text-center text-xs text-white/20 italic pt-2">
+                        <p className="text-center text-[11px] text-white/20 italic pt-1">
                             Recode Your Body. Recode Your Life.
                         </p>
                     </motion.div>
