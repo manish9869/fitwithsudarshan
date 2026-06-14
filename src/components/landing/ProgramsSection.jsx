@@ -92,7 +92,7 @@ export default function ProgramsSection() {
                     <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
                         <Button size="lg" className="text-white font-bold"
                             style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.35)' }}>
-                            Book a Free Consultation
+                            Book a Consultation
                         </Button>
                     </a>
                 </motion.div>

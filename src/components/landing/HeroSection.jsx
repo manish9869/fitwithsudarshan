@@ -202,7 +202,7 @@ export default function HeroSection() {
                     >
                         <Typewriter />
                         <br />
-                        <span className="text-white">Rebuild Your Life.</span>
+                        <span className="text-white">Your Life.</span>
                     </motion.h1>
 
                     {/* Subtext */}
