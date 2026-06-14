@@ -11,6 +11,18 @@ export default function FloatingWhatsApp() {
         return () => clearTimeout(t);
     }, []);
 
+
+    const whatsappMessage = encodeURIComponent(
+        `Hi Sudarshan,
+
+        I want to apply for a free RECODE Training consultation.
+        
+        My goal:
+        My current weight:
+        My main struggle:
+        I prefer: Online / Personal Training / VIDEO CALL TRAINING`
+    );
+
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
             {/* Tooltip bubble */}
@@ -25,7 +37,8 @@ export default function FloatingWhatsApp() {
                     >
                         <div className="flex-1">
                             <p className="text-white text-xs font-semibold leading-relaxed">
-                                💬 Chat with Sudarshan on WhatsApp — free consultation!
+                                💬 Speak Directly With The Founder -
+                                Get clarity on your transformation journey.
                             </p>
                         </div>
                         <button onClick={() => setDismissed(true)} className="text-white/40 hover:text-white/80 flex-shrink-0 mt-0.5">
@@ -35,9 +48,13 @@ export default function FloatingWhatsApp() {
                 )}
             </AnimatePresence>
 
+
+
+
+
             {/* Main Button */}
             <motion.a
-                href="https://wa.me/919619708124"
+                href={`https://wa.me/919619708124?text=${whatsappMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 initial={{ scale: 0, opacity: 0 }}
@@ -46,7 +63,10 @@ export default function FloatingWhatsApp() {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 className="relative w-14 h-14 rounded-full flex items-center justify-center shadow-2xl"
-                style={{ background: '#25D366', boxShadow: '0 0 30px rgba(37,211,102,0.4)' }}
+                style={{
+                    background: '#25D366',
+                    boxShadow: '0 0 30px rgba(37,211,102,0.4)'
+                }}
                 onClick={() => setShowTooltip(false)}
             >
                 {/* Pulse rings */}
@@ -59,7 +79,12 @@ export default function FloatingWhatsApp() {
                 <motion.span
                     className="absolute inset-0 rounded-full"
                     animate={{ scale: [1, 1.4, 1.7], opacity: [0.3, 0.1, 0] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
+                    transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        ease: "easeOut",
+                        delay: 0.5
+                    }}
                     style={{ background: 'rgba(37,211,102,0.3)' }}
                 />
                 <MessageCircle className="w-6 h-6 text-white fill-white" />

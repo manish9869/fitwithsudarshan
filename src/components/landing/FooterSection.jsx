@@ -23,7 +23,7 @@ const programs = [
 const resources = [
     { name: "Free Fitness Blog", href: "#blog" },
     { name: "Before & After Results", href: "#transformations" },
-    { name: "Free Consultation", href: contact.social.whatsapp, external: true },
+    { name: "Consultation", href: contact.social.whatsapp, external: true },
     { name: "Apply for Coaching", href: contact.social.whatsapp, external: true },
 ];
 

@@ -1,10 +1,8 @@
-
-
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Check, ChevronRight, Globe, Video, MapPin,
-    User, Users, ArrowLeft, Loader2, XCircle, Lock,
+    User, Users, ArrowLeft, Loader2, Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +21,8 @@ const goalOptions = [
     'Full Body Transformation', 'Lifestyle / Habit Improvement',
     'Strength & Fitness', 'Not Sure, Guide Me',
 ];
+
+const MAX_GOALS = 3;
 
 const steps = ['Coaching Type', 'Plan & Duration', 'Your Details', 'Confirm'];
 
@@ -66,6 +66,105 @@ function Field({ label, error, touched, children }) {
     );
 }
 
+// ── Goal Pill Multi-Select ────────────────────────────────────────────────────
+function GoalPicker({ selected, onChange, touched, error }) {
+    const toggle = (goal) => {
+        if (selected.includes(goal)) {
+            onChange(selected.filter((g) => g !== goal));
+        } else if (selected.length < MAX_GOALS) {
+            onChange([...selected, goal]);
+        }
+    };
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-white/70 text-xs">Main Goal * <span className="text-white/30">(pick up to {MAX_GOALS})</span></Label>
+                {selected.length > 0 && (
+                    <span className="text-xs" style={{ color: '#e71763' }}>
+                        {selected.length}/{MAX_GOALS} selected
+                    </span>
+                )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {goalOptions.map((goal) => {
+                    const isSelected = selected.includes(goal);
+                    const isDisabled = !isSelected && selected.length >= MAX_GOALS;
+                    return (
+                        <button
+                            key={goal}
+                            type="button"
+                            onClick={() => toggle(goal)}
+                            disabled={isDisabled}
+                            className="text-xs px-3 py-1.5 rounded-full transition-all font-medium"
+                            style={
+                                isSelected
+                                    ? { background: 'rgba(231,23,99,0.2)', border: '1.5px solid #e71763', color: 'white' }
+                                    : isDisabled
+                                        ? { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.2)', cursor: 'not-allowed' }
+                                        : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)' }
+                            }
+                        >
+                            {isSelected && <Check className="inline w-3 h-3 mr-1 -mt-0.5" />}
+                            {goal}
+                        </button>
+                    );
+                })}
+            </div>
+            <FieldError msg={touched && error ? error : ''} />
+        </div>
+    );
+}
+
+// ── Partner Goal Pill (optional, no validation) ───────────────────────────────
+function PartnerGoalPicker({ selected, onChange }) {
+    const toggle = (goal) => {
+        if (selected.includes(goal)) {
+            onChange(selected.filter((g) => g !== goal));
+        } else if (selected.length < MAX_GOALS) {
+            onChange([...selected, goal]);
+        }
+    };
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-white/70 text-xs">Partner Goal <span className="text-white/30">(pick up to {MAX_GOALS})</span></Label>
+                {selected.length > 0 && (
+                    <span className="text-xs" style={{ color: '#e71763' }}>
+                        {selected.length}/{MAX_GOALS} selected
+                    </span>
+                )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {goalOptions.map((goal) => {
+                    const isSelected = selected.includes(goal);
+                    const isDisabled = !isSelected && selected.length >= MAX_GOALS;
+                    return (
+                        <button
+                            key={goal}
+                            type="button"
+                            onClick={() => toggle(goal)}
+                            disabled={isDisabled}
+                            className="text-xs px-3 py-1.5 rounded-full transition-all font-medium"
+                            style={
+                                isSelected
+                                    ? { background: 'rgba(231,23,99,0.2)', border: '1.5px solid #e71763', color: 'white' }
+                                    : isDisabled
+                                        ? { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.2)', cursor: 'not-allowed' }
+                                        : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)' }
+                            }
+                        >
+                            {isSelected && <Check className="inline w-3 h-3 mr-1 -mt-0.5" />}
+                            {goal}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function Enroll() {
     const location = useLocation();
@@ -78,17 +177,16 @@ export default function Enroll() {
     const [planType, setPlanType] = useState(pre.planType || 'individual');
     const [durationMonths, setDur] = useState(pre.duration || '3');
 
-    const [modalStatus, setModalStatus] = useState('idle'); // idle | loading | error | dismissed
-    // const [paymentError, setPaymentError] = useState('');
+    const [modalStatus, setModalStatus] = useState('idle');
 
     const [form, setForm] = useState({
         fullName: '', whatsapp: '', email: '', age: '',
-        city: '', goal: '', weight: '', medicalIssue: 'no', medicalNote: '',
+        city: '', goal: [], weight: '', medicalIssue: 'no', medicalNote: '',
     });
     const [touched, setTouched] = useState({});
 
     const [partner, setPartner] = useState({
-        fullName: '', age: '', weight: '', goal: '', medicalIssue: 'no', medicalNote: '',
+        fullName: '', age: '', weight: '', goal: [], medicalIssue: 'no', medicalNote: '',
     });
     const [partnerTouched, setPartnerTouched] = useState({});
 
@@ -105,7 +203,7 @@ export default function Enroll() {
         age: validateField('age', form.age),
         city: validateField('city', form.city),
         weight: validateField('weight', form.weight),
-        goal: form.goal ? '' : 'Please select your goal.',
+        goal: form.goal.length > 0 ? '' : 'Please select at least one goal.',
     };
     const partnerErrors = {
         fullName: validateField('fullName', partner.fullName),
@@ -154,11 +252,9 @@ export default function Enroll() {
             },
             onError: (msg) => {
                 setModalStatus('idle');
-                // Navigate to dedicated failure page with context
                 navigate('/payment-failed', {
                     state: {
                         errorMessage: msg || 'Payment could not be completed.',
-                        // Pass whatever partial info we have so the failure page can show it
                         partialEnrollment: {
                             programName,
                             planType,
@@ -380,18 +476,13 @@ export default function Enroll() {
                                         </Field>
                                     </div>
 
-                                    <div>
-                                        <Label className="text-white/70 mb-1 block text-xs">Main Goal *</Label>
-                                        <select value={form.goal}
-                                            onChange={(e) => { setForm((f) => ({ ...f, goal: e.target.value })); touch('goal'); }}
-                                            onBlur={() => touch('goal')}
-                                            className="w-full rounded-md px-3 py-2 text-sm h-9"
-                                            style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${touched.goal && errors.goal ? 'rgba(248,113,113,0.6)' : 'rgba(255,255,255,0.1)'}`, color: form.goal ? 'white' : 'rgba(255,255,255,0.4)' }}>
-                                            <option value="" style={{ background: '#111' }}>Select your main goal</option>
-                                            {goalOptions.map((g) => <option key={g} value={g} style={{ background: '#111' }}>{g}</option>)}
-                                        </select>
-                                        <FieldError msg={touched.goal && errors.goal ? errors.goal : ''} />
-                                    </div>
+                                    {/* ── Multi-select Goal Picker ── */}
+                                    <GoalPicker
+                                        selected={form.goal}
+                                        onChange={(goals) => { setForm((f) => ({ ...f, goal: goals })); touch('goal'); }}
+                                        touched={touched.goal}
+                                        error={errors.goal}
+                                    />
 
                                     <div>
                                         <Label className="text-white/70 mb-1.5 block text-xs">Any Medical Issue or Injury? *</Label>
@@ -430,16 +521,14 @@ export default function Enroll() {
                                                 <Label className="text-white/70 mb-1 block text-xs">Partner Weight (kg)</Label>
                                                 <Input type="number" value={partner.weight} onChange={(e) => setPartner((p) => ({ ...p, weight: e.target.value }))} placeholder="e.g. 65" className="bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9" />
                                             </div>
-                                            <div>
-                                                <Label className="text-white/70 mb-1 block text-xs">Partner Goal</Label>
-                                                <select value={partner.goal} onChange={(e) => setPartner((p) => ({ ...p, goal: e.target.value }))}
-                                                    className="w-full rounded-md px-3 py-2 text-sm h-9"
-                                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: partner.goal ? 'white' : 'rgba(255,255,255,0.4)' }}>
-                                                    <option value="" style={{ background: '#111' }}>Select goal</option>
-                                                    {goalOptions.map((g) => <option key={g} value={g} style={{ background: '#111' }}>{g}</option>)}
-                                                </select>
-                                            </div>
+                                            <div />
                                         </div>
+
+                                        {/* ── Partner multi-select goal ── */}
+                                        <PartnerGoalPicker
+                                            selected={partner.goal}
+                                            onChange={(goals) => setPartner((p) => ({ ...p, goal: goals }))}
+                                        />
                                     </motion.div>
                                 )}
 
@@ -479,24 +568,11 @@ export default function Enroll() {
                                             <span className="text-muted-foreground">Email</span>   <span className="text-white">{form.email}</span>
                                             <span className="text-muted-foreground">Age</span>     <span className="text-white">{form.age} yrs</span>
                                             <span className="text-muted-foreground">City</span>    <span className="text-white">{form.city}</span>
-                                            <span className="text-muted-foreground">Goal</span>    <span className="text-white">{form.goal}</span>
+                                            <span className="text-muted-foreground">Goal(s)</span>
+                                            <span className="text-white">{form.goal.join(', ')}</span>
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Error / dismissed banner */}
-                                {/* {(paymentError || modalStatus === 'dismissed') && (
-                                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                                        className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm mb-4"
-                                        style={{ background: modalStatus === 'dismissed' ? 'rgba(255,255,255,0.04)' : 'rgba(239,68,68,0.1)', border: `1px solid ${modalStatus === 'dismissed' ? 'rgba(255,255,255,0.1)' : 'rgba(239,68,68,0.25)'}` }}>
-                                        <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: modalStatus === 'dismissed' ? 'rgba(255,255,255,0.4)' : '#f87171' }} />
-                                        <span style={{ color: modalStatus === 'dismissed' ? 'rgba(255,255,255,0.6)' : '#fca5a5' }}>
-                                            {modalStatus === 'dismissed'
-                                                ? 'Payment was cancelled. No charges were made. You can try again.'
-                                                : paymentError}
-                                        </span>
-                                    </motion.div>
-                                )} */}
 
                                 <p className="text-xs text-muted-foreground mb-5 text-center">
                                     Clicking below opens the secure Razorpay payment window.

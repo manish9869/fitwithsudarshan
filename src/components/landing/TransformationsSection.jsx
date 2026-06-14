@@ -348,7 +348,7 @@ export function TransformationsSection() {
                 >
                     <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: '#e71763' }}>Real Results</span>
                     <h2 className="text-3xl md:text-5xl font-bold mt-4 mb-4 sm:mb-6">
-                        Client <span style={{ color: '#e71763' }}>Transformations</span>
+                        Client <span style={{ color: '#e71763' }}>RECODE Stories</span>
                     </h2>
                     <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
                         Real people, real results. Sustainable transformations built through structure, not restriction.

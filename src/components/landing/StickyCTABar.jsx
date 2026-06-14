@@ -37,9 +37,10 @@ export default function StickyCTABar() {
                                 transition={{ duration: 1.5, repeat: Infinity }}
                             />
                             <p className="text-white font-semibold text-sm truncate">
-                                Ready to RECODE your body?
+                                Not sure where to start?
+
                             </p>
-                            <p className="text-muted-foreground text-xs hidden sm:block">Start with a free WhatsApp chat.</p>
+                            <p className="text-muted-foreground text-xs hidden sm:block"> Chat directly with Sudarshan, Founder of RECODE™</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <Link to="/enroll">
