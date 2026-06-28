@@ -7,6 +7,7 @@ import PaymentFailed from '@/pages/PaymentFailed';
 import Terms from '@/pages/Terms';
 import RefundPolicy from '@/pages/RefundPolicy';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import Onboarding from '@/pages/Onboarding';
 import { SpeedInsights } from '@vercel/speed-insights/react'
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/terms" element={<Terms />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/onboarding" element={<Onboarding />} />
       </Routes>
       <SpeedInsights />
     </Router>
