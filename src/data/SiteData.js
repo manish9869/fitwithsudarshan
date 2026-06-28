@@ -209,7 +209,6 @@ export const coachingTypes = [
     },
 ];
 
-// ─── PRICING TABLE ────────────────────────────────────────────────────────────
 // pricing[coachingTypeId][planType][duration] = price
 export const pricingTable = {
     online: {
@@ -224,6 +223,13 @@ export const pricingTable = {
             "3": 12999,
             "6": 22999,
             "12": 38999,
+        },
+        // NEW — one-time basic consultation, online only
+        basic_individual: {
+            "1": 599,
+        },
+        basic_couple: {
+            "1": 999,
         },
     },
     video: {
@@ -256,6 +262,22 @@ export const pricingTable = {
     },
 };
 
+// ─── BASIC ONLINE CONSULTATION (one-time, online tab only) ───────────────────
+export const basicConsultation = {
+    coachingId: "basic", // used as a pseudo-coachingId for routing/labels only
+    name: "Basic Online Consultation",
+    tagline: "One-time basic guidance — nutrition & workout direction.",
+    description:
+        "A single one-time consultation with basic nutrition and workout guidance. Ideal if you just want a starting roadmap rather than full ongoing coaching.",
+    priceIndividual: 599,
+    priceCouple: 999,
+    features: [
+        "One-time basic workout guidance",
+        "One-time basic nutrition guidance",
+        "General direction & roadmap",
+        "No ongoing check-ins (upgrade to full coaching anytime)",
+    ],
+};
 
 export const durations = [
     { months: "1", label: "1 Month", sublabel: "Starter", description: "Start with structure and direction." },

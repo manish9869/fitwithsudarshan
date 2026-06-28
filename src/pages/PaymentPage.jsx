@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { coachingTypes, pricingTable, durations } from '@/data/SiteData';
+import { coachingTypes, pricingTable, durations, basicConsultation } from '@/data/SiteData';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import CustomCursor from '@/components/CustomCursor';
 
@@ -17,6 +17,8 @@ import CustomCursor from '@/components/CustomCursor';
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
 const formatPrice = (p) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
+
+const isBasicPlan = (pt) => pt === 'basic_individual' || pt === 'basic_couple';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function StatusModal({ status, onClose, paymentId }) {
@@ -128,7 +130,7 @@ export default function PaymentPage() {
     const [coachingId, setCoachingId] = useState('online');
     const [planType, setPlanType] = useState('individual');
     const [durationMonths, setDurationMonths] = useState('3');
-    const [modalStatus, setModalStatus] = useState('idle');  // idle | loading | success | error | dismissed
+    const [modalStatus, setModalStatus] = useState('idle');
     const [paymentId, setPaymentId] = useState(null);
     const [errorMsg, setErrorMsg] = useState('');
 
@@ -139,9 +141,26 @@ export default function PaymentPage() {
 
     const { initiatePayment } = useRazorpay();
 
-    const price = pricingTable[coachingId]?.[planType]?.[durationMonths] || 0;
-    const selectedDuration = durations.find((d) => d.months === durationMonths);
+    const basic = isBasicPlan(planType);
+    const isCoupleBasic = planType === 'basic_couple';
+    const isCouplePlan = planType === 'couple' || isCoupleBasic;
+
+    const price = basic
+        ? (pricingTable[coachingId]?.[planType]?.['1'] || 0)
+        : (pricingTable[coachingId]?.[planType]?.[durationMonths] || 0);
+    const selectedDuration = basic
+        ? { months: '1', label: 'One-Time', description: basicConsultation.description }
+        : durations.find((d) => d.months === durationMonths);
     const activeCoaching = coachingTypes.find((c) => c.id === coachingId);
+
+    const handleCoachingChange = (id) => {
+        setCoachingId(id);
+        if (id !== 'online' && isBasicPlan(planType)) setPlanType('individual');
+    };
+    const handlePlanTypeChange = (pt) => {
+        setPlanType(pt);
+        if (isBasicPlan(pt)) setDurationMonths('1');
+    };
 
     const handlePay = async () => {
         if (!buyerName.trim() || !buyerEmail.trim()) {
@@ -151,12 +170,20 @@ export default function PaymentPage() {
         setErrorMsg('');
         setModalStatus('loading');
 
+        const programLabel = basic
+            ? `${basicConsultation.name} — ${isCoupleBasic ? 'Couple' : 'Individual'} — One-Time`
+            : `RECODE™ ${activeCoaching?.name} — ${isCouplePlan ? 'Couple' : 'Individual'} — ${selectedDuration?.label}`;
+
         await initiatePayment({
-            amountPaise: price * 100,  // Convert ₹ to paise
+            amountPaise: price * 100,
             name: buyerName,
             email: buyerEmail,
             contact: buyerPhone,
-            description: `RECODE™ ${activeCoaching?.name} — ${planType === 'couple' ? 'Couple' : 'Individual'} — ${selectedDuration?.label}`,
+            description: programLabel,
+            programName: programLabel,
+            planType: isCouplePlan ? 'couple' : 'individual',
+            durationMonths: basic ? '1' : durationMonths,
+            coachingType: basic ? 'online' : coachingId,
             onSuccess: (response) => {
                 setPaymentId(response.razorpay_payment_id);
                 setModalStatus('success');
@@ -243,7 +270,7 @@ export default function PaymentPage() {
                                     return (
                                         <button
                                             key={ct.id}
-                                            onClick={() => setCoachingId(ct.id)}
+                                            onClick={() => handleCoachingChange(ct.id)}
                                             className="rounded-2xl p-4 text-left transition-all"
                                             style={selected
                                                 ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
@@ -266,14 +293,14 @@ export default function PaymentPage() {
                         {/* Individual / Couple */}
                         <div>
                             <h2 className="text-sm font-black uppercase tracking-widest text-white/40 mb-4">2. Individual or Couple?</h2>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-3 mb-3">
                                 {[
                                     { id: 'individual', label: 'Individual', sub: 'Just for you', icon: User },
                                     { id: 'couple', label: 'Couple', sub: 'For two people', icon: Users },
                                 ].map(({ id, label, sub, icon: Icon }) => (
                                     <button
                                         key={id}
-                                        onClick={() => setPlanType(id)}
+                                        onClick={() => handlePlanTypeChange(id)}
                                         className="rounded-2xl p-5 flex items-center gap-4 transition-all"
                                         style={planType === id
                                             ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
@@ -287,52 +314,86 @@ export default function PaymentPage() {
                                     </button>
                                 ))}
                             </div>
-                        </div>
 
-                        {/* Duration */}
-                        <div>
-                            <h2 className="text-sm font-black uppercase tracking-widest text-white/40 mb-4">3. Select Duration</h2>
-                            <div className="space-y-2">
-                                {durations.map((dur) => {
-                                    const p = pricingTable[coachingId]?.[planType]?.[dur.months] || 0;
-                                    const selected = durationMonths === dur.months;
-                                    return (
+                            {/* Basic one-time consultation — online only */}
+                            {coachingId === 'online' && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { id: 'basic_individual', label: 'Basic Consult (Individual)', price: basicConsultation.priceIndividual },
+                                        { id: 'basic_couple', label: 'Basic Consult (Couple)', price: basicConsultation.priceCouple },
+                                    ].map(({ id, label, price: p }) => (
                                         <button
-                                            key={dur.months}
-                                            onClick={() => setDurationMonths(dur.months)}
-                                            className="w-full rounded-xl p-4 flex items-center justify-between transition-all"
-                                            style={selected
+                                            key={id}
+                                            onClick={() => handlePlanTypeChange(id)}
+                                            className="rounded-2xl p-4 text-left transition-all"
+                                            style={planType === id
                                                 ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
                                                 : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                                                    style={{ borderColor: selected ? '#e71763' : 'rgba(255,255,255,0.2)' }}
-                                                >
-                                                    {selected && <div className="w-2 h-2 rounded-full" style={{ background: '#e71763' }} />}
-                                                </div>
-                                                <div className="text-left">
-                                                    <span className={`font-bold text-sm ${selected ? 'text-white' : 'text-white/70'}`}>{dur.label}</span>
-                                                    {dur.popular && (
-                                                        <span
-                                                            className="ml-2 text-[10px] font-black px-2 py-0.5 rounded-full"
-                                                            style={{ background: 'rgba(231,23,99,0.2)', color: '#e71763' }}
-                                                        >
-                                                            Most Popular
-                                                        </span>
-                                                    )}
-                                                    <p className="text-xs text-white/30 mt-0.5">{dur.description}</p>
-                                                </div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Zap className={`w-4 h-4 ${planType === id ? 'text-primary' : 'text-muted-foreground'}`} />
+                                                <p className={`font-black text-sm ${planType === id ? 'text-white' : 'text-white/70'}`}>{label}</p>
                                             </div>
-                                            <span className={`font-black text-base ${selected ? 'text-white' : 'text-white/50'}`}>
-                                                {formatPrice(p)}
-                                            </span>
+                                            <p className="text-xs text-white/30">One-time · {formatPrice(p)}</p>
                                         </button>
-                                    );
-                                })}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
+
+                        {/* Duration */}
+                        {!basic && (
+                            <div>
+                                <h2 className="text-sm font-black uppercase tracking-widest text-white/40 mb-4">3. Select Duration</h2>
+                                <div className="space-y-2">
+                                    {durations.map((dur) => {
+                                        const p = pricingTable[coachingId]?.[planType]?.[dur.months] || 0;
+                                        const selected = durationMonths === dur.months;
+                                        return (
+                                            <button
+                                                key={dur.months}
+                                                onClick={() => setDurationMonths(dur.months)}
+                                                className="w-full rounded-xl p-4 flex items-center justify-between transition-all"
+                                                style={selected
+                                                    ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
+                                                    : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                                                        style={{ borderColor: selected ? '#e71763' : 'rgba(255,255,255,0.2)' }}
+                                                    >
+                                                        {selected && <div className="w-2 h-2 rounded-full" style={{ background: '#e71763' }} />}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <span className={`font-bold text-sm ${selected ? 'text-white' : 'text-white/70'}`}>{dur.label}</span>
+                                                        {dur.popular && (
+                                                            <span
+                                                                className="ml-2 text-[10px] font-black px-2 py-0.5 rounded-full"
+                                                                style={{ background: 'rgba(231,23,99,0.2)', color: '#e71763' }}
+                                                            >
+                                                                Most Popular
+                                                            </span>
+                                                        )}
+                                                        <p className="text-xs text-white/30 mt-0.5">{dur.description}</p>
+                                                    </div>
+                                                </div>
+                                                <span className={`font-black text-base ${selected ? 'text-white' : 'text-white/50'}`}>
+                                                    {formatPrice(p)}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {basic && (
+                            <div className="rounded-2xl p-5" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
+                                <p className="text-sm font-bold text-white mb-1">{basicConsultation.name}</p>
+                                <p className="text-xs text-white/40">{basicConsultation.description}</p>
+                            </div>
+                        )}
 
                         {/* Buyer details */}
                         <div>
@@ -396,9 +457,9 @@ export default function PaymentPage() {
 
                                 <div className="space-y-3 mb-5">
                                     {[
-                                        { label: 'Plan', value: activeCoaching?.shortName ?? '—' },
-                                        { label: 'Type', value: planType === 'couple' ? 'Couple' : 'Individual' },
-                                        { label: 'Duration', value: selectedDuration?.label ?? '—' },
+                                        { label: 'Plan', value: basic ? 'Basic Consultation' : (activeCoaching?.shortName ?? '—') },
+                                        { label: 'Type', value: isCouplePlan ? 'Couple' : 'Individual' },
+                                        { label: 'Duration', value: basic ? 'One-Time' : (selectedDuration?.label ?? '—') },
                                     ].map(({ label, value }) => (
                                         <div key={label} className="flex justify-between text-sm">
                                             <span className="text-white/40">{label}</span>
@@ -422,7 +483,7 @@ export default function PaymentPage() {
                                         {formatPrice(price)}
                                     </motion.span>
                                 </div>
-                                {planType === 'couple' && (
+                                {isCouplePlan && !basic && (
                                     <p className="text-xs text-white/30 text-right mt-1">
                                         {formatPrice(Math.round(price / 2))}/person
                                     </p>

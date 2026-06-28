@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Check, Globe, Video, MapPin, Zap, Users, User, ArrowRight, Flame } from "lucide-react";
-import { coachingTypes, pricingTable, durations, planInclusions } from "@/data/SiteData";
+import { coachingTypes, pricingTable, durations, planInclusions, basicConsultation } from "@/data/SiteData";
 import { Link } from "react-router-dom";
 
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
@@ -82,6 +82,62 @@ function PricingCard({ coachingId, planType, duration, isPopular, index }) {
     );
 }
 
+// ── Basic one-time consultation card ──────────────────────────────────────────
+function BasicCard({ variant, index }) {
+    // variant: 'individual' | 'couple'
+    const isCouple = variant === 'couple';
+    const price = isCouple ? basicConsultation.priceCouple : basicConsultation.priceIndividual;
+    const [hovered, setHovered] = useState(false);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.55, delay: index * 0.09, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -10, scale: 1.04 }}
+            onHoverStart={() => setHovered(true)}
+            onHoverEnd={() => setHovered(false)}
+            className="relative rounded-2xl flex flex-col overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${hovered ? 'rgba(231,23,99,0.4)' : 'rgba(255,255,255,0.07)'}`, boxShadow: hovered ? '0 25px 60px rgba(0,0,0,0.5)' : 'none' }}
+        >
+            <div className="p-6 flex flex-col flex-1 pt-8">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-1">One-Time</p>
+                <p className="text-lg font-black text-white mb-4">{isCouple ? 'Basic — Couple' : 'Basic — Individual'}</p>
+
+                <div className="mb-5">
+                    <motion.p className="text-4xl font-black leading-none" style={{ color: 'white' }}
+                        animate={hovered ? { scale: 1.06 } : { scale: 1 }} transition={{ duration: 0.2 }}>
+                        {formatPrice(price)}
+                    </motion.p>
+                    {isCouple && <p className="text-[11px] text-white/35 mt-1.5">for 2 people · {formatPrice(Math.round(price / 2))}/person</p>}
+                </div>
+
+                <p className="text-xs text-white/45 mb-5 leading-relaxed flex-1">{basicConsultation.description}</p>
+
+                <div className="space-y-2 mb-6">
+                    {basicConsultation.features.map((b) => (
+                        <div key={b} className="flex items-center gap-2">
+                            <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ background: 'rgba(231,23,99,0.15)' }}>
+                                <Check className="w-2 h-2" style={{ color: '#e71763' }} />
+                            </div>
+                            <span className="text-xs text-white/55">{b}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <Link to="/enroll" state={{ coachingId: 'online', planType: isCouple ? 'basic_couple' : 'basic_individual', duration: '1' }}>
+                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        className="w-full py-3 rounded-xl font-black text-sm text-white"
+                        style={{ border: `1px solid ${hovered ? 'rgba(231,23,99,0.5)' : 'rgba(255,255,255,0.15)'}`, background: hovered ? 'rgba(231,23,99,0.08)' : 'transparent' }}>
+                        Book Consultation <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
+                    </motion.button>
+                </Link>
+            </div>
+        </motion.div>
+    );
+}
+
 export function PricingSection() {
     const [activeTab, setActiveTab] = useState("online");
     const [planType, setPlanType] = useState("individual");
@@ -89,6 +145,14 @@ export function PricingSection() {
     const isInView = useInView(ref, { once: true, margin: "-60px" });
     const activeCoaching = coachingTypes.find((c) => c.id === activeTab);
     const Icon = tabIcons[activeTab];
+
+    const handleTabChange = (id) => {
+        setActiveTab(id);
+        // Basic only exists under Online — reset plan type if leaving online while on basic
+        if (id !== 'online' && (planType === 'basic_individual' || planType === 'basic_couple')) {
+            setPlanType('individual');
+        }
+    };
 
     return (
         <section id="pricing" className="relative py-28 overflow-hidden">
@@ -168,7 +232,7 @@ export function PricingSection() {
                         const TabIcon = tabIcons[ct.id];
                         const active = activeTab === ct.id;
                         return (
-                            <motion.button key={ct.id} onClick={() => setActiveTab(ct.id)}
+                            <motion.button key={ct.id} onClick={() => handleTabChange(ct.id)}
                                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
                                 className="flex items-center gap-2 px-6 py-3 rounded-full font-black text-sm transition-all"
                                 style={active
@@ -213,9 +277,18 @@ export function PricingSection() {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Individual / Couple */}
-                <div className="flex justify-center gap-3 mb-10">
-                    {[{ id: "individual", icon: User, label: "Individual" }, { id: "couple", icon: Users, label: "Couple Plan" }].map(({ id, icon: Ic, label }) => (
+                {/* Individual / Couple / Basic (basic only under online) */}
+                <div className="flex justify-center gap-3 mb-10 flex-wrap">
+                    {[
+                        { id: "individual", icon: User, label: "Individual" },
+                        { id: "couple", icon: Users, label: "Couple Plan" },
+                        ...(activeTab === "online"
+                            ? [
+                                { id: "basic_individual", icon: Zap, label: "Basic (₹599 One-Time)" },
+                                { id: "basic_couple", icon: Zap, label: "Basic Couple (₹999 One-Time)" },
+                            ]
+                            : []),
+                    ].map(({ id, icon: Ic, label }) => (
                         <motion.button key={id} onClick={() => setPlanType(id)}
                             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
                             className="flex items-center gap-2 px-6 py-2.5 rounded-full font-black text-sm"
@@ -229,14 +302,23 @@ export function PricingSection() {
 
                 {/* Pricing cards */}
                 <AnimatePresence mode="wait">
-                    <motion.div key={`${activeTab}-${planType}`}
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
-                        {durations.map((dur, i) => (
-                            <PricingCard key={dur.months} coachingId={activeTab} planType={planType} duration={dur} isPopular={!!dur.popular} index={i} />
-                        ))}
-                    </motion.div>
+                    {(planType === 'basic_individual' || planType === 'basic_couple') ? (
+                        <motion.div key="basic-cards"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="grid sm:grid-cols-2 max-w-xl mx-auto gap-5 mb-14">
+                            <BasicCard variant={planType === 'basic_couple' ? 'couple' : 'individual'} index={0} />
+                        </motion.div>
+                    ) : (
+                        <motion.div key={`${activeTab}-${planType}`}
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
+                            {durations.map((dur, i) => (
+                                <PricingCard key={dur.months} coachingId={activeTab} planType={planType} duration={dur} isPopular={!!dur.popular} index={i} />
+                            ))}
+                        </motion.div>
+                    )}
                 </AnimatePresence>
 
                 {/* CTA */}
