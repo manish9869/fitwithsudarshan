@@ -3,7 +3,7 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Check, Globe, Video, MapPin, Zap, Users, User, ArrowRight, Flame } from "lucide-react";
 import { coachingTypes, pricingTable, durations, planInclusions, basicConsultation } from "@/data/SiteData";
 import { Link } from "react-router-dom";
-
+import { wa } from "@/utils/whatsapp";
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
 const formatPrice = (p) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(p);
@@ -367,7 +367,7 @@ export function PricingSection() {
                             animate={{ scale: [1, 1.7, 2.4], opacity: [0.5, 0.2, 0] }}
                             transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut" }}
                             style={{ background: 'rgba(231,23,99,0.28)' }} />
-                        <motion.a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer"
+                        <motion.a href={wa.pricing} target="_blank" rel="noopener noreferrer"
                             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
                             className="relative flex items-center gap-3 px-8 py-4 rounded-full font-black text-white"
                             style={{ background: '#e71763', boxShadow: '0 0 45px rgba(231,23,99,0.5)' }}>

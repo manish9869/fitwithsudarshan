@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MessageCircle } from "lucide-react";
+import { wa } from "@/utils/whatsapp";
 
 export default function FloatingWhatsApp() {
     const [showTooltip, setShowTooltip] = useState(false);
@@ -12,16 +13,6 @@ export default function FloatingWhatsApp() {
     }, []);
 
 
-    const whatsappMessage = encodeURIComponent(
-        `Hi Sudarshan,
-
-        I want to apply for a free RECODE Training consultation.
-        
-        My goal:
-        My current weight:
-        My main struggle:
-        I prefer: Online / Personal Training / VIDEO CALL TRAINING`
-    );
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
@@ -54,7 +45,7 @@ export default function FloatingWhatsApp() {
 
             {/* Main Button */}
             <motion.a
-                href={`https://wa.me/919619708124?text=${whatsappMessage}`}
+                href={wa.coaching}
                 target="_blank"
                 rel="noopener noreferrer"
                 initial={{ scale: 0, opacity: 0 }}

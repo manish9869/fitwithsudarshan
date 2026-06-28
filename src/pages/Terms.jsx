@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, FileText } from 'lucide-react';
-
+import { wa } from "@/utils/whatsapp";
 import FooterSection from '@/components/landing/FooterSection';
 import CustomCursor from '@/components/CustomCursor';
 const sections = [
@@ -178,7 +178,7 @@ export default function Terms() {
                         <Shield className="w-8 h-8 mx-auto mb-3" style={{ color: '#e71763' }} />
                         <p className="text-white font-bold mb-1">Have questions about these terms?</p>
                         <p className="text-white/40 text-sm mb-4">We're happy to clarify anything before you enroll.</p>
-                        <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer"
+                        <a href={wa.contact} target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white"
                             style={{ background: '#e71763' }}>
                             Chat on WhatsApp

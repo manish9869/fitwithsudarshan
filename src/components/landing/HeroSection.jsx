@@ -3,6 +3,7 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ArrowRight, Users, Award, Clock, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import { wa } from "@/utils/whatsapp";
 
 // ─── Typewriter ───────────────────────────────────────────────────────────────
 const words = ["Recover.", "Regulate.", "Rebuild."];
@@ -225,7 +226,7 @@ export default function HeroSection() {
                         className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mb-10 md:mb-16 px-4"
                     >
                         <PulseButton
-                            href="https://wa.me/919619708124"
+                            href={wa.coaching}
                             style={{ background: '#e71763', boxShadow: '0 0 30px rgba(231,23,99,0.45)' }}
                         >
                             Apply For Coaching

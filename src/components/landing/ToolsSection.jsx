@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
+import { wa } from "@/utils/whatsapp";
 function BMICalculator() {
     const [height, setHeight] = useState(170)
     const [weight, setWeight] = useState(70)
@@ -261,7 +261,7 @@ export function ToolsSection() {
                 </motion.div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: 0.4 }} className="text-center mt-8 sm:mt-12">
                     <p className="text-muted-foreground mb-4">Want a personalized plan based on your results?</p>
-                    <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
+                    <a href={wa.tools} target="_blank" rel="noopener noreferrer">
                         <Button size="lg" className="text-white font-bold group" style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.35)' }}>
                             Get Your Custom Plan
                             <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />

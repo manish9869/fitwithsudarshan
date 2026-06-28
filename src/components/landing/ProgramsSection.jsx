@@ -3,7 +3,7 @@ import { motion, useInView } from "framer-motion";
 import { Globe, Video, MapPin, Crown, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { services } from "@/data/SiteData";
-
+import { wa } from "@/utils/whatsapp";
 const icons = { online: Globe, consult: Video, personal: MapPin, elite: Crown };
 
 export default function ProgramsSection() {
@@ -66,7 +66,7 @@ export default function ProgramsSection() {
                                             </li>
                                         ))}
                                     </ul>
-                                    <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
+                                    <a href={wa.programs} target="_blank" rel="noopener noreferrer">
                                         <Button variant="ghost" className="w-full group/btn hover:text-white"
                                             style={{ border: '1px solid rgba(255,255,255,0.1)' }}
                                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(231,23,99,0.1)'; e.currentTarget.style.borderColor = 'rgba(231,23,99,0.3)'; }}
@@ -89,7 +89,7 @@ export default function ProgramsSection() {
                     className="text-center mt-16"
                 >
                     <p className="text-muted-foreground mb-6">Not sure which path is right for you?</p>
-                    <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
+                    <a href={wa.programs} target="_blank" rel="noopener noreferrer">
                         <Button size="lg" className="text-white font-bold"
                             style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.35)' }}>
                             Book a Consultation

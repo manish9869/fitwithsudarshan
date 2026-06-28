@@ -15,7 +15,7 @@ import {
     ChevronRight, Star, Copy, Check, ExternalLink,
 } from 'lucide-react';
 import CustomCursor from '../components/CustomCursor';
-
+import { wa } from "@/utils/whatsapp";
 // ─── Floating orbs background ─────────────────────────────────────────────────
 function FloatingOrbs() {
     return (
@@ -555,7 +555,7 @@ export default function PaymentSuccess() {
                             {/* WhatsApp */}
                             <motion.a
                                 whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
-                                href="https://wa.me/919619708124"
+                                href={wa.postPayment}
                                 target="_blank" rel="noopener noreferrer"
                                 className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white transition-all"
                                 style={{ background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.25)' }}
