@@ -134,6 +134,8 @@ export function buildEnrollment({
 // ─── Persist to Supabase ──────────────────────────────────────────────────────
 export async function saveEnrollmentToSupabase(enrollment) {
     const supabase = getSupabase();
+
+    console.log('[enrollmentService] Saving enrollment to Supabase:', supabase, enrollment);
     if (!supabase) {
         console.warn('[enrollmentService] Skipping Supabase save — client not initialized.');
         return { success: false, error: 'Supabase not configured' };
