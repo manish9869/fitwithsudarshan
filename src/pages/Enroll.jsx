@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Check, ChevronRight, Globe, Video, MapPin,
@@ -29,6 +29,22 @@ const MAX_GOALS = 3;
 const steps = ['Coaching Type', 'Plan & Duration', 'Your Details', 'Confirm'];
 
 const isBasicPlan = (pt) => pt === 'basic_individual' || pt === 'basic_couple';
+
+// ── Draft persistence (survives accidental navigation / back button) ─────────
+const ENROLL_DRAFT_KEY = 'recode_enroll_draft_v1';
+
+function loadDraft() {
+    try {
+        const raw = sessionStorage.getItem(ENROLL_DRAFT_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+function clearDraft() {
+    try { sessionStorage.removeItem(ENROLL_DRAFT_KEY); } catch { /* noop */ }
+}
 
 // ── Validation ────────────────────────────────────────────────────────────────
 const validateField = (name, value) => {
@@ -273,26 +289,43 @@ export default function Enroll() {
     const pre = location.state || {};
     const { initiatePayment } = useRazorpay();
 
-    const [step, setStep] = useState(0);
-    const [coachingId, setCoachingId] = useState(pre.coachingId || 'online');
-    const [planType, setPlanType] = useState(pre.planType || 'individual');
-    const [durationMonths, setDur] = useState(pre.duration || '3');
+    // Restore any in-progress draft (e.g. user hit the header "Back" link or
+    // browser back button by accident) before falling back to router state.
+    const draft = loadDraft();
+
+    const [step, setStep] = useState(draft?.step ?? 0);
+    const [coachingId, setCoachingId] = useState(draft?.coachingId ?? pre.coachingId ?? 'online');
+    const [planType, setPlanType] = useState(draft?.planType ?? pre.planType ?? 'individual');
+    const [durationMonths, setDur] = useState(draft?.durationMonths ?? pre.duration ?? '3');
 
     const [modalStatus, setModalStatus] = useState('idle');
 
     // ── Coupon state ────────────────────────────────────────────────────────────
-    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [appliedCoupon, setAppliedCoupon] = useState(draft?.appliedCoupon ?? null);
 
-    const [form, setForm] = useState({
+    const [form, setForm] = useState(draft?.form ?? {
         fullName: '', whatsapp: '', email: '', age: '',
         city: '', goal: [], weight: '', medicalIssue: 'no', medicalNote: '',
     });
     const [touched, setTouched] = useState({});
 
-    const [partner, setPartner] = useState({
+    const [partner, setPartner] = useState(draft?.partner ?? {
         fullName: '', age: '', weight: '', goal: [], medicalIssue: 'no', medicalNote: '',
     });
     const [partnerTouched, setPartnerTouched] = useState({});
+
+    // Persist every change to sessionStorage so progress survives accidental
+    // navigation (header "Back" link, browser back/forward, accidental refresh).
+    useEffect(() => {
+        try {
+            sessionStorage.setItem(
+                ENROLL_DRAFT_KEY,
+                JSON.stringify({ step, coachingId, planType, durationMonths, appliedCoupon, form, partner })
+            );
+        } catch {
+            /* sessionStorage unavailable (e.g. private mode) — fail silently */
+        }
+    }, [step, coachingId, planType, durationMonths, appliedCoupon, form, partner]);
 
     const basic = isBasicPlan(planType);
     const isCoupleBasic = planType === 'basic_couple';
@@ -364,6 +397,16 @@ export default function Enroll() {
     };
     const handleBack = () => setStep((s) => Math.max(s - 1, 0));
 
+    // Header "Back": if mid-flow, step back through the wizard first;
+    // only leave the page entirely once they're on the very first step.
+    const handleHeaderBack = () => {
+        if (step > 0) {
+            handleBack();
+        } else {
+            navigate('/');
+        }
+    };
+
     // ── PAYMENT ────────────────────────────────────────────────────────────────
     const handlePay = async (e) => {
         e.preventDefault();
@@ -397,6 +440,7 @@ export default function Enroll() {
             partnerMedicalIssue: partner.medicalIssue || null,
             partnerMedicalNote: partner.medicalNote || null,
             onSuccess: (enrollment) => {
+                clearDraft();
                 setModalStatus('idle');
                 navigate('/payment-success', { state: { enrollment } });
             },
@@ -426,9 +470,12 @@ export default function Enroll() {
             <div className="sticky top-0 z-40 backdrop-blur-xl"
                 style={{ background: 'rgba(10,10,10,0.9)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-white transition-colors">
+                    <button
+                        onClick={handleHeaderBack}
+                        className="flex items-center gap-2 text-muted-foreground hover:text-white transition-colors"
+                    >
                         <ArrowLeft className="w-4 h-4" /> Back
-                    </Link>
+                    </button>
                     <span className="text-lg font-bold text-white">
                         FitWith<span className="text-primary">Sudarshan</span>
                     </span>
