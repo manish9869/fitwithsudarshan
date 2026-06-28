@@ -372,7 +372,7 @@ export default function PaymentSuccess() {
                                     Fill the form honestly and in detail — the better we understand your lifestyle, the better your roadmap.
                                 </p>
                                 <a
-                                    href="https://www.jotform.com/build/261524335351047"
+                                    href="https://www.fitwithsudarshan.com/onboarding"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-black text-sm text-white"
