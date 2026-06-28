@@ -2,26 +2,24 @@
 
 export const COUPONS = {
     // Old client coupon — Mumbai PT only, fixed price override
-    RECODE2024: {
-        code: 'RECODE2024',
+    RECODE2026: {
+        code: 'RECODE2026',
         label: 'Old Client Discount',
         description: 'Special rate for returning RECODE™ clients',
         type: 'FIXED_PRICE',
         applicableTo: ['personal'], // coachingType IDs
         fixedPrices: {
-            // individual fixed price per duration (months)
             individual: {
-                '1': 15000,
-                '3': 15000, // only 1-month discount specified; others keep same
-                '6': 15000,
-                '12': 15000,
+                "1": 15000,
+                "3": 50000,
+                "6": 100000,
+                "12": 195000,
             },
-            // couple fixed price per duration
             couple: {
-                '1': 30000,
-                '3': 30000,
-                '6': 30000,
-                '12': 30000,
+                "1": 30000,
+                "3": 65000,
+                "6": 115000,
+                "12": 215000,
             },
         },
         active: true,
