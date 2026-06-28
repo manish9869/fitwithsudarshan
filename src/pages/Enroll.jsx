@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Check, ChevronRight, Globe, Video, MapPin,
     User, Users, ArrowLeft, Loader2, Lock,
-    Tag, X, Sparkles,
+    Tag, X, Sparkles, Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { coachingTypes, pricingTable, durations } from '@/data/SiteData';
+import { coachingTypes, pricingTable, durations, basicConsultation } from '@/data/SiteData';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import CustomCursor from '@/components/CustomCursor';
 import { useRazorpay } from '@/hooks/useRazorpay';
@@ -27,6 +27,8 @@ const goalOptions = [
 const MAX_GOALS = 3;
 
 const steps = ['Coaching Type', 'Plan & Duration', 'Your Details', 'Confirm'];
+
+const isBasicPlan = (pt) => pt === 'basic_individual' || pt === 'basic_couple';
 
 // ── Validation ────────────────────────────────────────────────────────────────
 const validateField = (name, value) => {
@@ -176,7 +178,6 @@ function CouponInput({ coachingId, planType, durationMonths, originalPrice, onAp
         setError('');
         setChecking(true);
 
-        // Small delay for UX feel
         setTimeout(() => {
             const result = validateCoupon(inputValue, coachingId, planType, durationMonths, originalPrice);
             setChecking(false);
@@ -280,7 +281,7 @@ export default function Enroll() {
     const [modalStatus, setModalStatus] = useState('idle');
 
     // ── Coupon state ────────────────────────────────────────────────────────────
-    const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discountedPrice, savings, label, description }
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
 
     const [form, setForm] = useState({
         fullName: '', whatsapp: '', email: '', age: '',
@@ -293,17 +294,37 @@ export default function Enroll() {
     });
     const [partnerTouched, setPartnerTouched] = useState({});
 
-    const originalPrice = pricingTable[coachingId]?.[planType]?.[durationMonths] || 0;
+    const basic = isBasicPlan(planType);
+    const isCoupleBasic = planType === 'basic_couple';
+
+    // ── Price resolution (handles basic_individual / basic_couple separately) ──
+    const originalPrice = basic
+        ? (pricingTable[coachingId]?.[planType]?.['1'] || 0)
+        : (pricingTable[coachingId]?.[planType]?.[durationMonths] || 0);
     const finalPrice = appliedCoupon ? appliedCoupon.discountedPrice : originalPrice;
 
-    const selectedDuration = durations.find((d) => d.months === durationMonths);
+    const selectedDuration = basic
+        ? { months: '1', label: 'One-Time', sublabel: 'Basic Consultation', description: basicConsultation.description }
+        : durations.find((d) => d.months === durationMonths);
     const activeCoaching = coachingTypes.find((c) => c.id === coachingId);
 
-    const programName = `${activeCoaching?.name} — ${planType === 'couple' ? 'Couple' : 'Individual'} — ${selectedDuration?.label}`;
+    const programName = basic
+        ? `${basicConsultation.name} — ${isCoupleBasic ? 'Couple' : 'Individual'} — One-Time`
+        : `${activeCoaching?.name} — ${planType === 'couple' ? 'Couple' : 'Individual'} — ${selectedDuration?.label}`;
 
     // Reset coupon when plan changes
-    const handleCoachingChange = (id) => { setCoachingId(id); setAppliedCoupon(null); };
-    const handlePlanTypeChange = (pt) => { setPlanType(pt); setAppliedCoupon(null); };
+    const handleCoachingChange = (id) => {
+        setCoachingId(id);
+        setAppliedCoupon(null);
+        if (id !== 'online' && isBasicPlan(planType)) {
+            setPlanType('individual');
+        }
+    };
+    const handlePlanTypeChange = (pt) => {
+        setPlanType(pt);
+        setAppliedCoupon(null);
+        if (isBasicPlan(pt)) setDur('1');
+    };
     const handleDurationChange = (d) => { setDur(d); setAppliedCoupon(null); };
 
     const errors = {
@@ -320,8 +341,10 @@ export default function Enroll() {
         age: validateField('age', partner.age),
     };
 
+    const isCouplePlan = planType === 'couple' || planType === 'basic_couple';
+
     const formValid = Object.values(errors).every((e) => !e);
-    const partnerValid = planType === 'individual' || Object.values(partnerErrors).every((e) => !e);
+    const partnerValid = !isCouplePlan || Object.values(partnerErrors).every((e) => !e);
     const canProceedStep2 = formValid && partnerValid;
 
     const touch = (f) => setTouched((t) => ({ ...t, [f]: true }));
@@ -329,7 +352,7 @@ export default function Enroll() {
 
     const touchAllFields = () => {
         setTouched({ fullName: true, whatsapp: true, email: true, age: true, city: true, weight: true, goal: true });
-        if (planType === 'couple') setPartnerTouched({ fullName: true, age: true });
+        if (isCouplePlan) setPartnerTouched({ fullName: true, age: true });
     };
 
     const handleNext = () => {
@@ -356,9 +379,9 @@ export default function Enroll() {
             contact: form.whatsapp,
             description: programName,
             programName,
-            planType,
-            durationMonths,
-            coachingType: coachingId,
+            planType: isCouplePlan ? 'couple' : 'individual', // normalize for downstream consumers
+            durationMonths: basic ? '1' : durationMonths,
+            coachingType: basic ? 'online' : coachingId,
             // Person 1
             age: form.age,
             city: form.city,
@@ -493,7 +516,7 @@ export default function Enroll() {
                             <div>
                                 <h2 className="text-xl font-bold text-white mb-1">Who is this plan for?</h2>
                                 <p className="text-muted-foreground text-sm mb-4">Select individual or couple plan.</p>
-                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                <div className="grid grid-cols-2 gap-3 mb-4">
                                     {[
                                         { id: 'individual', label: 'Individual', sub: 'For one person.', icon: User },
                                         { id: 'couple', label: 'Couple', sub: 'For two people.', icon: Users },
@@ -510,36 +533,69 @@ export default function Enroll() {
                                     ))}
                                 </div>
 
-                                <h2 className="text-xl font-bold text-white mb-1">Choose your duration</h2>
-                                <div className="space-y-2 mb-5">
-                                    {durations.map((dur) => {
-                                        const p = pricingTable[coachingId]?.[planType]?.[dur.months] || 0;
-                                        const selected = durationMonths === dur.months;
-                                        return (
-                                            <button key={dur.months} onClick={() => handleDurationChange(dur.months)}
-                                                className="w-full text-left rounded-xl p-4 transition-all"
-                                                style={selected
+                                {/* Basic one-time consultation — online only */}
+                                {coachingId === 'online' && (
+                                    <div className="grid grid-cols-2 gap-3 mb-6">
+                                        {[
+                                            { id: 'basic_individual', label: 'Basic (Individual)', price: basicConsultation.priceIndividual },
+                                            { id: 'basic_couple', label: 'Basic (Couple)', price: basicConsultation.priceCouple },
+                                        ].map(({ id, label, price }) => (
+                                            <button key={id} onClick={() => handlePlanTypeChange(id)}
+                                                className="rounded-2xl p-4 text-left transition-all"
+                                                style={planType === id
                                                     ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
                                                     : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className={`font-bold text-sm ${selected ? 'text-white' : 'text-white/80'}`}>{dur.label}</span>
-                                                        <span className="text-xs ml-2 px-1.5 py-0.5 rounded-full font-semibold"
-                                                            style={{ background: dur.popular ? 'rgba(231,23,99,0.2)' : 'rgba(255,255,255,0.07)', color: dur.popular ? '#e71763' : 'rgba(255,255,255,0.5)' }}>
-                                                            {dur.sublabel}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`font-bold ${selected ? 'text-white' : 'text-white/70'}`}>{formatPrice(p)}</span>
-                                                        {selected && <Check className="w-4 h-4 text-primary" />}
-                                                    </div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Zap className={`w-4 h-4 ${planType === id ? 'text-primary' : 'text-muted-foreground'}`} />
+                                                    <p className={`font-bold text-sm ${planType === id ? 'text-white' : 'text-white/80'}`}>{label}</p>
                                                 </div>
+                                                <p className="text-xs text-muted-foreground">One-time · {formatPrice(price)}</p>
                                             </button>
-                                        );
-                                    })}
-                                </div>
+                                        ))}
+                                    </div>
+                                )}
 
-                                {/* ── Coupon section on Step 1 ── */}
+                                {!basic && (
+                                    <>
+                                        <h2 className="text-xl font-bold text-white mb-1">Choose your duration</h2>
+                                        <div className="space-y-2 mb-5">
+                                            {durations.map((dur) => {
+                                                const p = pricingTable[coachingId]?.[planType]?.[dur.months] || 0;
+                                                const selected = durationMonths === dur.months;
+                                                return (
+                                                    <button key={dur.months} onClick={() => handleDurationChange(dur.months)}
+                                                        className="w-full text-left rounded-xl p-4 transition-all"
+                                                        style={selected
+                                                            ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
+                                                            : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <span className={`font-bold text-sm ${selected ? 'text-white' : 'text-white/80'}`}>{dur.label}</span>
+                                                                <span className="text-xs ml-2 px-1.5 py-0.5 rounded-full font-semibold"
+                                                                    style={{ background: dur.popular ? 'rgba(231,23,99,0.2)' : 'rgba(255,255,255,0.07)', color: dur.popular ? '#e71763' : 'rgba(255,255,255,0.5)' }}>
+                                                                    {dur.sublabel}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`font-bold ${selected ? 'text-white' : 'text-white/70'}`}>{formatPrice(p)}</span>
+                                                                {selected && <Check className="w-4 h-4 text-primary" />}
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+
+                                {basic && (
+                                    <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
+                                        <p className="text-sm text-white/80 mb-1">{basicConsultation.name} — {isCoupleBasic ? 'Couple' : 'Individual'}</p>
+                                        <p className="text-xs text-white/40">{basicConsultation.description}</p>
+                                    </div>
+                                )}
+
+                                {/* ── Coupon section ── */}
                                 <div className="rounded-xl p-4 mb-4 space-y-3"
                                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                                     <div className="flex items-center gap-2">
@@ -549,7 +605,7 @@ export default function Enroll() {
                                     <CouponInput
                                         coachingId={coachingId}
                                         planType={planType}
-                                        durationMonths={durationMonths}
+                                        durationMonths={basic ? '1' : durationMonths}
                                         originalPrice={originalPrice}
                                         appliedCoupon={appliedCoupon}
                                         onApply={(coupon) => setAppliedCoupon(coupon)}
@@ -565,7 +621,9 @@ export default function Enroll() {
                                 {/* Price summary */}
                                 <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
                                     <div className="flex items-center justify-between mb-1">
-                                        <p className="text-sm text-white/80">{activeCoaching?.name} · {planType === 'couple' ? 'Couple' : 'Individual'} · {selectedDuration?.label}</p>
+                                        <p className="text-sm text-white/80">
+                                            {basic ? basicConsultation.name : activeCoaching?.name} · {isCouplePlan ? 'Couple' : 'Individual'} · {selectedDuration?.label}
+                                        </p>
                                         <div className="text-right">
                                             {appliedCoupon ? (
                                                 <div>
@@ -605,7 +663,9 @@ export default function Enroll() {
 
                                 <div className="rounded-xl p-3 mb-5" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
                                     <div className="flex items-center justify-between flex-wrap gap-2">
-                                        <p className="text-sm text-white/80">{activeCoaching?.name} · {planType === 'couple' ? 'Couple' : 'Individual'} · {selectedDuration?.label}</p>
+                                        <p className="text-sm text-white/80">
+                                            {basic ? basicConsultation.name : activeCoaching?.name} · {isCouplePlan ? 'Couple' : 'Individual'} · {selectedDuration?.label}
+                                        </p>
                                         <div className="text-right">
                                             {appliedCoupon ? (
                                                 <div>
@@ -629,7 +689,7 @@ export default function Enroll() {
 
                                 {/* Person 1 */}
                                 <div className="rounded-2xl p-5 mb-4 space-y-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                    {planType === 'couple' && <p className="text-xs font-semibold text-primary uppercase tracking-widest">Person 1 — Primary Enrollee</p>}
+                                    {isCouplePlan && <p className="text-xs font-semibold text-primary uppercase tracking-widest">Person 1 — Primary Enrollee</p>}
                                     <div className="grid grid-cols-2 gap-3">
                                         <Field label="Full Name *" error={errors.fullName} touched={touched.fullName}>
                                             <Input value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} onBlur={() => touch('fullName')} placeholder="Your full name" className={inputCls('fullName')} />
@@ -683,7 +743,7 @@ export default function Enroll() {
                                 </div>
 
                                 {/* Person 2 */}
-                                {planType === 'couple' && (
+                                {isCouplePlan && (
                                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                                         className="rounded-2xl p-5 mb-4 space-y-4"
                                         style={{ background: 'rgba(231,23,99,0.04)', border: '1px solid rgba(231,23,99,0.2)' }}>
@@ -746,9 +806,9 @@ export default function Enroll() {
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="text-xs text-muted-foreground mb-1">Selected Plan</p>
-                                            <p className="font-bold text-white">{activeCoaching?.name}</p>
+                                            <p className="font-bold text-white">{basic ? basicConsultation.name : activeCoaching?.name}</p>
                                             <p className="text-sm text-muted-foreground">
-                                                {planType === 'couple' ? 'Couple Plan' : 'Individual Plan'} · {selectedDuration?.label}
+                                                {isCouplePlan ? 'Couple Plan' : 'Individual Plan'} · {selectedDuration?.label}
                                             </p>
                                         </div>
                                         <div className="text-right flex-shrink-0">
@@ -795,7 +855,7 @@ export default function Enroll() {
                                         </div>
                                     </div>
 
-                                    {planType === 'couple' && partner.fullName && (
+                                    {isCouplePlan && partner.fullName && (
                                         <div className="border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
                                             <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-widest">Partner Details</p>
                                             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">

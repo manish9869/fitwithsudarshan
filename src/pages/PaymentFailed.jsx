@@ -132,6 +132,7 @@ export default function PaymentFailed() {
     const raw = errorMessage || 'Payment could not be completed.';
 
     return (
+
         // overflow-x-hidden prevents any inline element from causing horizontal scroll/left-shift
         <motion.div
             className="min-h-screen text-white overflow-x-hidden"
@@ -141,7 +142,7 @@ export default function PaymentFailed() {
             transition={{ duration: 0.4 }}
         >
             <Background />
-
+            <CustomCursor />
             {/* ── Navbar ── */}
             <div
                 className="relative z-20 sticky top-0 backdrop-blur-2xl"
