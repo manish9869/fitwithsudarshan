@@ -97,7 +97,6 @@ function SuccessIcon() {
         return () => clearTimeout(t);
     }, []);
     return (
-        // 320px safe: w-24 (96px) base, grows at sm
         <div className="relative flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 mt-14 sm:mt-16">
             {[1, 2, 3].map((i) => (
                 <motion.div
@@ -137,7 +136,6 @@ function SuccessIcon() {
 }
 
 // ─── Copyable text ────────────────────────────────────────────────────────────
-// 320px safe: hard cap on max-w so long Razorpay IDs never overflow
 function CopyText({ value }) {
     const [copied, setCopied] = useState(false);
     const copy = () => {
@@ -159,7 +157,6 @@ function CopyText({ value }) {
 }
 
 // ─── Detail row ───────────────────────────────────────────────────────────────
-// 320px layout: 36px icon + 8px gap + remaining ~244px for text
 function DetailRow({ icon: Icon, label, value, accent, mono, copyable }) {
     return (
         <div className="flex items-center gap-2 py-2.5 group" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -243,7 +240,6 @@ function SectionHeader({ icon: Icon, label }) {
             }}
         >
             <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e71763' }} />
-            {/* 320px: reduced tracking so label fits without wrapping */}
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.1em] sm:tracking-[0.15em] text-white/70 truncate">{label}</span>
         </div>
     );
@@ -264,6 +260,8 @@ export default function PaymentSuccess() {
     }, [enrollment, navigate]);
 
     if (!enrollment) return null;
+
+    const hasCoupon = enrollment.couponCode && enrollment.couponSavings > 0;
 
     const handleDownload = async () => {
         setInvoiceLoading(true);
@@ -304,7 +302,6 @@ export default function PaymentSuccess() {
                 <Navbar />
             </div>
 
-            {/* 320px: px-3 base (leaves 296px content), grows at sm→md→lg */}
             <div className="relative z-10 w-full mx-auto px-3 sm:px-5 lg:px-8 py-6 sm:py-8 max-w-7xl">
 
                 {/* ── Hero ── */}
@@ -327,7 +324,6 @@ export default function PaymentSuccess() {
                             </div>
                         </div>
 
-                        {/* 320px: text-3xl (30px) base keeps "Welcome to RECODE™" on ~2 lines cleanly */}
                         <h1 className="text-3xl sm:text-5xl md:text-6xl font-black mb-3 sm:mb-4 leading-[1.1] tracking-tight px-2">
                             Welcome to{' '}
                             <span style={{ color: '#e71763', textShadow: '0 0 60px rgba(231,23,99,0.4)' }}>RECODE™</span>
@@ -353,7 +349,7 @@ export default function PaymentSuccess() {
                     </motion.div>
                 </motion.div>
 
-                {/* ── Main Grid — single col mobile, two-col lg+ ── */}
+                {/* ── Main Grid ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 sm:gap-6 items-start">
 
                     {/* ── LEFT ── */}
@@ -375,16 +371,15 @@ export default function PaymentSuccess() {
                                 <p className="text-xs text-white/30 mb-5 italic">
                                     Fill the form honestly and in detail — the better we understand your lifestyle, the better your roadmap.
                                 </p>
-                                {/* 320px: full-width block button */}
                                 <a
-                                    href="https://wa.me/919619708124"
+                                    href="https://www.jotform.com/build/261524335351047"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-black text-sm text-white"
                                     style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.4)' }}
                                 >
-                                    <MessageCircle className="w-4 h-4 flex-shrink-0" />
-                                    <span className="truncate">Get Onboarding Form on WhatsApp</span>
+                                    <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate">Fill Your Onboarding Form</span>
                                     <ExternalLink className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
                                 </a>
                             </div>
@@ -398,7 +393,6 @@ export default function PaymentSuccess() {
                             style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)' }}
                         >
                             <SectionHeader icon={Star} label="Enrollment Summary" />
-                            {/* 320px: always single col; 2-col only from md */}
                             <div className="px-3 sm:px-6 pb-3">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                                     <div>
@@ -409,7 +403,27 @@ export default function PaymentSuccess() {
                                     </div>
                                     <div>
                                         <DetailRow icon={Clock} label="Duration" value={enrollment.durationMonths ? `${enrollment.durationMonths} Month${enrollment.durationMonths > 1 ? 's' : ''}` : '—'} />
-                                        <DetailRow icon={CreditCard} label="Amount Paid" value={formatCurrency(enrollment.amountPaid)} accent />
+                                        {/* ── Coupon-aware amount rows ── */}
+                                        {hasCoupon && (
+                                            <DetailRow
+                                                icon={CreditCard}
+                                                label="Original Price"
+                                                value={formatCurrency(enrollment.originalAmount)}
+                                            />
+                                        )}
+                                        <DetailRow
+                                            icon={CreditCard}
+                                            label="Amount Paid"
+                                            value={formatCurrency(enrollment.amountPaid)}
+                                            accent
+                                        />
+                                        {hasCoupon && (
+                                            <DetailRow
+                                                icon={CreditCard}
+                                                label="You Saved"
+                                                value={`${formatCurrency(enrollment.couponSavings)} (${enrollment.couponCode})`}
+                                            />
+                                        )}
                                         <DetailRow icon={Calendar} label="Payment Date" value={formatDate(enrollment.paymentDate)} />
                                         <DetailRow icon={Hash} label="Payment ID" value={enrollment.razorpayPaymentId} mono copyable />
                                     </div>
@@ -437,13 +451,13 @@ export default function PaymentSuccess() {
                         </motion.div>
                     </div>
 
-                    {/* ── RIGHT SIDEBAR — sticky only at lg+ ── */}
+                    {/* ── RIGHT SIDEBAR ── */}
                     <motion.div
                         initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.55, delay: 1.0, ease: [0.22, 1, 0.36, 1] }}
                         className="space-y-3 sm:space-y-4 lg:sticky lg:top-24"
                     >
-                        {/* Program card */}
+                        {/* Program card — coupon-aware */}
                         <div
                             className="rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden"
                             style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.14) 0%, rgba(0,0,0,0.5) 60%)', border: '1px solid rgba(231,23,99,0.22)' }}
@@ -460,18 +474,53 @@ export default function PaymentSuccess() {
                                 <p className="text-xs sm:text-sm text-white/40 mb-4">
                                     {enrollment.durationMonths ? `${enrollment.durationMonths}-Month` : ''} · {enrollment.planType === 'couple' ? 'Couple Plan' : 'Individual Plan'}
                                 </p>
+
                                 <div
-                                    className="flex items-center justify-between pt-3"
+                                    className="pt-3"
                                     style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
                                 >
-                                    <span className="text-xs text-white/35 font-medium">Total Paid</span>
-                                    {/* 320px: text-lg base prevents currency value overflow */}
-                                    <span
-                                        className="text-lg sm:text-2xl font-black"
-                                        style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.5)' }}
-                                    >
-                                        {formatCurrency(enrollment.amountPaid)}
-                                    </span>
+                                    {hasCoupon ? (
+                                        <>
+                                            {/* Coupon badge */}
+                                            <div
+                                                className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3"
+                                                style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}
+                                            >
+                                                <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#34d399' }}>
+                                                    🏷 {enrollment.couponCode}
+                                                </span>
+                                                <span className="text-[10px] text-white/40 ml-auto">
+                                                    -{formatCurrency(enrollment.couponSavings)} saved
+                                                </span>
+                                            </div>
+                                            {/* Pricing breakdown */}
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-xs text-white/35">Original Price</span>
+                                                <span className="text-sm text-white/40 line-through">
+                                                    {formatCurrency(enrollment.originalAmount)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-white/60 font-medium">Total Paid</span>
+                                                <span
+                                                    className="text-lg sm:text-2xl font-black"
+                                                    style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.5)' }}
+                                                >
+                                                    {formatCurrency(enrollment.amountPaid)}
+                                                </span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-white/35 font-medium">Total Paid</span>
+                                            <span
+                                                className="text-lg sm:text-2xl font-black"
+                                                style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.5)' }}
+                                            >
+                                                {formatCurrency(enrollment.amountPaid)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
