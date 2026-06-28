@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Scale, Clock, TrendingDown, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+import { wa } from "@/utils/whatsapp";
 const transformations = [
     {
         id: 1,
@@ -579,7 +579,7 @@ export function TransformationsSection() {
                     className="text-center mt-8 sm:mt-12 md:mt-16"
                 >
                     <p className="text-muted-foreground mb-4">Ready to write your own success story?</p>
-                    <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
+                    <a href={wa.transformations} target="_blank" rel="noopener noreferrer">
                         <Button size="lg" className="text-white font-bold" style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.35)' }}>
                             Start Your Transformation
                         </Button>

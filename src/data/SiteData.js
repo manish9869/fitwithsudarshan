@@ -1,3 +1,6 @@
+import { wa } from '@/utils/whatsapp';
+
+
 // ─── BRAND ────────────────────────────────────────────────────────────────────
 export const brand = {
     name: "FitWithSudarshan",
@@ -34,7 +37,7 @@ export const contact = {
     social: {
         instagram: "https://www.instagram.com/fitwithsudarshan",
         youtube: "https://youtube.com/@sudarshanchavan1833",
-        whatsapp: "https://wa.me/919619708124",
+        whatsapp: wa.footer
     },
 };
 

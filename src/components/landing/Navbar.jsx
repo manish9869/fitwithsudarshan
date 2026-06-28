@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { Menu, X } from "lucide-react"
 import { motion } from "framer-motion"
-
+import { wa } from "@/utils/whatsapp";
 const navItems = [
     { name: "Home", href: "#home" },
     { name: "About", href: "#about" },
@@ -88,7 +88,7 @@ export function Navbar() {
                 ))}
             </div>
             <div style={{ padding: "16px 32px", marginTop: "auto" }}>
-                <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer"
+                <a href={wa.coaching} target="_blank" rel="noopener noreferrer"
                     style={{
                         display: "block", width: "100%", textAlign: "center", padding: "14px",
                         borderRadius: "12px", background: "#e71763", color: "white",
@@ -128,7 +128,7 @@ export function Navbar() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer"
+                        <a href={wa.coaching} target="_blank" rel="noopener noreferrer"
                             className="hidden lg:flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105"
                             style={{ background: '#e71763', boxShadow: '0 0 20px rgba(231,23,99,0.3)' }}>
                             Apply Now

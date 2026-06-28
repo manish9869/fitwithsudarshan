@@ -9,7 +9,7 @@ import {
     Hash, WifiOff, CreditCard, Lock, DollarSign,
 } from 'lucide-react';
 import CustomCursor from '@/components/CustomCursor';
-
+import { wa } from "@/utils/whatsapp";
 // ─── Background ───────────────────────────────────────────────────────────────
 function Background() {
     return (
@@ -284,7 +284,7 @@ export default function PaymentFailed() {
                     <motion.a
                         whileHover={{ scale: 1.015 }}
                         whileTap={{ scale: 0.97 }}
-                        href="https://wa.me/919619708124"
+                        href={wa.paymentFailed}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3.5 sm:py-4 rounded-2xl font-bold text-xs sm:text-sm text-white"
@@ -351,7 +351,7 @@ export default function PaymentFailed() {
                         </a>
                         <div className="w-16 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
                         <a
-                            href="https://wa.me/919619708124"
+                            href={wa.paymentFailed}
                             className="flex items-center gap-2 text-xs text-white/35 hover:text-white/55 transition-colors"
                         >
                             <Phone className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e71763' }} />

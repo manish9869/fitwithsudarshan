@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
-
+import { wa } from "@/utils/whatsapp";
 // Reusable scroll-reveal wrapper
 function Reveal({ children, delay = 0 }) {
     const ref = useRef(null);
@@ -96,7 +96,7 @@ export default function Landing() {
                                     transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut", delay: 0.7 }}
                                     style={{ background: 'rgba(231,23,99,0.2)' }}
                                 />
-                                <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer">
+                                <a href={wa.coaching} target="_blank" rel="noopener noreferrer">
                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
                                         {/*
                                             320px: px-6 py-4 base (was px-12 py-7 — button was ~260px wide,
