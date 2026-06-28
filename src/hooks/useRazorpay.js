@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { buildEnrollment } from '../services/enrollmentService';
+import { buildEnrollment, saveEnrollmentToSupabase } from '../services/enrollmentService';
 import { sendEmail } from '../services/emailService';
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
@@ -18,15 +18,36 @@ function loadRazorpayScript() {
 
 export function useRazorpay() {
     const initiatePayment = useCallback(async ({
+        // Payment
         amountPaise,
+        originalAmountPaise,   // before coupon; falls back to amountPaise
+        couponCode,
+        couponSavings,
+        // Buyer identity
         name = '',
         email = '',
         contact = '',
+        // Plan meta
         description = 'RECODE™ Coaching Plan',
         programName = '',
         planType = 'individual',
         durationMonths = '3',
         coachingType = 'online',
+        // Person 1 details
+        age,
+        city,
+        weight,
+        goals,
+        medicalIssue,
+        medicalNote,
+        // Partner details
+        partnerName,
+        partnerAge,
+        partnerWeight,
+        partnerGoals,
+        partnerMedicalIssue,
+        partnerMedicalNote,
+        // Callbacks
         onSuccess,
         onError,
         onDismiss,
@@ -34,6 +55,7 @@ export function useRazorpay() {
         console.group('%c[Razorpay] initiatePayment', 'color:#e71763;font-weight:bold');
         console.log('amountPaise:', amountPaise);
         console.log('name:', name, '| email:', email, '| contact:', contact);
+        console.log('couponCode:', couponCode || 'none', '| savings:', couponSavings || 0);
         console.log('VITE_RAZORPAY_KEY_ID:', RAZORPAY_KEY_ID ?? '❌ MISSING');
         console.log('API_BASE:', API_BASE || '(relative — dev proxy)');
 
@@ -46,15 +68,13 @@ export function useRazorpay() {
 
         console.log('[Razorpay] Loading checkout.js…');
         const loaded = await loadRazorpayScript();
-        console.log('[Razorpay] Script loaded:', loaded, '| window.Razorpay:', typeof window.Razorpay);
         if (!loaded) {
             console.groupEnd();
             onError?.('Failed to load payment gateway. Check your internet connection.');
             return;
         }
 
-        // ── 1. Create order ─────────────────────────────────────────────────
-        console.log('[Razorpay] POST /api/create-order  amount:', amountPaise);
+        // ── 1. Create order ─────────────────────────────────────────────────────
         let order;
         try {
             const res = await fetch(`${API_BASE}/api/create-order`, {
@@ -63,7 +83,6 @@ export function useRazorpay() {
                 body: JSON.stringify({ amount: amountPaise, currency: 'INR' }),
             });
             const data = await res.json();
-            console.log('[Razorpay] /api/create-order response — status:', res.status, 'body:', data);
             if (!res.ok) throw new Error(data.error || 'Order creation failed');
             order = data;
         } catch (err) {
@@ -73,7 +92,6 @@ export function useRazorpay() {
             return;
         }
 
-        console.log('[Razorpay] order_id:', order?.order_id, '| amount:', order?.amount);
         if (!order?.order_id || typeof order.order_id !== 'string') {
             console.error('[Razorpay] ❌ order_id missing. Full response:', order);
             console.groupEnd();
@@ -81,7 +99,7 @@ export function useRazorpay() {
             return;
         }
 
-        // ── 2. Open modal ───────────────────────────────────────────────────
+        // ── 2. Open modal ────────────────────────────────────────────────────────
         const options = {
             key: RAZORPAY_KEY_ID,
             amount: order.amount,
@@ -101,23 +119,17 @@ export function useRazorpay() {
                     onDismiss?.();
                 },
             },
-            config: {
-                display: {
-                    hide_topbar: false,
-                },
-            },
             handler: async (response) => {
                 try {
                     if (window.__rzpInstance) {
                         window.__rzpInstance.close();
                         window.__rzpInstance = null;
                     }
-                } catch (_) { /* safe to ignore */ }
+                } catch (_) { /* safe */ }
 
                 console.log('[Razorpay] ✅ Payment captured:', response);
 
-                // ── 3. Verify signature ─────────────────────────────────────
-                console.log('[Razorpay] POST /api/verify-payment…');
+                // ── 3. Verify signature ──────────────────────────────────────────────
                 try {
                     const verifyRes = await fetch(`${API_BASE}/api/verify-payment`, {
                         method: 'POST',
@@ -129,12 +141,11 @@ export function useRazorpay() {
                         }),
                     });
                     const verifyData = await verifyRes.json();
-                    console.log('[Razorpay] /api/verify-payment response — status:', verifyRes.status, 'body:', verifyData);
                     if (!verifyRes.ok || !verifyData.success) {
                         throw new Error(verifyData.error || 'Payment verification failed');
                     }
 
-                    // ── 4. Build enrollment ─────────────────────────────────
+                    // ── 4. Build enrollment ──────────────────────────────────────────────
                     const enrollment = buildEnrollment({
                         customerName: name,
                         customerEmail: email,
@@ -144,13 +155,35 @@ export function useRazorpay() {
                         durationMonths,
                         coachingType,
                         amountPaid: amountPaise / 100,
+                        originalAmount: (originalAmountPaise ?? amountPaise) / 100,
+                        couponCode: couponCode || null,
+                        couponSavings: couponSavings || 0,
                         razorpayOrderId: response.razorpay_order_id,
                         razorpayPaymentId: response.razorpay_payment_id,
+                        // Person 1
+                        age, city, weight,
+                        goals: goals || [],
+                        medicalIssue,
+                        medicalNote,
+                        // Partner
+                        partnerName,
+                        partnerAge,
+                        partnerWeight,
+                        partnerGoals: partnerGoals || [],
+                        partnerMedicalIssue,
+                        partnerMedicalNote,
                     });
 
                     console.log('[Razorpay] ✅ Enrollment built:', enrollment);
 
-                    // ── 5. Emails (fire-and-forget) ─────────────────────────
+                    // ── 5. Persist to Supabase (fire-and-forget) ─────────────────────────
+                    saveEnrollmentToSupabase(enrollment).then((result) => {
+                        if (!result.success) {
+                            console.warn('[Razorpay] ⚠️ Supabase save failed (non-blocking):', result.error);
+                        }
+                    });
+
+                    // ── 6. Send emails (fire-and-forget) ─────────────────────────────────
                     sendEmail({ type: 'enrollment_both', to: null, data: enrollment });
 
                     console.log('[Razorpay] ✅ Calling onSuccess.');
@@ -163,13 +196,6 @@ export function useRazorpay() {
                 }
             },
         };
-
-        console.log('[Razorpay] Opening modal with options:', {
-            key: options.key,
-            amount: options.amount,
-            currency: options.currency,
-            order_id: options.order_id,
-        });
 
         const rzp = new window.Razorpay(options);
         window.__rzpInstance = rzp;
