@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Check, ChevronRight, Globe, Video, MapPin,
     User, Users, ArrowLeft, Loader2, Lock,
+    Tag, X, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { coachingTypes, pricingTable, durations } from '@/data/SiteData';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import CustomCursor from '@/components/CustomCursor';
 import { useRazorpay } from '@/hooks/useRazorpay';
+import { validateCoupon, formatPrice as fmtPrice } from '@/utils/coupons';
 
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
 const formatPrice = (p) =>
@@ -116,7 +118,6 @@ function GoalPicker({ selected, onChange, touched, error }) {
     );
 }
 
-// ── Partner Goal Pill (optional, no validation) ───────────────────────────────
 function PartnerGoalPicker({ selected, onChange }) {
     const toggle = (goal) => {
         if (selected.includes(goal)) {
@@ -165,6 +166,105 @@ function PartnerGoalPicker({ selected, onChange }) {
     );
 }
 
+// ── Coupon Input Component ────────────────────────────────────────────────────
+function CouponInput({ coachingId, planType, durationMonths, originalPrice, onApply, onRemove, appliedCoupon }) {
+    const [inputValue, setInputValue] = useState('');
+    const [error, setError] = useState('');
+    const [checking, setChecking] = useState(false);
+
+    const handleApply = () => {
+        setError('');
+        setChecking(true);
+
+        // Small delay for UX feel
+        setTimeout(() => {
+            const result = validateCoupon(inputValue, coachingId, planType, durationMonths, originalPrice);
+            setChecking(false);
+
+            if (!result.valid) {
+                setError(result.error);
+                return;
+            }
+
+            onApply({
+                code: inputValue.trim().toUpperCase(),
+                discountedPrice: result.discountedPrice,
+                savings: result.savings,
+                label: result.coupon.label,
+                description: result.coupon.description,
+            });
+            setInputValue('');
+        }, 400);
+    };
+
+    if (appliedCoupon) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl p-3 flex items-center justify-between gap-3"
+                style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)' }}
+            >
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(52,211,153,0.15)' }}>
+                        <Tag className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-xs font-bold text-white">{appliedCoupon.code}</p>
+                        <p className="text-[11px] text-white/50 truncate">{appliedCoupon.description}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs font-bold" style={{ color: '#34d399' }}>
+                        -{formatPrice(appliedCoupon.savings)}
+                    </span>
+                    <button onClick={onRemove}
+                        className="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                        style={{ background: 'rgba(255,255,255,0.06)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(248,113,113,0.15)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}>
+                        <X className="w-3 h-3 text-white/50" />
+                    </button>
+                </div>
+            </motion.div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                    <Input
+                        value={inputValue}
+                        onChange={(e) => { setInputValue(e.target.value.toUpperCase()); setError(''); }}
+                        onKeyDown={(e) => e.key === 'Enter' && inputValue && handleApply()}
+                        placeholder="COUPON CODE"
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 h-9 pl-8 text-xs font-mono tracking-widest"
+                        style={error ? { borderColor: 'rgba(248,113,113,0.5)' } : {}}
+                    />
+                </div>
+                <Button
+                    type="button"
+                    onClick={handleApply}
+                    disabled={!inputValue.trim() || checking}
+                    className="h-9 px-4 text-xs font-bold text-white flex-shrink-0"
+                    style={{ background: inputValue.trim() ? '#e71763' : 'rgba(255,255,255,0.08)' }}
+                >
+                    {checking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
+                </Button>
+            </div>
+            {error && (
+                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#f87171' }}>
+                    {error}
+                </motion.p>
+            )}
+        </div>
+    );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function Enroll() {
     const location = useLocation();
@@ -179,6 +279,9 @@ export default function Enroll() {
 
     const [modalStatus, setModalStatus] = useState('idle');
 
+    // ── Coupon state ────────────────────────────────────────────────────────────
+    const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discountedPrice, savings, label, description }
+
     const [form, setForm] = useState({
         fullName: '', whatsapp: '', email: '', age: '',
         city: '', goal: [], weight: '', medicalIssue: 'no', medicalNote: '',
@@ -190,11 +293,18 @@ export default function Enroll() {
     });
     const [partnerTouched, setPartnerTouched] = useState({});
 
-    const price = pricingTable[coachingId]?.[planType]?.[durationMonths] || 0;
+    const originalPrice = pricingTable[coachingId]?.[planType]?.[durationMonths] || 0;
+    const finalPrice = appliedCoupon ? appliedCoupon.discountedPrice : originalPrice;
+
     const selectedDuration = durations.find((d) => d.months === durationMonths);
     const activeCoaching = coachingTypes.find((c) => c.id === coachingId);
 
     const programName = `${activeCoaching?.name} — ${planType === 'couple' ? 'Couple' : 'Individual'} — ${selectedDuration?.label}`;
+
+    // Reset coupon when plan changes
+    const handleCoachingChange = (id) => { setCoachingId(id); setAppliedCoupon(null); };
+    const handlePlanTypeChange = (pt) => { setPlanType(pt); setAppliedCoupon(null); };
+    const handleDurationChange = (d) => { setDur(d); setAppliedCoupon(null); };
 
     const errors = {
         fullName: validateField('fullName', form.fullName),
@@ -231,13 +341,16 @@ export default function Enroll() {
     };
     const handleBack = () => setStep((s) => Math.max(s - 1, 0));
 
-    // ── PAYMENT ───────────────────────────────────────────────────────────────
+    // ── PAYMENT ────────────────────────────────────────────────────────────────
     const handlePay = async (e) => {
         e.preventDefault();
         setModalStatus('loading');
 
         await initiatePayment({
-            amountPaise: price * 100,
+            amountPaise: finalPrice * 100,
+            originalAmountPaise: originalPrice * 100,
+            couponCode: appliedCoupon?.code || null,
+            couponSavings: appliedCoupon?.savings || 0,
             name: form.fullName,
             email: form.email,
             contact: form.whatsapp,
@@ -246,6 +359,20 @@ export default function Enroll() {
             planType,
             durationMonths,
             coachingType: coachingId,
+            // Person 1
+            age: form.age,
+            city: form.city,
+            weight: form.weight,
+            goals: form.goal,
+            medicalIssue: form.medicalIssue,
+            medicalNote: form.medicalNote,
+            // Partner
+            partnerName: partner.fullName || null,
+            partnerAge: partner.age || null,
+            partnerWeight: partner.weight || null,
+            partnerGoals: partner.goal || [],
+            partnerMedicalIssue: partner.medicalIssue || null,
+            partnerMedicalNote: partner.medicalNote || null,
             onSuccess: (enrollment) => {
                 setModalStatus('idle');
                 navigate('/payment-success', { state: { enrollment } });
@@ -255,12 +382,7 @@ export default function Enroll() {
                 navigate('/payment-failed', {
                     state: {
                         errorMessage: msg || 'Payment could not be completed.',
-                        partialEnrollment: {
-                            programName,
-                            planType,
-                            durationMonths,
-                            amountPaid: price,
-                        },
+                        partialEnrollment: { programName, planType, durationMonths, amountPaid: finalPrice },
                     },
                 });
             },
@@ -330,7 +452,7 @@ export default function Enroll() {
                         initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
 
-                        {/* ── STEP 0 ── */}
+                        {/* ── STEP 0 — Coaching Type ── */}
                         {step === 0 && (
                             <div>
                                 <h2 className="text-xl font-bold text-white mb-1">How do you want to start RECODE?</h2>
@@ -340,7 +462,7 @@ export default function Enroll() {
                                         const Icon = tabIcons[ct.id];
                                         const selected = coachingId === ct.id;
                                         return (
-                                            <button key={ct.id} onClick={() => setCoachingId(ct.id)}
+                                            <button key={ct.id} onClick={() => handleCoachingChange(ct.id)}
                                                 className="w-full text-left rounded-2xl p-5 transition-all"
                                                 style={selected
                                                     ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
@@ -366,7 +488,7 @@ export default function Enroll() {
                             </div>
                         )}
 
-                        {/* ── STEP 1 ── */}
+                        {/* ── STEP 1 — Plan & Duration ── */}
                         {step === 1 && (
                             <div>
                                 <h2 className="text-xl font-bold text-white mb-1">Who is this plan for?</h2>
@@ -376,7 +498,7 @@ export default function Enroll() {
                                         { id: 'individual', label: 'Individual', sub: 'For one person.', icon: User },
                                         { id: 'couple', label: 'Couple', sub: 'For two people.', icon: Users },
                                     ].map(({ id, label, sub, icon: Icon }) => (
-                                        <button key={id} onClick={() => setPlanType(id)}
+                                        <button key={id} onClick={() => handlePlanTypeChange(id)}
                                             className="rounded-2xl p-5 text-center transition-all"
                                             style={planType === id
                                                 ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
@@ -394,7 +516,7 @@ export default function Enroll() {
                                         const p = pricingTable[coachingId]?.[planType]?.[dur.months] || 0;
                                         const selected = durationMonths === dur.months;
                                         return (
-                                            <button key={dur.months} onClick={() => setDur(dur.months)}
+                                            <button key={dur.months} onClick={() => handleDurationChange(dur.months)}
                                                 className="w-full text-left rounded-xl p-4 transition-all"
                                                 style={selected
                                                     ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
@@ -417,11 +539,53 @@ export default function Enroll() {
                                     })}
                                 </div>
 
-                                <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm text-white/80">{activeCoaching?.name} · {planType === 'couple' ? 'Couple' : 'Individual'} · {selectedDuration?.label}</p>
-                                        <p className="text-xl font-bold text-primary">{formatPrice(price)}</p>
+                                {/* ── Coupon section on Step 1 ── */}
+                                <div className="rounded-xl p-4 mb-4 space-y-3"
+                                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <div className="flex items-center gap-2">
+                                        <Tag className="w-3.5 h-3.5 text-white/40" />
+                                        <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">Have a Coupon Code?</span>
                                     </div>
+                                    <CouponInput
+                                        coachingId={coachingId}
+                                        planType={planType}
+                                        durationMonths={durationMonths}
+                                        originalPrice={originalPrice}
+                                        appliedCoupon={appliedCoupon}
+                                        onApply={(coupon) => setAppliedCoupon(coupon)}
+                                        onRemove={() => setAppliedCoupon(null)}
+                                    />
+                                    {coachingId === 'personal' && !appliedCoupon && (
+                                        <p className="text-[11px] text-white/30 italic">
+                                            Returning RECODE™ clients may have a special discount code.
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Price summary */}
+                                <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <p className="text-sm text-white/80">{activeCoaching?.name} · {planType === 'couple' ? 'Couple' : 'Individual'} · {selectedDuration?.label}</p>
+                                        <div className="text-right">
+                                            {appliedCoupon ? (
+                                                <div>
+                                                    <p className="text-xs text-white/40 line-through">{formatPrice(originalPrice)}</p>
+                                                    <p className="text-xl font-bold text-primary">{formatPrice(finalPrice)}</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xl font-bold text-primary">{formatPrice(originalPrice)}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {appliedCoupon && (
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                            className="flex items-center gap-1.5 mt-1">
+                                            <Sparkles className="w-3 h-3" style={{ color: '#34d399' }} />
+                                            <span className="text-xs font-bold" style={{ color: '#34d399' }}>
+                                                {appliedCoupon.code} — You save {formatPrice(appliedCoupon.savings)}!
+                                            </span>
+                                        </motion.div>
+                                    )}
                                 </div>
 
                                 <div className="flex gap-3">
@@ -433,7 +597,7 @@ export default function Enroll() {
                             </div>
                         )}
 
-                        {/* ── STEP 2 ── */}
+                        {/* ── STEP 2 — Your Details ── */}
                         {step === 2 && (
                             <div>
                                 <h2 className="text-xl font-bold text-white mb-1">Your Details</h2>
@@ -442,8 +606,25 @@ export default function Enroll() {
                                 <div className="rounded-xl p-3 mb-5" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.2)' }}>
                                     <div className="flex items-center justify-between flex-wrap gap-2">
                                         <p className="text-sm text-white/80">{activeCoaching?.name} · {planType === 'couple' ? 'Couple' : 'Individual'} · {selectedDuration?.label}</p>
-                                        <p className="text-lg font-bold text-primary">{formatPrice(price)}</p>
+                                        <div className="text-right">
+                                            {appliedCoupon ? (
+                                                <div>
+                                                    <p className="text-xs text-white/40 line-through">{formatPrice(originalPrice)}</p>
+                                                    <p className="text-lg font-bold text-primary">{formatPrice(finalPrice)}</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-lg font-bold text-primary">{formatPrice(originalPrice)}</p>
+                                            )}
+                                        </div>
                                     </div>
+                                    {appliedCoupon && (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <Sparkles className="w-3 h-3" style={{ color: '#34d399' }} />
+                                            <span className="text-xs font-bold" style={{ color: '#34d399' }}>
+                                                {appliedCoupon.code} applied — saving {formatPrice(appliedCoupon.savings)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Person 1 */}
@@ -476,7 +657,6 @@ export default function Enroll() {
                                         </Field>
                                     </div>
 
-                                    {/* ── Multi-select Goal Picker ── */}
                                     <GoalPicker
                                         selected={form.goal}
                                         onChange={(goals) => { setForm((f) => ({ ...f, goal: goals })); touch('goal'); }}
@@ -523,12 +703,26 @@ export default function Enroll() {
                                             </div>
                                             <div />
                                         </div>
-
-                                        {/* ── Partner multi-select goal ── */}
                                         <PartnerGoalPicker
                                             selected={partner.goal}
                                             onChange={(goals) => setPartner((p) => ({ ...p, goal: goals }))}
                                         />
+                                        <div>
+                                            <Label className="text-white/70 mb-1.5 block text-xs">Partner Medical Issue or Injury?</Label>
+                                            <div className="flex gap-4 mb-1">
+                                                {['no', 'yes'].map((opt) => (
+                                                    <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                                        <input type="radio" name="medical2" value={opt} checked={partner.medicalIssue === opt} onChange={() => setPartner((p) => ({ ...p, medicalIssue: opt }))} className="accent-primary" />
+                                                        <span className="text-sm text-white capitalize">{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {partner.medicalIssue === 'yes' && (
+                                                <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
+                                                    <Input value={partner.medicalNote} onChange={(e) => setPartner((p) => ({ ...p, medicalNote: e.target.value }))} placeholder="Please mention briefly" className="bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 mt-2" />
+                                                </motion.div>
+                                            )}
+                                        </div>
                                     </motion.div>
                                 )}
 
@@ -541,7 +735,7 @@ export default function Enroll() {
                             </div>
                         )}
 
-                        {/* ── STEP 3 ── */}
+                        {/* ── STEP 3 — Confirm & Pay ── */}
                         {step === 3 && (
                             <form onSubmit={handlePay}>
                                 <h2 className="text-xl font-bold text-white mb-1">Review & Confirm</h2>
@@ -549,7 +743,7 @@ export default function Enroll() {
 
                                 <div className="rounded-2xl p-6 mb-5 space-y-4"
                                     style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.25)' }}>
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="text-xs text-muted-foreground mb-1">Selected Plan</p>
                                             <p className="font-bold text-white">{activeCoaching?.name}</p>
@@ -557,8 +751,30 @@ export default function Enroll() {
                                                 {planType === 'couple' ? 'Couple Plan' : 'Individual Plan'} · {selectedDuration?.label}
                                             </p>
                                         </div>
-                                        <p className="text-2xl font-bold text-primary">{formatPrice(price)}</p>
+                                        <div className="text-right flex-shrink-0">
+                                            {appliedCoupon ? (
+                                                <div>
+                                                    <p className="text-sm text-white/40 line-through">{formatPrice(originalPrice)}</p>
+                                                    <p className="text-2xl font-bold text-primary">{formatPrice(finalPrice)}</p>
+                                                    <p className="text-xs font-bold mt-0.5" style={{ color: '#34d399' }}>
+                                                        Save {formatPrice(appliedCoupon.savings)}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-2xl font-bold text-primary">{formatPrice(originalPrice)}</p>
+                                            )}
+                                        </div>
                                     </div>
+
+                                    {/* Coupon badge on confirm */}
+                                    {appliedCoupon && (
+                                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                                            style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
+                                            <Tag className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#34d399' }} />
+                                            <span className="text-xs font-bold text-white">{appliedCoupon.code}</span>
+                                            <span className="text-xs text-white/50">— {appliedCoupon.description}</span>
+                                        </div>
+                                    )}
 
                                     <div className="border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
                                         <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-widest">Enrollee Details</p>
@@ -566,12 +782,30 @@ export default function Enroll() {
                                             <span className="text-muted-foreground">Name</span>    <span className="text-white">{form.fullName}</span>
                                             <span className="text-muted-foreground">WhatsApp</span><span className="text-white">{form.whatsapp}</span>
                                             <span className="text-muted-foreground">Email</span>   <span className="text-white">{form.email}</span>
-                                            <span className="text-muted-foreground">Age</span>     <span className="text-white">{form.age} yrs</span>
-                                            <span className="text-muted-foreground">City</span>    <span className="text-white">{form.city}</span>
+                                            <span className="text-muted-foreground">Age / City</span><span className="text-white">{form.age} yrs · {form.city}</span>
+                                            <span className="text-muted-foreground">Weight</span>  <span className="text-white">{form.weight} kg</span>
                                             <span className="text-muted-foreground">Goal(s)</span>
                                             <span className="text-white">{form.goal.join(', ')}</span>
+                                            {form.medicalIssue === 'yes' && (
+                                                <>
+                                                    <span className="text-muted-foreground">Medical</span>
+                                                    <span className="text-white">{form.medicalNote || 'Yes'}</span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
+
+                                    {planType === 'couple' && partner.fullName && (
+                                        <div className="border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                                            <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-widest">Partner Details</p>
+                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                                <span className="text-muted-foreground">Name</span>  <span className="text-white">{partner.fullName}</span>
+                                                <span className="text-muted-foreground">Age</span>   <span className="text-white">{partner.age} yrs</span>
+                                                {partner.weight && <><span className="text-muted-foreground">Weight</span><span className="text-white">{partner.weight} kg</span></>}
+                                                {partner.goal?.length > 0 && <><span className="text-muted-foreground">Goal(s)</span><span className="text-white">{partner.goal.join(', ')}</span></>}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <p className="text-xs text-muted-foreground mb-5 text-center">
@@ -592,13 +826,13 @@ export default function Enroll() {
                                             style={{ background: 'rgba(231,23,99,0.3)' }} />
                                         <Button
                                             type="submit"
-                                            disabled={!price || modalStatus === 'loading'}
+                                            disabled={!finalPrice || modalStatus === 'loading'}
                                             className="relative w-full py-6 text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-50"
                                             style={{ background: '#e71763', boxShadow: '0 0 28px rgba(231,23,99,0.45)' }}>
                                             {modalStatus === 'loading' ? (
                                                 <><Loader2 className="w-5 h-5 animate-spin" /> Processing…</>
                                             ) : (
-                                                <><Lock className="w-4 h-4" /> Pay {formatPrice(price)} Securely</>
+                                                <><Lock className="w-4 h-4" /> Pay {formatPrice(finalPrice)} Securely</>
                                             )}
                                         </Button>
                                     </div>
