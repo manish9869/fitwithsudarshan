@@ -82,7 +82,9 @@ function PricingCard({ coachingId, planType, duration, isPopular, index }) {
     );
 }
 
-// ── Basic one-time consultation card ──────────────────────────────────────────
+// ── Basic consultation card ─────────────────────────────────────────────────
+// "One-time" only appears inside the description text now, not as a tab/badge,
+// so the plan-type row stays clean: Individual / Couple / Basic.
 function BasicCard({ variant, index }) {
     // variant: 'individual' | 'couple'
     const isCouple = variant === 'couple';
@@ -101,8 +103,8 @@ function BasicCard({ variant, index }) {
             style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${hovered ? 'rgba(231,23,99,0.4)' : 'rgba(255,255,255,0.07)'}`, boxShadow: hovered ? '0 25px 60px rgba(0,0,0,0.5)' : 'none' }}
         >
             <div className="p-6 flex flex-col flex-1 pt-8">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-1">One-Time</p>
-                <p className="text-lg font-black text-white mb-4">{isCouple ? 'Basic — Couple' : 'Basic — Individual'}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-1">{isCouple ? 'Couple' : 'Individual'}</p>
+                <p className="text-lg font-black text-white mb-4">Basic Consultation</p>
 
                 <div className="mb-5">
                     <motion.p className="text-4xl font-black leading-none" style={{ color: 'white' }}
@@ -112,7 +114,7 @@ function BasicCard({ variant, index }) {
                     {isCouple && <p className="text-[11px] text-white/35 mt-1.5">for 2 people · {formatPrice(Math.round(price / 2))}/person</p>}
                 </div>
 
-                <p className="text-xs text-white/45 mb-5 leading-relaxed flex-1">{basicConsultation.description}</p>
+                <p className="text-xs text-white/45 mb-5 leading-relaxed flex-1">One-time session · {basicConsultation.description}</p>
 
                 <div className="space-y-2 mb-6">
                     {basicConsultation.features.map((b) => (
@@ -141,15 +143,19 @@ function BasicCard({ variant, index }) {
 export function PricingSection() {
     const [activeTab, setActiveTab] = useState("online");
     const [planType, setPlanType] = useState("individual");
+    // 'basic' is its own top-level category now; basicVariant tracks individual/couple within it
+    const [basicVariant, setBasicVariant] = useState("individual");
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-60px" });
     const activeCoaching = coachingTypes.find((c) => c.id === activeTab);
     const Icon = tabIcons[activeTab];
 
+    const isBasicSelected = planType === "basic";
+
     const handleTabChange = (id) => {
         setActiveTab(id);
         // Basic only exists under Online — reset plan type if leaving online while on basic
-        if (id !== 'online' && (planType === 'basic_individual' || planType === 'basic_couple')) {
+        if (id !== 'online' && isBasicSelected) {
             setPlanType('individual');
         }
     };
@@ -277,17 +283,12 @@ export function PricingSection() {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Individual / Couple / Basic (basic only under online) */}
-                <div className="flex justify-center gap-3 mb-10 flex-wrap">
+                {/* Individual / Couple / Basic — clean 3-way toggle (no "one-time" or price text in the tab itself) */}
+                <div className="flex justify-center gap-3 mb-6 flex-wrap">
                     {[
                         { id: "individual", icon: User, label: "Individual" },
-                        { id: "couple", icon: Users, label: "Couple Plan" },
-                        ...(activeTab === "online"
-                            ? [
-                                { id: "basic_individual", icon: Zap, label: "Basic (₹599 One-Time)" },
-                                { id: "basic_couple", icon: Zap, label: "Basic Couple (₹999 One-Time)" },
-                            ]
-                            : []),
+                        { id: "couple", icon: Users, label: "Couple" },
+                        ...(activeTab === "online" ? [{ id: "basic", icon: Zap, label: "Basic" }] : []),
                     ].map(({ id, icon: Ic, label }) => (
                         <motion.button key={id} onClick={() => setPlanType(id)}
                             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
@@ -300,14 +301,50 @@ export function PricingSection() {
                     ))}
                 </div>
 
+                {/* Basic sub-toggle — only shown once "Basic" is selected. Simple Individual/Couple choice. */}
+                <AnimatePresence>
+                    {isBasicSelected && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="flex justify-center mb-2">
+                                <p className="text-xs text-white/30 mb-3 text-center max-w-sm">
+                                    One-time consultation — pick who it's for.
+                                </p>
+                            </div>
+                            <div className="flex justify-center gap-2 mb-10">
+                                {[
+                                    { id: "individual", icon: User, label: "Individual" },
+                                    { id: "couple", icon: Users, label: "Couple" },
+                                ].map(({ id, icon: Ic, label }) => (
+                                    <motion.button key={id} onClick={() => setBasicVariant(id)}
+                                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                                        className="flex items-center gap-1.5 px-5 py-2 rounded-full font-bold text-xs"
+                                        style={basicVariant === id
+                                            ? { background: 'rgba(231,23,99,0.18)', color: 'white', border: '1px solid rgba(231,23,99,0.5)' }
+                                            : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)' }}>
+                                        <Ic className="w-3.5 h-3.5" /> {label}
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {!isBasicSelected && <div className="mb-10" />}
+
                 {/* Pricing cards */}
                 <AnimatePresence mode="wait">
-                    {(planType === 'basic_individual' || planType === 'basic_couple') ? (
-                        <motion.div key="basic-cards"
+                    {isBasicSelected ? (
+                        <motion.div key={`basic-${basicVariant}`}
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="grid sm:grid-cols-2 max-w-xl mx-auto gap-5 mb-14">
-                            <BasicCard variant={planType === 'basic_couple' ? 'couple' : 'individual'} index={0} />
+                            className="grid max-w-sm mx-auto gap-5 mb-14">
+                            <BasicCard variant={basicVariant} index={0} />
                         </motion.div>
                     ) : (
                         <motion.div key={`${activeTab}-${planType}`}
