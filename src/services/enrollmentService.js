@@ -175,19 +175,24 @@ export async function saveEnrollmentToSupabase(enrollment) {
             partner_medical_note: enrollment.partnerMedicalNote || null,
         };
 
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('enrollments')
-            .insert([row])
-            .select()
-            .single();
+            .insert([row]);
 
         if (error) {
             console.error('[enrollmentService] Supabase insert error:', error);
             return { success: false, error: error.message };
         }
 
-        console.log('[enrollmentService] ✅ Enrollment saved to Supabase:', data?.enrollment_id);
-        return { success: true, data };
+        console.log(
+            '[enrollmentService] ✅ Enrollment saved to Supabase:',
+            enrollment.enrollmentId
+        );
+
+        return {
+            success: true,
+            enrollmentId: enrollment.enrollmentId
+        };
     } catch (err) {
         console.error('[enrollmentService] Unexpected error:', err);
         return { success: false, error: err.message };
