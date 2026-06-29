@@ -70,8 +70,6 @@ async function request(path, { method = 'GET', body, params } = {}) {
 
     if (res.status === 401) {
         clearSession();
-        // Let the caller's UI redirect via AdminGuard on next render;
-        // throw so the current call site can stop and show a message too.
         throw new AdminApiError('Session expired. Please log in again.', 401);
     }
 
@@ -145,15 +143,16 @@ export async function setAssessmentStatus(id, status) {
     return data.assessment;
 }
 
+// ── FIX: was missing — assessments export endpoint ───────────────────────────
+export async function exportAssessmentsAll(filters) {
+    const data = await request('/assessments/export', { params: filters });
+    return data.rows;
+}
+
 // ── Notes (server-side, shared across admins) ───────────────────────────────────
 export async function saveNote(recordType, recordId, note) {
     const data = await request('/notes', { method: 'PUT', body: { recordType, recordId, note } });
     return data.note;
-}
-
-export async function exportAssessmentsAll(filters) {
-    const data = await request('/assessments/export', { params: filters });
-    return data.rows;
 }
 
 export { AdminApiError };

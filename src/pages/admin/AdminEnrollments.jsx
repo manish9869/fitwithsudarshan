@@ -1,19 +1,22 @@
 /**
  * src/pages/admin/AdminEnrollments.jsx
  *
- * Full enrollments dashboard. Now backed entirely by the backend API
- * (adminApi.js) instead of a direct Supabase client + localStorage notes.
- * Adds: payment status editing, server-side shared notes, deep-link focus
- * from the dashboard's "Recent Activity" feed.
+ * Full enrollments dashboard. Backed entirely by the backend API (adminApi.js).
+ * Fixes applied:
+ *  - Added missing 'Download' to lucide imports
+ *  - Added missing 'exportSingleEnrollmentToExcel' to adminUtils imports
+ *  - exportEnrollmentsAll now receives dateFrom/dateTo correctly
+ *  - DetailDrawer export button now works correctly
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import {
-    Search, FileSpreadsheet, ChevronDown, ChevronUp,
+    Search, ChevronDown, ChevronUp,
     X, Eye, StickyNote, RefreshCw,
     Copy, Save, Loader2, AlertCircle,
     ChevronLeft, ChevronRight, Check,
+    Download, // FIX: was missing
 } from 'lucide-react';
 import {
     fetchEnrollments, fetchEnrollment, setEnrollmentStatus,
@@ -22,11 +25,11 @@ import {
 import {
     fmtCurrency, fmtDate, fmtGoals, exportToCSV, downloadInvoicePDF,
     statusBadge, ENROLLMENT_STATUSES,
+    exportEnrollmentsToExcel, exportEnrollmentsToPDF, // FIX: add these
+    exportSingleEnrollmentToExcel, // FIX: was missing
 } from './adminUtils';
 import { useDebounce } from './useDebounce';
 import ExportMenu from './ExportMenu';
-import { exportEnrollmentsToExcel, exportEnrollmentsToPDF } from './adminUtils';
-
 
 const PAGE_SIZE = 20;
 const COACHING_TYPES = ['all', 'online', 'video', 'personal'];
@@ -175,21 +178,22 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                     </div>
                     <div className="flex items-center gap-2">
                         {enrollment && (
-                            <button onClick={() => onNoteClick(enrollment)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.2)', color: '#e71763' }}>
-                                <StickyNote className="w-3 h-3" />
-                                {enrollment.note ? 'Edit Note' : 'Add Note'}
-                            </button>
-
+                            <>
+                                <button onClick={() => onNoteClick(enrollment)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.2)', color: '#e71763' }}>
+                                    <StickyNote className="w-3 h-3" />
+                                    {enrollment.note ? 'Edit Note' : 'Add Note'}
+                                </button>
+                                {/* FIX: exportSingleEnrollmentToExcel now properly imported */}
+                                <button
+                                    onClick={() => exportSingleEnrollmentToExcel(enrollment)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa' }}>
+                                    <Download className="w-3 h-3" /> Export
+                                </button>
+                            </>
                         )}
-
-                        <button onClick={() => exportSingleEnrollmentToExcel(enrollment)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                            style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa' }}>
-                            <Download className="w-3 h-3" /> Export
-                        </button>
-
                         <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5">
                             <X className="w-4 h-4" />
                         </button>
@@ -395,7 +399,6 @@ export default function AdminEnrollments() {
 
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [noteTarget, setNoteTarget] = useState(null);
-    const [exportLoading, setExportLoading] = useState(false);
     const initial = useRef(true);
 
     const fetchData = useCallback(async () => {
@@ -413,16 +416,16 @@ export default function AdminEnrollments() {
         } finally {
             setLoading(false);
         }
-    }, [search, coachingFilter, planFilter, statusFilter, page, sort]);
+    }, [debouncedSearch, coachingFilter, planFilter, statusFilter, page, sort]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
     useEffect(() => {
         if (initial.current) { initial.current = false; return; }
         setPage(1);
-    }, [search, coachingFilter, planFilter, statusFilter, sort]);
+    }, [debouncedSearch, coachingFilter, planFilter, statusFilter, sort]);
 
-    // Clear the ?focus= param once consumed so it doesn't stick around
+    // Clear the ?focus= param once consumed
     useEffect(() => {
         if (focusId) {
             const next = new URLSearchParams(searchParams);
@@ -449,27 +452,63 @@ export default function AdminEnrollments() {
     const couponCount = data.filter((r) => r.coupon_code).length;
     const coupleCount = data.filter((r) => r.plan_type === 'couple').length;
 
+    // FIX: handleExport now correctly passes all filter params including date range
     const handleExport = async (format, range) => {
-        const allRows = await exportEnrollmentsAll({
-            search, coachingType: coachingFilter, planType: planFilter, status: statusFilter,
-            dateFrom: range.from, dateTo: range.to,
-        });
-        if (format === 'csv') {
-            const mapped = allRows.map((r) => ({ /* same mapping as your existing handleExportCSV */
-                enrollment_id: r.enrollment_id, name: r.customer_name, email: r.customer_email,
-                phone: r.customer_phone, program: r.program_name, coaching_type: r.coaching_type,
-                plan_type: r.plan_type, duration_months: r.duration_months, amount_paid: r.amount_paid,
-                original_amount: r.original_amount, coupon_code: r.coupon_code || '', coupon_savings: r.coupon_savings || 0,
-                payment_status: r.payment_status, payment_date: r.payment_date, age: r.age, city: r.city,
-                weight: r.weight, goals: Array.isArray(r.goals) ? r.goals.join('; ') : r.goals,
-                medical_issue: r.medical_issue, partner_name: r.partner_name || '',
-                razorpay_payment_id: r.razorpay_payment_id, created_at: r.created_at,
-            }));
-            exportToCSV(mapped, `recode-enrollments-${new Date().toISOString().slice(0, 10)}`);
-        } else if (format === 'excel') {
-            exportEnrollmentsToExcel(allRows, { dateFrom: range.from, dateTo: range.to });
-        } else if (format === 'pdf') {
-            exportEnrollmentsToPDF(allRows, { dateFrom: range.from, dateTo: range.to, filters: { coachingFilter, planFilter, statusFilter } });
+        try {
+            const allRows = await exportEnrollmentsAll({
+                search: debouncedSearch,
+                coachingType: coachingFilter,
+                planType: planFilter,
+                status: statusFilter,
+                dateFrom: range?.from,
+                dateTo: range?.to,
+            });
+
+            if (!allRows || allRows.length === 0) {
+                alert('No data to export for the selected filters.');
+                return;
+            }
+
+            if (format === 'csv') {
+                const mapped = allRows.map((r) => ({
+                    enrollment_id: r.enrollment_id || '',
+                    name: r.customer_name || '',
+                    email: r.customer_email || '',
+                    phone: r.customer_phone || '',
+                    program: r.program_name || '',
+                    coaching_type: r.coaching_type || '',
+                    plan_type: r.plan_type || '',
+                    duration_months: r.duration_months || '',
+                    amount_paid: r.amount_paid || 0,
+                    original_amount: r.original_amount || r.amount_paid || 0,
+                    coupon_code: r.coupon_code || '',
+                    coupon_savings: r.coupon_savings || 0,
+                    payment_status: r.payment_status || '',
+                    payment_date: r.payment_date || '',
+                    age: r.age || '',
+                    city: r.city || '',
+                    weight: r.weight || '',
+                    goals: Array.isArray(r.goals) ? r.goals.join('; ') : (r.goals || ''),
+                    medical_issue: r.medical_issue || '',
+                    medical_note: r.medical_note || '',
+                    partner_name: r.partner_name || '',
+                    partner_age: r.partner_age || '',
+                    partner_goals: Array.isArray(r.partner_goals) ? r.partner_goals.join('; ') : '',
+                    razorpay_payment_id: r.razorpay_payment_id || '',
+                    created_at: r.created_at || '',
+                }));
+                exportToCSV(mapped, `recode-enrollments-${new Date().toISOString().slice(0, 10)}`);
+            } else if (format === 'excel') {
+                exportEnrollmentsToExcel(allRows, { dateFrom: range?.from, dateTo: range?.to });
+            } else if (format === 'pdf') {
+                exportEnrollmentsToPDF(allRows, {
+                    dateFrom: range?.from,
+                    dateTo: range?.to,
+                    filters: { coachingFilter, planFilter, statusFilter },
+                });
+            }
+        } catch (e) {
+            setError(e.message || 'Export failed. Please try again.');
         }
     };
 
@@ -488,7 +527,7 @@ export default function AdminEnrollments() {
                     <button onClick={fetchData}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs text-white/50 hover:text-white transition-all"
                         style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <RefreshCw className="w-3.5 h-3.5" />
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
                     </button>
                     <ExportMenu onExport={handleExport} label="Export Data" />
@@ -554,6 +593,9 @@ export default function AdminEnrollments() {
                     style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {error}
+                    <button onClick={() => setError('')} className="ml-auto text-white/30 hover:text-white">
+                        <X className="w-3.5 h-3.5" />
+                    </button>
                 </div>
             )}
 
@@ -681,6 +723,7 @@ export default function AdminEnrollments() {
                         onClose={() => setNoteTarget(null)}
                         onSaved={(note) => {
                             setData((rows) => rows.map((r) => (r.id === noteTarget.id ? { ...r, note } : r)));
+                            setNoteTarget(null);
                         }}
                     />
                 )}
