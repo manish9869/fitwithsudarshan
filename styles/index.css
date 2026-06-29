@@ -65,10 +65,47 @@
     @apply bg-background text-foreground font-sans;
   }
 
+  /* ── CURSOR: hide native cursor on PUBLIC pages only ── */
+  /* Admin pages (body.admin-page) keep normal cursor */
+  body:not(.admin-page) {
+    cursor: none;
+  }
+
   @media (hover: hover) and (pointer: fine) {
-    *, *::before, *::after {
+    body:not(.admin-page) *,
+    body:not(.admin-page) *::before,
+    body:not(.admin-page) *::after {
       cursor: none !important;
     }
+  }
+
+  /* ── CURSOR: admin pages use normal system cursor ── */
+  body.admin-page,
+  body.admin-page *,
+  body.admin-page *::before,
+  body.admin-page *::after {
+    cursor: auto !important;
+  }
+
+  body.admin-page button,
+  body.admin-page [role="button"],
+  body.admin-page a,
+  body.admin-page select,
+  body.admin-page input[type="checkbox"],
+  body.admin-page input[type="radio"],
+  body.admin-page input[type="range"],
+  body.admin-page label[for] {
+    cursor: pointer !important;
+  }
+
+  body.admin-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  body.admin-page textarea {
+    cursor: text !important;
+  }
+
+  body.admin-page [disabled],
+  body.admin-page button:disabled {
+    cursor: not-allowed !important;
   }
 
   html {
@@ -134,12 +171,4 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  body:not(.admin-page) *, 
-  body:not(.admin-page) *::before, 
-  body:not(.admin-page) *::after {
-    cursor: none !important;
-  }
 }
