@@ -5,12 +5,13 @@
  * review photos, change status, and add shared notes.
  *
  * Changes:
+ *  - Client-side filter / sort / paginate — no API calls on tab/sort/filter
+ *  - Fetches ALL rows once (pageSize: 9999), caches in module-level _cache
+ *  - Status & note changes patch local state + cache in-place (no refetch)
  *  - Custom StatusSelect (no more confusing native <select> badge)
  *  - Header: Refresh + Export grouped, vertically centred
- *  - Module-level cache: switching tabs won't re-fetch fresh data
- *  - Fixed useCallback dep: debouncedSearch (was `search`)
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -34,14 +35,12 @@ import {
 } from './adminApi';
 
 const PAGE_SIZE = 20;
-const CACHE_TTL = 60_000; // 1 min — switch tabs freely within this window
+const CACHE_TTL = 60_000; // 1 min
 const PLANS = ['all', 'Online Coaching', 'Video Coaching', 'Mumbai Personal Training', 'Couple Plan'];
 
 // ── Module-level cache (survives tab switches, resets on page reload) ─────────
 const _cache = {
-    key: '',
-    rows: null,
-    total: 0,
+    allRows: null,
     ts: 0,
 };
 
@@ -63,15 +62,12 @@ function CommitmentRing({ score }) {
     );
 }
 
-// ── Custom status dropdown ─────────────────────────────────────────────────────
-// Replaces the confusing native <select> that tried to look like a badge.
-// Now shows a proper popover with coloured dots and a checkmark for active state.
+// ── Custom status dropdown ────────────────────────────────────────────────────
 function StatusSelect({ value, onChange, disabled }) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
     const badge = statusBadge(value || 'new');
 
-    // Close on outside click
     useEffect(() => {
         if (!open) return;
         const handler = (e) => {
@@ -86,7 +82,6 @@ function StatusSelect({ value, onChange, disabled }) {
 
     return (
         <div ref={ref} className="relative inline-block">
-            {/* Trigger pill */}
             <button
                 disabled={disabled}
                 onClick={() => setOpen((o) => !o)}
@@ -98,7 +93,6 @@ function StatusSelect({ value, onChange, disabled }) {
                     minWidth: 90,
                 }}
             >
-                {/* Status dot */}
                 <span
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     style={{ background: badge.color }}
@@ -113,7 +107,6 @@ function StatusSelect({ value, onChange, disabled }) {
                 />
             </button>
 
-            {/* Dropdown panel */}
             <AnimatePresence>
                 {open && (
                     <motion.div
@@ -147,7 +140,6 @@ function StatusSelect({ value, onChange, disabled }) {
                                         e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.06)' : 'transparent';
                                     }}
                                 >
-                                    {/* Coloured dot */}
                                     <span
                                         className="w-2 h-2 rounded-full flex-shrink-0"
                                         style={{ background: b.color }}
@@ -158,7 +150,6 @@ function StatusSelect({ value, onChange, disabled }) {
                                     >
                                         {label(s)}
                                     </span>
-                                    {/* Checkmark for active */}
                                     {isActive && (
                                         <Check
                                             className="w-3 h-3 flex-shrink-0"
@@ -600,76 +591,53 @@ export default function AdminAssessments() {
     const [searchParams, setSearchParams] = useSearchParams();
     const focusId = searchParams.get('focus');
 
-    const [data, setData] = useState([]);
+    // ── Full dataset (fetched once) ───────────────────────────────────────────
+    const [allData, setAllData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [total, setTotal] = useState(0);
 
+    // ── UI state ──────────────────────────────────────────────────────────────
     const [statusFilter, setStatusFilter] = useState('all');
     const [planFilter, setPlanFilter] = useState('all');
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState({ field: 'created_at', dir: 'desc' });
+    const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 300);
 
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [noteTarget, setNoteTarget] = useState(null);
-    const initial = useRef(true);
 
-    const [search, setSearch] = useState('');
-    const debouncedSearch = useDebounce(search, 400);
-
+    // ── Fetch ALL rows once ───────────────────────────────────────────────────
     const fetchData = useCallback(async ({ silent = false } = {}) => {
-        // Build a stable cache key from all fetch params
-        const cacheKey = JSON.stringify({ debouncedSearch, statusFilter, planFilter, sort, page });
         const now = Date.now();
 
-        // If we have a fresh cached result for these exact params, skip the network
-        if (_cache.key === cacheKey && _cache.rows && (now - _cache.ts) < CACHE_TTL) {
-            setData(_cache.rows);
-            setTotal(_cache.total);
+        // Serve from cache if still fresh
+        if (_cache.allRows && (now - _cache.ts) < CACHE_TTL) {
+            setAllData(_cache.allRows);
             setLoading(false);
             return;
         }
 
-        // If stale cached data exists, show it immediately then revalidate silently
-        if (_cache.key === cacheKey && _cache.rows && !silent) {
-            setData(_cache.rows);
-            setTotal(_cache.total);
-            setLoading(false);
-            // Fall through to revalidate without spinner
-        } else if (!silent) {
-            setLoading(true);
-        }
-
+        if (!silent) setLoading(true);
         setError('');
-        try {
-            const res = await fetchAssessments({
-                search: debouncedSearch, status: statusFilter, plan: planFilter,
-                sortField: sort.field, sortDir: sort.dir, page, pageSize: PAGE_SIZE,
-            });
-            const rows = res.rows || [];
-            const tot = res.total || 0;
 
-            // Persist to module cache
-            _cache.key = cacheKey;
-            _cache.rows = rows;
-            _cache.total = tot;
+        try {
+            // Fetch everything — no server-side filters, sort, or paging
+            const res = await fetchAssessments({ pageSize: 9999 });
+            const rows = res.rows || [];
+
+            _cache.allRows = rows;
             _cache.ts = Date.now();
 
-            setData(rows);
-            setTotal(tot);
+            setAllData(rows);
         } catch (e) {
             setError(e.message || 'Failed to load assessments');
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, statusFilter, planFilter, page, sort]); // ← was `search`, now correctly `debouncedSearch`
+    }, []); // no filter deps — fetch is unconditional
 
     useEffect(() => { fetchData(); }, [fetchData]);
-
-    useEffect(() => {
-        if (initial.current) { initial.current = false; return; }
-        setPage(1);
-    }, [debouncedSearch, statusFilter, planFilter, sort]);
 
     // Clear focus param once consumed
     useEffect(() => {
@@ -683,36 +651,100 @@ export default function AdminAssessments() {
 
     // Manual refresh — bypass cache
     const handleRefresh = () => {
-        _cache.key = ''; // invalidate
+        _cache.allRows = null;
+        _cache.ts = 0;
         fetchData();
     };
 
+    // ── Client-side: filter → sort → paginate ────────────────────────────────
+    const filtered = useMemo(() => {
+        let rows = allData;
+
+        // Search across name / whatsapp / email / city
+        if (debouncedSearch.trim()) {
+            const q = debouncedSearch.toLowerCase();
+            rows = rows.filter((r) =>
+                `${r.first_name ?? ''} ${r.last_name ?? ''}`.toLowerCase().includes(q) ||
+                (r.whatsapp ?? '').includes(q) ||
+                (r.email ?? '').toLowerCase().includes(q) ||
+                (r.city ?? '').toLowerCase().includes(q)
+            );
+        }
+
+        // Status filter
+        if (statusFilter !== 'all') {
+            rows = rows.filter((r) => (r.status || 'new') === statusFilter);
+        }
+
+        // Plan filter
+        if (planFilter !== 'all') {
+            rows = rows.filter((r) => r.plan === planFilter);
+        }
+
+        // Sort
+        rows = [...rows].sort((a, b) => {
+            const aVal = a[sort.field] ?? '';
+            const bVal = b[sort.field] ?? '';
+            const cmp =
+                typeof aVal === 'number' && typeof bVal === 'number'
+                    ? aVal - bVal
+                    : String(aVal).localeCompare(String(bVal));
+            return sort.dir === 'asc' ? cmp : -cmp;
+        });
+
+        return rows;
+    }, [allData, debouncedSearch, statusFilter, planFilter, sort]);
+
+    // Reset to page 1 whenever filters / sort change
+    useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, planFilter, sort]);
+
+    // Paginate
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const pageData = useMemo(() => {
+        const start = (page - 1) * PAGE_SIZE;
+        return filtered.slice(start, start + PAGE_SIZE);
+    }, [filtered, page]);
+
     const toggleSort = (field) => {
-        setSort((s) => s.field === field
-            ? { ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' }
-            : { field, dir: 'asc' });
+        setSort((s) =>
+            s.field === field
+                ? { ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+                : { field, dir: 'asc' }
+        );
     };
 
+    // ── Status change: patch in-place, no refetch ─────────────────────────────
     const handleStatusChange = async (id, newStatus) => {
+        // Optimistic update
+        const patch = (rows) => rows.map((r) => (r.id === id ? { ...r, status: newStatus } : r));
+        setAllData(patch);
+        if (_cache.allRows) _cache.allRows = patch(_cache.allRows);
+
         try {
             await setAssessmentStatus(id, newStatus);
-            setData((rows) => rows.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
-            // Invalidate cache so next visit reflects this change
-            _cache.key = '';
         } catch (e) {
             setError(e.message || 'Failed to update status.');
+            // Revert on error — refetch from cache
+            fetchData({ silent: true });
         }
     };
 
+    // ── Export ────────────────────────────────────────────────────────────────
     const handleExport = async (format, range) => {
         try {
-            const allRows = await exportAssessmentsAll({
-                search: debouncedSearch,
-                status: statusFilter,
-                plan: planFilter,
-                dateFrom: range?.from,
-                dateTo: range?.to,
-            });
+            // Use filtered data for export if no date range, else hit API for date-ranged export
+            let allRows;
+            if (range?.from || range?.to) {
+                allRows = await exportAssessmentsAll({
+                    search: debouncedSearch,
+                    status: statusFilter,
+                    plan: planFilter,
+                    dateFrom: range?.from,
+                    dateTo: range?.to,
+                });
+            } else {
+                allRows = filtered; // already filtered client-side
+            }
 
             if (!allRows || allRows.length === 0) {
                 alert('No data to export for the selected filters.');
@@ -737,14 +769,13 @@ export default function AdminAssessments() {
         }
     };
 
-    // Derived stats
-    const newCount = data.filter((r) => r.status === 'new').length;
-    const avgCommitment = data.length
-        ? Math.round(data.reduce((s, r) => s + (r.commitment || 0), 0) / data.length)
+    // ── Derived stats (from current page for consistency with original) ────────
+    const newCount = pageData.filter((r) => r.status === 'new').length;
+    const avgCommitment = pageData.length
+        ? Math.round(pageData.reduce((s, r) => s + (r.commitment || 0), 0) / pageData.length)
         : 0;
-    const noteCount = data.filter((r) => r.note).length;
+    const noteCount = pageData.filter((r) => r.note).length;
 
-    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const thCls = 'px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-white/35 cursor-pointer hover:text-white/60 transition-colors whitespace-nowrap select-none';
 
     return (
@@ -753,10 +784,13 @@ export default function AdminAssessments() {
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
                 <div>
                     <h1 className="text-xl font-black text-white mb-1">Assessments</h1>
-                    <p className="text-xs text-white/35">{total} total submissions</p>
+                    <p className="text-xs text-white/35">
+                        {filtered.length !== allData.length
+                            ? `${filtered.length} of ${allData.length} submissions`
+                            : `${allData.length} total submissions`}
+                    </p>
                 </div>
 
-                {/* Refresh + Export grouped so they stay vertically centred together */}
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleRefresh}
@@ -772,7 +806,7 @@ export default function AdminAssessments() {
 
             {/* ── Stats ───────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                <StatCard label="Showing" value={`${data.length} / ${total}`} color="white" />
+                <StatCard label="Showing" value={`${pageData.length} / ${filtered.length}`} color="white" />
                 <StatCard label="New (this page)" value={newCount} color="#60a5fa" />
                 <StatCard label="Avg. Commitment" value={avgCommitment ? `${avgCommitment}/10` : '—'} color="#e71763" />
                 <StatCard label="With Notes" value={noteCount} color="#34d399" />
@@ -797,7 +831,7 @@ export default function AdminAssessments() {
                     )}
                 </div>
 
-                {/* Status filter — styled native select (not the status badge, just a filter) */}
+                {/* Status filter */}
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -862,11 +896,11 @@ export default function AdminAssessments() {
                                 <tr><td colSpan={8} className="px-4 py-16 text-center">
                                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-white/25" />
                                 </td></tr>
-                            ) : data.length === 0 ? (
+                            ) : pageData.length === 0 ? (
                                 <tr><td colSpan={8} className="px-4 py-16 text-center">
                                     <p className="text-sm text-white/25">No assessments found</p>
                                 </td></tr>
-                            ) : data.map((row) => {
+                            ) : pageData.map((row) => {
                                 const hasNote = !!row.note;
                                 return (
                                     <tr key={row.id}
@@ -903,7 +937,6 @@ export default function AdminAssessments() {
                                             <CommitmentRing score={row.commitment} />
                                         </td>
                                         <td className="px-4 py-3">
-                                            {/* Custom dropdown — clear coloured dot + popover */}
                                             <StatusSelect
                                                 value={row.status || 'new'}
                                                 onChange={(v) => handleStatusChange(row.id, v)}
@@ -953,7 +986,9 @@ export default function AdminAssessments() {
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between px-4 py-3"
                         style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                        <p className="text-xs text-white/30">Page {page} of {totalPages} · {total} records</p>
+                        <p className="text-xs text-white/30">
+                            Page {page} of {totalPages} · {filtered.length} records
+                        </p>
                         <div className="flex items-center gap-2">
                             <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}
                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 disabled:opacity-25 transition-all">
@@ -1001,8 +1036,11 @@ export default function AdminAssessments() {
                         currentNote={noteTarget.note}
                         onClose={() => setNoteTarget(null)}
                         onSaved={(note) => {
-                            setData((rows) => rows.map((r) => (r.id === noteTarget.id ? { ...r, note } : r)));
-                            _cache.key = ''; // invalidate so next hard fetch includes the note
+                            // Patch in-place — no refetch needed
+                            const patch = (rows) =>
+                                rows.map((r) => (r.id === noteTarget.id ? { ...r, note } : r));
+                            setAllData(patch);
+                            if (_cache.allRows) _cache.allRows = patch(_cache.allRows);
                             setNoteTarget(null);
                         }}
                     />
