@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import CustomCursor from '@/components/CustomCursor';
+
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PLANS = [
@@ -543,7 +543,7 @@ export default function Onboarding() {
     if (submitted) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center px-4">
-                <CustomCursor />
+
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                     className="max-w-md w-full text-center">
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -585,7 +585,7 @@ export default function Onboarding() {
 
     return (
         <div className="min-h-screen bg-background text-white">
-            <CustomCursor />
+
 
             {/* Background */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">

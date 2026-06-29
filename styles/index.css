@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* NOTE: the Google Fonts @import that used to live here has been removed.
+   index.html already loads Inter via a non-blocking preload + media="print"
+   swap trick — that's the correct pattern. A CSS @import is render-blocking
+   and was racing (and beating) that non-blocking load, so it was pure waste. */
 @import "tailwindcss";
 
 @theme {

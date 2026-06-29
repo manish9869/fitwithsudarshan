@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { coachingTypes, pricingTable, durations, basicConsultation } from '@/data/SiteData';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import CustomCursor from '@/components/CustomCursor';
+
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { validateCoupon, formatPrice as fmtPrice } from '@/utils/coupons';
 
@@ -464,7 +464,7 @@ export default function Enroll() {
 
     return (
         <div className="min-h-screen bg-background">
-            <CustomCursor />
+
 
             {/* Header */}
             <div className="sticky top-0 z-40 backdrop-blur-xl"

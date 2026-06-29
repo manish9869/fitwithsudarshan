@@ -13,12 +13,25 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      // Proxy all /api/* requests to Express backend during dev
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   build: {
+
     // Increase chunk warning limit slightly (your app is legitimately large)
+
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
+
           // React core — cached long-term, rarely changes
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
 

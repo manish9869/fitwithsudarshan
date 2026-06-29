@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 export default function CustomCursor() {
     const [visible, setVisible] = useState(false);
     const [clicking, setClicking] = useState(false);
     const [hovering, setHovering] = useState(false);
-    const [isTouchDevice, setIsTouchDevice] = useState(false);
+    const [isTouchDevice, setIsTouchDevice] = useState(true); // assume touch until confirmed otherwise — avoids a flash of cursor-none styling on mobile before the check runs
 
     // Dot follows mouse exactly — no spring lag
     const dotX = useMotionValue(-200);
@@ -15,31 +15,41 @@ export default function CustomCursor() {
     const ringX = useSpring(dotX, { damping: 22, stiffness: 700, mass: 0.3 });
     const ringY = useSpring(dotY, { damping: 22, stiffness: 700, mass: 0.3 });
 
+    // Tracks whether we're currently over a hoverable element, without
+    // calling closest() on every mousemove — only re-checks when the
+    // element under the pointer actually changes.
+    const lastTargetRef = useRef(null);
+
     useEffect(() => {
         const touch = window.matchMedia("(hover: none)").matches;
         setIsTouchDevice(touch);
-        if (touch) return;
+        if (touch) return; // no listeners at all on touch devices
 
         const onMove = (e) => {
             dotX.set(e.clientX);
             dotY.set(e.clientY);
             setVisible(true);
+
+            // Cheap hover-target check piggybacked on the existing
+            // mousemove listener instead of a second document-wide
+            // "mouseover" listener.
+            const target = e.target;
+            if (target !== lastTargetRef.current) {
+                lastTargetRef.current = target;
+                const el = target.closest?.("a, button, [data-cursor-hover]");
+                setHovering(!!el);
+            }
         };
         const onDown = () => setClicking(true);
         const onUp = () => setClicking(false);
         const onLeave = () => setVisible(false);
         const onEnter = () => setVisible(true);
-        const onOver = (e) => {
-            const el = e.target.closest("a, button, [data-cursor-hover]");
-            setHovering(!!el);
-        };
 
-        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mousemove", onMove, { passive: true });
         window.addEventListener("mousedown", onDown);
         window.addEventListener("mouseup", onUp);
         document.addEventListener("mouseleave", onLeave);
         document.addEventListener("mouseenter", onEnter);
-        document.addEventListener("mouseover", onOver);
 
         return () => {
             window.removeEventListener("mousemove", onMove);
@@ -47,7 +57,6 @@ export default function CustomCursor() {
             window.removeEventListener("mouseup", onUp);
             document.removeEventListener("mouseleave", onLeave);
             document.removeEventListener("mouseenter", onEnter);
-            document.removeEventListener("mouseover", onOver);
         };
     }, []);
 
