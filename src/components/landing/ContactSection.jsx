@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { contact } from "@/data/SiteData";
-
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const GOAL_LABELS = {
     fat_loss: "Fat Loss",
     muscle_gain: "Muscle Building",
@@ -85,12 +85,12 @@ export function ContactSection() {
 
         try {
             const [coachRes, customerRes] = await Promise.all([
-                fetch("/api/send-email", {
+                fetch(`${API_BASE}/api/send-email`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ template: "contact_inquiry_coach", to: contact.email, data: payload }),
                 }),
-                fetch("/api/send-email", {
+                fetch(`${API_BASE}/api/send-email`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ template: "contact_inquiry_customer", to: form.email.trim(), data: payload }),
