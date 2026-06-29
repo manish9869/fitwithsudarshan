@@ -10,7 +10,7 @@ import { ContactSection } from '@/components/landing/ContactSection';
 import BlogSection from '@/components/landing/BlogSection';
 import FloatingWhatsApp from '@/components/landing/FloatingWhatsApp';
 import StickyCTABar from '@/components/landing/StickyCTABar';
-import CustomCursor from '@/components/CustomCursor';
+
 import { Button } from '@/components/ui/button';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
@@ -122,7 +122,7 @@ export default function Landing() {
 
             <FloatingWhatsApp />
             <StickyCTABar />
-            <CustomCursor />
+
         </div>
     );
 }
