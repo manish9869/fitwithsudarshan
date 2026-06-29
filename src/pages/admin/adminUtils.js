@@ -503,24 +503,80 @@ export function exportAssessmentsToExcel(rows, { dateFrom, dateTo } = {}) {
 // ── PDF Invoice (via backend) ─────────────────────────────────────────────────
 export async function downloadInvoicePDF(enrollment) {
     const API_BASE = import.meta.env.VITE_API_URL ?? '';
+
+    const invoiceId =
+        enrollment?.enrollmentId ||
+        enrollment?.enrollment_id;
+
+    if (!invoiceId) {
+        throw new Error('Missing enrollment ID.');
+    }
+
     const res = await fetch(`${API_BASE}/api/invoice`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/pdf',
+        },
         body: JSON.stringify(enrollment),
     });
-    if (!res.ok) throw new Error('Failed to generate invoice');
+
+    const contentType = res.headers.get('content-type') || '';
+
+    if (!res.ok) {
+        let message = 'Invoice generation failed.';
+
+        try {
+            const data = await res.json();
+            message = data?.error || data?.message || message;
+        } catch {
+            // ignore
+        }
+
+        throw new Error(message);
+    }
+
+    if (!contentType.toLowerCase().includes('application/pdf')) {
+        throw new Error('Server did not return a valid PDF.');
+    }
+
     const blob = await res.blob();
-    triggerDownload(blob, `RECODE-Invoice-${enrollment.enrollment_id || enrollment.enrollmentId}.pdf`);
+
+    if (!blob || blob.size === 0) {
+        throw new Error('Generated invoice PDF is empty.');
+    }
+
+    const safeInvoiceId = String(invoiceId).replace(/[^a-zA-Z0-9-_]/g, '');
+
+    const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, 19);
+
+    triggerDownload(
+        blob,
+        `RECODE-Invoice-${safeInvoiceId}-${timestamp}.pdf`
+    );
+
+    return true;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function triggerDownload(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+
     a.href = url;
     a.download = filename;
+    a.style.display = 'none';
+
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+    }, 1000);
 }
 
 // ── Badge colors ──────────────────────────────────────────────────────────────
