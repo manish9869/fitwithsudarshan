@@ -17,6 +17,7 @@ const RefundPolicy = lazy(() => import('@/pages/RefundPolicy'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
 const Programs = lazy(() => import('@/pages/Programs'));
+const FAQ = lazy(() => import('@/pages/FAQSection'));
 
 // Admin bundle (recharts, jspdf, xlsx) — only fetched if someone actually
 // visits /admin. Public visitors never download a byte of this.
@@ -75,7 +76,7 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/programs" element={<Programs />} />
-
+          <Route path="/faq" element={<FAQ />} />
           {/* ── Admin: login (no guard) ── */}
           <Route path="/admin" element={<AdminLogin />} />
 

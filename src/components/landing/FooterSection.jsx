@@ -27,10 +27,10 @@ const resources = [
     { name: "Apply for Coaching", href: contact.social.whatsapp, external: true },
 ];
 
-const legalLinks = [
-    { name: "Privacy Policy", to: "/privacy-policy" },
-    { name: "Terms & Conditions", to: "/terms" },
-    { name: "Refund Policy", to: "/refund-policy" },
+const legalLinks = [{ name: "FAQ", to: "/faq" },
+{ name: "Privacy Policy", to: "/privacy-policy" },
+{ name: "Terms & Conditions", to: "/terms" },
+{ name: "Refund Policy", to: "/refund-policy" },
 ];
 
 const socialLinks = [
