@@ -3,6 +3,12 @@
  *
  * Assessments dashboard — lists onboarding submissions, lets Sudarshan
  * review photos, change status, and add shared notes.
+ *
+ * Changes:
+ *  - Custom StatusSelect (no more confusing native <select> badge)
+ *  - Header: Refresh + Export grouped, vertically centred
+ *  - Module-level cache: switching tabs won't re-fetch fresh data
+ *  - Fixed useCallback dep: debouncedSearch (was `search`)
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,21 +19,31 @@ import {
     Save, Loader2, Check, AlertCircle, Copy,
     Dumbbell, Utensils, Heart, Star, Camera,
     MessageCircle, ExternalLink, FileText,
+    Download,
 } from 'lucide-react';
 import {
-    fetchAssessments, fetchAssessment, setAssessmentStatus, saveNote,
-} from './adminApi';
-import {
     fmtDate, fmtRelativeTime, statusBadge, ASSESSMENT_STATUSES,
+    exportAssessmentsToExcel, exportAssessmentsToPDF, exportToCSV,
+    exportSingleAssessmentToExcel,
 } from './adminUtils';
 import { useDebounce } from './useDebounce';
 import ExportMenu from './ExportMenu';
-import { exportAssessmentsAll } from './adminApi';
-import { exportAssessmentsToExcel, exportAssessmentsToPDF, exportToCSV } from './adminUtils';
-
+import {
+    fetchAssessments, fetchAssessment, setAssessmentStatus, saveNote,
+    exportAssessmentsAll,
+} from './adminApi';
 
 const PAGE_SIZE = 20;
+const CACHE_TTL = 60_000; // 1 min — switch tabs freely within this window
 const PLANS = ['all', 'Online Coaching', 'Video Coaching', 'Mumbai Personal Training', 'Couple Plan'];
+
+// ── Module-level cache (survives tab switches, resets on page reload) ─────────
+const _cache = {
+    key: '',
+    rows: null,
+    total: 0,
+    ts: 0,
+};
 
 // ── Commitment ring ───────────────────────────────────────────────────────────
 function CommitmentRing({ score }) {
@@ -47,23 +63,115 @@ function CommitmentRing({ score }) {
     );
 }
 
-// ── Status dropdown ───────────────────────────────────────────────────────────
+// ── Custom status dropdown ─────────────────────────────────────────────────────
+// Replaces the confusing native <select> that tried to look like a badge.
+// Now shows a proper popover with coloured dots and a checkmark for active state.
 function StatusSelect({ value, onChange, disabled }) {
-    const badge = statusBadge(value);
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+    const badge = statusBadge(value || 'new');
+
+    // Close on outside click
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    const label = (s) =>
+        s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
     return (
-        <select
-            value={value}
-            disabled={disabled}
-            onChange={(e) => onChange(e.target.value)}
-            className="text-[10px] font-bold px-2 py-1 rounded-full appearance-none cursor-pointer outline-none disabled:opacity-50"
-            style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}
-        >
-            {ASSESSMENT_STATUSES.map((s) => (
-                <option key={s} value={s} style={{ background: '#0a0a0a', color: '#fff' }}>
-                    {s.replace('_', ' ').toUpperCase()}
-                </option>
-            ))}
-        </select>
+        <div ref={ref} className="relative inline-block">
+            {/* Trigger pill */}
+            <button
+                disabled={disabled}
+                onClick={() => setOpen((o) => !o)}
+                className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50 focus:outline-none"
+                style={{
+                    background: badge.bg,
+                    border: `1px solid ${badge.border}`,
+                    color: badge.color,
+                    minWidth: 90,
+                }}
+            >
+                {/* Status dot */}
+                <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ background: badge.color }}
+                />
+                <span className="flex-1 text-left leading-none">{label(value || 'new')}</span>
+                <ChevronDown
+                    className="w-2.5 h-2.5 flex-shrink-0 transition-transform"
+                    style={{
+                        opacity: 0.6,
+                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }}
+                />
+            </button>
+
+            {/* Dropdown panel */}
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute left-0 top-full mt-1.5 z-[100] rounded-xl overflow-hidden shadow-2xl"
+                        style={{
+                            background: '#13131f',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            minWidth: 160,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                        }}
+                    >
+                        {ASSESSMENT_STATUSES.map((s) => {
+                            const b = statusBadge(s);
+                            const isActive = s === (value || 'new');
+                            return (
+                                <button
+                                    key={s}
+                                    onClick={() => { onChange(s); setOpen(false); }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-left transition-colors"
+                                    style={{
+                                        background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.06)' : 'transparent';
+                                    }}
+                                >
+                                    {/* Coloured dot */}
+                                    <span
+                                        className="w-2 h-2 rounded-full flex-shrink-0"
+                                        style={{ background: b.color }}
+                                    />
+                                    <span
+                                        className="flex-1"
+                                        style={{ color: isActive ? b.color : 'rgba(255,255,255,0.65)' }}
+                                    >
+                                        {label(s)}
+                                    </span>
+                                    {/* Checkmark for active */}
+                                    {isActive && (
+                                        <Check
+                                            className="w-3 h-3 flex-shrink-0"
+                                            style={{ color: b.color }}
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 
@@ -185,7 +293,6 @@ function PhotoViewer({ url, label }) {
                 </div>
             </div>
 
-            {/* Lightbox */}
             <AnimatePresence>
                 {open && (
                     <motion.div
@@ -299,7 +406,6 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
                             style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa' }}>
                             <Download className="w-3 h-3" /> Export
                         </button>
-
                         <button onClick={onClose}
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all">
                             <X className="w-4 h-4" />
@@ -331,7 +437,7 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
                         {/* Status + commitment */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Status</p>
+                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Status</p>
                                 <StatusSelect
                                     value={assessment.status || 'new'}
                                     onChange={(s) => {
@@ -489,7 +595,6 @@ function StatCard({ label, value, color }) {
     );
 }
 
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminAssessments() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -499,7 +604,6 @@ export default function AdminAssessments() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [total, setTotal] = useState(0);
-
 
     const [statusFilter, setStatusFilter] = useState('all');
     const [planFilter, setPlanFilter] = useState('all');
@@ -513,29 +617,59 @@ export default function AdminAssessments() {
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 400);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const fetchData = useCallback(async ({ silent = false } = {}) => {
+        // Build a stable cache key from all fetch params
+        const cacheKey = JSON.stringify({ debouncedSearch, statusFilter, planFilter, sort, page });
+        const now = Date.now();
+
+        // If we have a fresh cached result for these exact params, skip the network
+        if (_cache.key === cacheKey && _cache.rows && (now - _cache.ts) < CACHE_TTL) {
+            setData(_cache.rows);
+            setTotal(_cache.total);
+            setLoading(false);
+            return;
+        }
+
+        // If stale cached data exists, show it immediately then revalidate silently
+        if (_cache.key === cacheKey && _cache.rows && !silent) {
+            setData(_cache.rows);
+            setTotal(_cache.total);
+            setLoading(false);
+            // Fall through to revalidate without spinner
+        } else if (!silent) {
+            setLoading(true);
+        }
+
         setError('');
         try {
             const res = await fetchAssessments({
                 search: debouncedSearch, status: statusFilter, plan: planFilter,
                 sortField: sort.field, sortDir: sort.dir, page, pageSize: PAGE_SIZE,
             });
-            setData(res.rows || []);
-            setTotal(res.total || 0);
+            const rows = res.rows || [];
+            const tot = res.total || 0;
+
+            // Persist to module cache
+            _cache.key = cacheKey;
+            _cache.rows = rows;
+            _cache.total = tot;
+            _cache.ts = Date.now();
+
+            setData(rows);
+            setTotal(tot);
         } catch (e) {
             setError(e.message || 'Failed to load assessments');
         } finally {
             setLoading(false);
         }
-    }, [search, statusFilter, planFilter, page, sort]);
+    }, [debouncedSearch, statusFilter, planFilter, page, sort]); // ← was `search`, now correctly `debouncedSearch`
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
     useEffect(() => {
         if (initial.current) { initial.current = false; return; }
         setPage(1);
-    }, [search, statusFilter, planFilter, sort]);
+    }, [debouncedSearch, statusFilter, planFilter, sort]);
 
     // Clear focus param once consumed
     useEffect(() => {
@@ -547,6 +681,12 @@ export default function AdminAssessments() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Manual refresh — bypass cache
+    const handleRefresh = () => {
+        _cache.key = ''; // invalidate
+        fetchData();
+    };
+
     const toggleSort = (field) => {
         setSort((s) => s.field === field
             ? { ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' }
@@ -557,29 +697,43 @@ export default function AdminAssessments() {
         try {
             await setAssessmentStatus(id, newStatus);
             setData((rows) => rows.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+            // Invalidate cache so next visit reflects this change
+            _cache.key = '';
         } catch (e) {
             setError(e.message || 'Failed to update status.');
         }
     };
 
-
     const handleExport = async (format, range) => {
-        const allRows = await exportAssessmentsAll({
-            search, status: statusFilter, plan: planFilter,
-            dateFrom: range.from, dateTo: range.to,
-        });
-        if (format === 'csv') {
-            const mapped = allRows.map((r) => ({
-                id: r.id, first_name: r.first_name, last_name: r.last_name, whatsapp: r.whatsapp,
-                email: r.email, age: r.age, gender: r.gender, city: r.city, plan: r.plan,
-                main_goal: r.main_goal, workout_status: r.workout_status, commitment: r.commitment,
-                status: r.status, created_at: r.created_at,
-            }));
-            exportToCSV(mapped, `recode-assessments-${new Date().toISOString().slice(0, 10)}`);
-        } else if (format === 'excel') {
-            exportAssessmentsToExcel(allRows, { dateFrom: range.from, dateTo: range.to });
-        } else if (format === 'pdf') {
-            exportAssessmentsToPDF(allRows, { dateFrom: range.from, dateTo: range.to });
+        try {
+            const allRows = await exportAssessmentsAll({
+                search: debouncedSearch,
+                status: statusFilter,
+                plan: planFilter,
+                dateFrom: range?.from,
+                dateTo: range?.to,
+            });
+
+            if (!allRows || allRows.length === 0) {
+                alert('No data to export for the selected filters.');
+                return;
+            }
+
+            if (format === 'csv') {
+                const mapped = allRows.map((r) => ({
+                    id: r.id, first_name: r.first_name, last_name: r.last_name, whatsapp: r.whatsapp,
+                    email: r.email, age: r.age, gender: r.gender, city: r.city, plan: r.plan,
+                    main_goal: r.main_goal, workout_status: r.workout_status, commitment: r.commitment,
+                    status: r.status, created_at: r.created_at,
+                }));
+                exportToCSV(mapped, `recode-assessments-${new Date().toISOString().slice(0, 10)}`);
+            } else if (format === 'excel') {
+                exportAssessmentsToExcel(allRows, { dateFrom: range?.from, dateTo: range?.to });
+            } else if (format === 'pdf') {
+                exportAssessmentsToPDF(allRows, { dateFrom: range?.from, dateTo: range?.to });
+            }
+        } catch (e) {
+            setError(e.message || 'Export failed. Please try again.');
         }
     };
 
@@ -595,23 +749,28 @@ export default function AdminAssessments() {
 
     return (
         <div>
-
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+            {/* ── Header ──────────────────────────────────────────────────── */}
+            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
                 <div>
                     <h1 className="text-xl font-black text-white mb-1">Assessments</h1>
                     <p className="text-xs text-white/35">{total} total submissions</p>
                 </div>
-                <button onClick={fetchData}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs text-white/50 hover:text-white transition-all"
-                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                </button>
-                <ExportMenu onExport={handleExport} label="Export Data" />
+
+                {/* Refresh + Export grouped so they stay vertically centred together */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleRefresh}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs text-white/50 hover:text-white transition-all"
+                        style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </button>
+                    <ExportMenu onExport={handleExport} label="Export Data" />
+                </div>
             </div>
 
-            {/* Stats */}
+            {/* ── Stats ───────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                 <StatCard label="Showing" value={`${data.length} / ${total}`} color="white" />
                 <StatCard label="New (this page)" value={newCount} color="#60a5fa" />
@@ -619,8 +778,9 @@ export default function AdminAssessments() {
                 <StatCard label="With Notes" value={noteCount} color="#34d399" />
             </div>
 
-            {/* Filters */}
+            {/* ── Filters ─────────────────────────────────────────────────── */}
             <div className="flex flex-wrap gap-3 mb-5">
+                {/* Search */}
                 <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
                     <input
@@ -637,20 +797,28 @@ export default function AdminAssessments() {
                     )}
                 </div>
 
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                {/* Status filter — styled native select (not the status badge, just a filter) */}
+                <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
                     className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', minWidth: 140 }}>
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', minWidth: 140 }}
+                >
                     <option value="all" style={{ background: '#0a0a0a' }}>All Statuses</option>
                     {ASSESSMENT_STATUSES.map((s) => (
                         <option key={s} value={s} style={{ background: '#0a0a0a' }}>
-                            {s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}
+                            {s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                         </option>
                     ))}
                 </select>
 
-                <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)}
+                {/* Plan filter */}
+                <select
+                    value={planFilter}
+                    onChange={(e) => setPlanFilter(e.target.value)}
                     className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', minWidth: 180 }}>
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', minWidth: 180 }}
+                >
                     {PLANS.map((p) => (
                         <option key={p} value={p} style={{ background: '#0a0a0a' }}>
                             {p === 'all' ? 'All Plans' : p}
@@ -667,7 +835,7 @@ export default function AdminAssessments() {
                 </div>
             )}
 
-            {/* Table */}
+            {/* ── Table ───────────────────────────────────────────────────── */}
             <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="overflow-x-auto">
                     <table className="w-full">
@@ -699,7 +867,6 @@ export default function AdminAssessments() {
                                     <p className="text-sm text-white/25">No assessments found</p>
                                 </td></tr>
                             ) : data.map((row) => {
-                                const badge = statusBadge(row.status || 'new');
                                 const hasNote = !!row.note;
                                 return (
                                     <tr key={row.id}
@@ -736,6 +903,7 @@ export default function AdminAssessments() {
                                             <CommitmentRing score={row.commitment} />
                                         </td>
                                         <td className="px-4 py-3">
+                                            {/* Custom dropdown — clear coloured dot + popover */}
                                             <StatusSelect
                                                 value={row.status || 'new'}
                                                 onChange={(v) => handleStatusChange(row.id, v)}
@@ -834,6 +1002,7 @@ export default function AdminAssessments() {
                         onClose={() => setNoteTarget(null)}
                         onSaved={(note) => {
                             setData((rows) => rows.map((r) => (r.id === noteTarget.id ? { ...r, note } : r)));
+                            _cache.key = ''; // invalidate so next hard fetch includes the note
                             setNoteTarget(null);
                         }}
                     />
