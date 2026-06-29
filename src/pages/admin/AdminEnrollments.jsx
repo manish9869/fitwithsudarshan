@@ -6,28 +6,48 @@
  * - Fetches all rows once
  * - Module-level cache survives tab switching
  * - Status and note updates patch local state/cache
+ * - Custom styled dropdowns for type, plan, and status filters
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import {
-    Search, ChevronDown, ChevronUp,
-    X, Eye, StickyNote, RefreshCw,
-    Copy, Save, Loader2, AlertCircle,
-    ChevronLeft, ChevronRight, Check,
+    Search,
+    ChevronDown,
+    ChevronUp,
+    X,
+    Eye,
+    StickyNote,
+    RefreshCw,
+    Copy,
+    Save,
+    Loader2,
+    AlertCircle,
+    ChevronLeft,
+    ChevronRight,
+    Check,
     Download,
 } from 'lucide-react';
 
 import {
-    fetchEnrollments, fetchEnrollment, setEnrollmentStatus,
-    exportEnrollmentsAll, saveNote,
+    fetchEnrollments,
+    fetchEnrollment,
+    setEnrollmentStatus,
+    exportEnrollmentsAll,
+    saveNote,
 } from './adminApi';
 
 import {
-    fmtCurrency, fmtDate, fmtGoals, exportToCSV, downloadInvoicePDF,
-    statusBadge, ENROLLMENT_STATUSES,
-    exportEnrollmentsToExcel, exportEnrollmentsToPDF,
+    fmtCurrency,
+    fmtDate,
+    fmtGoals,
+    exportToCSV,
+    downloadInvoicePDF,
+    statusBadge,
+    ENROLLMENT_STATUSES,
+    exportEnrollmentsToExcel,
+    exportEnrollmentsToPDF,
     exportSingleEnrollmentToExcel,
 } from './adminUtils';
 
@@ -45,6 +65,14 @@ const _cache = {
     ts: 0,
 };
 
+function formatLabel(value) {
+    if (!value) return '—';
+
+    return String(value)
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function StatCard({ label, value, sub, color }) {
     return (
         <div
@@ -57,10 +85,188 @@ function StatCard({ label, value, sub, color }) {
             <p className="text-xs text-white/35 uppercase tracking-widest mb-2">
                 {label}
             </p>
+
             <p className="text-2xl font-black mb-1" style={{ color }}>
                 {value}
             </p>
+
             {sub && <p className="text-xs text-white/30">{sub}</p>}
+        </div>
+    );
+}
+
+function FilterDropdown({
+    value,
+    onChange,
+    options,
+    minWidth = 150,
+    placeholder = 'Select',
+    getBadge,
+}) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    const activeOption =
+        options.find((option) => option.value === value) || options[0];
+
+    const activeBadge = getBadge
+        ? getBadge(activeOption.value)
+        : {
+              bg: 'rgba(255,255,255,0.05)',
+              border: 'rgba(255,255,255,0.1)',
+              color: '#ffffff',
+          };
+
+    useEffect(() => {
+        if (!open) return;
+
+        const handler = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    return (
+        <div ref={ref} className="relative" style={{ minWidth }}>
+            <button
+                type="button"
+                onClick={() => setOpen((prev) => !prev)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all focus:outline-none"
+                style={{
+                    background: activeOption.value === 'all'
+                        ? 'rgba(255,255,255,0.05)'
+                        : activeBadge.bg,
+                    border: activeOption.value === 'all'
+                        ? '1px solid rgba(255,255,255,0.1)'
+                        : `1px solid ${activeBadge.border}`,
+                    color: activeOption.value === 'all'
+                        ? 'rgba(255,255,255,0.72)'
+                        : activeBadge.color,
+                    boxShadow: open
+                        ? '0 0 0 3px rgba(231,23,99,0.12)'
+                        : 'none',
+                }}
+            >
+                <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{
+                        background:
+                            activeOption.value === 'all'
+                                ? 'rgba(255,255,255,0.35)'
+                                : activeBadge.color,
+                    }}
+                />
+
+                <span className="flex-1 text-left truncate">
+                    {activeOption?.label || placeholder}
+                </span>
+
+                <ChevronDown
+                    className="w-3.5 h-3.5 flex-shrink-0 transition-transform"
+                    style={{
+                        opacity: 0.65,
+                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }}
+                />
+            </button>
+
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute left-0 top-full mt-2 z-[120] rounded-xl overflow-hidden shadow-2xl"
+                        style={{
+                            background: '#13131f',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            minWidth,
+                            width: '100%',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                        }}
+                    >
+                        {options.map((option) => {
+                            const isActive = option.value === value;
+                            const optionBadge = getBadge
+                                ? getBadge(option.value)
+                                : {
+                                      color:
+                                          option.value === 'all'
+                                              ? 'rgba(255,255,255,0.45)'
+                                              : '#e71763',
+                                  };
+
+                            return (
+                                <button
+                                    type="button"
+                                    key={option.value}
+                                    onClick={() => {
+                                        onChange(option.value);
+                                        setOpen(false);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-left transition-colors"
+                                    style={{
+                                        background: isActive
+                                            ? 'rgba(255,255,255,0.06)'
+                                            : 'transparent',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isActive) {
+                                            e.currentTarget.style.background =
+                                                'rgba(255,255,255,0.04)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = isActive
+                                            ? 'rgba(255,255,255,0.06)'
+                                            : 'transparent';
+                                    }}
+                                >
+                                    <span
+                                        className="w-2 h-2 rounded-full flex-shrink-0"
+                                        style={{
+                                            background:
+                                                option.value === 'all'
+                                                    ? 'rgba(255,255,255,0.35)'
+                                                    : optionBadge.color,
+                                        }}
+                                    />
+
+                                    <span
+                                        className="flex-1"
+                                        style={{
+                                            color: isActive
+                                                ? option.value === 'all'
+                                                    ? 'white'
+                                                    : optionBadge.color
+                                                : 'rgba(255,255,255,0.65)',
+                                        }}
+                                    >
+                                        {option.label}
+                                    </span>
+
+                                    {isActive && (
+                                        <Check
+                                            className="w-3 h-3 flex-shrink-0"
+                                            style={{
+                                                color:
+                                                    option.value === 'all'
+                                                        ? 'white'
+                                                        : optionBadge.color,
+                                            }}
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
@@ -83,12 +289,10 @@ function StatusSelect({ value, onChange, disabled }) {
         return () => document.removeEventListener('mousedown', handler);
     }, [open]);
 
-    const label = (s) =>
-        s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
     return (
         <div ref={ref} className="relative inline-block">
             <button
+                type="button"
                 disabled={disabled}
                 onClick={() => setOpen((o) => !o)}
                 className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50 focus:outline-none"
@@ -103,9 +307,11 @@ function StatusSelect({ value, onChange, disabled }) {
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     style={{ background: badge.color }}
                 />
+
                 <span className="flex-1 text-left leading-none">
-                    {label(value || 'paid')}
+                    {formatLabel(value || 'paid')}
                 </span>
+
                 <ChevronDown
                     className="w-2.5 h-2.5 flex-shrink-0 transition-transform"
                     style={{
@@ -136,6 +342,7 @@ function StatusSelect({ value, onChange, disabled }) {
 
                             return (
                                 <button
+                                    type="button"
                                     key={s}
                                     onClick={() => {
                                         onChange(s);
@@ -163,6 +370,7 @@ function StatusSelect({ value, onChange, disabled }) {
                                         className="w-2 h-2 rounded-full flex-shrink-0"
                                         style={{ background: b.color }}
                                     />
+
                                     <span
                                         className="flex-1"
                                         style={{
@@ -171,8 +379,9 @@ function StatusSelect({ value, onChange, disabled }) {
                                                 : 'rgba(255,255,255,0.65)',
                                         }}
                                     >
-                                        {label(s)}
+                                        {formatLabel(s)}
                                     </span>
+
                                     {isActive && (
                                         <Check
                                             className="w-3 h-3 flex-shrink-0"
@@ -230,6 +439,7 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
                 >
                     <div className="flex items-center gap-2">
                         <StickyNote className="w-4 h-4" style={{ color: '#e71763' }} />
+
                         <p className="font-bold text-white text-sm">
                             {currentNote ? 'Edit Note' : 'Add Note'} — {name}
                         </p>
@@ -332,6 +542,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
             <span className="text-xs text-white/35 flex-shrink-0 w-32">
                 {label}
             </span>
+
             <span className="text-xs text-white text-right font-medium flex-1">
                 {value || '—'}
             </span>
@@ -366,6 +577,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                         <p className="font-black text-white text-sm">
                             {enrollment?.customer_name || '…'}
                         </p>
+
                         <p className="text-[10px] text-white/35 font-mono mt-0.5">
                             {enrollment?.enrollment_id}
                         </p>
@@ -430,6 +642,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                         className="w-3.5 h-3.5"
                                         style={{ color: '#e71763' }}
                                     />
+
                                     <p
                                         className="text-[10px] font-bold uppercase tracking-widest"
                                         style={{ color: '#e71763' }}
@@ -459,6 +672,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                 <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">
                                     Amount Paid
                                 </p>
+
                                 <p className="text-xl font-black" style={{ color: '#e71763' }}>
                                     {fmtCurrency(enrollment.amount_paid)}
                                 </p>
@@ -506,6 +720,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                     <span className="text-sm font-black text-white font-mono">
                                         {enrollment.coupon_code}
                                     </span>
+
                                     <span className="text-sm font-bold" style={{ color: '#34d399' }}>
                                         -{fmtCurrency(enrollment.coupon_savings)}
                                     </span>
@@ -549,6 +764,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                         <span className="text-xs text-white/35 flex-shrink-0 w-32">
                                             Goals
                                         </span>
+
                                         <span className="text-xs text-white text-right font-medium flex-1">
                                             {fmtGoals(enrollment.goals)}
                                         </span>
@@ -595,6 +811,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                             <span className="text-xs text-white/35 flex-shrink-0 w-32">
                                                 Goals
                                             </span>
+
                                             <span className="text-xs text-white text-right font-medium flex-1">
                                                 {fmtGoals(enrollment.partner_goals)}
                                             </span>
@@ -792,6 +1009,51 @@ export default function AdminEnrollments() {
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [noteTarget, setNoteTarget] = useState(null);
 
+    const coachingOptions = useMemo(
+        () =>
+            COACHING_TYPES.map((type) => ({
+                value: type,
+                label: type === 'all' ? 'All Types' : formatLabel(type),
+            })),
+        []
+    );
+
+    const planOptions = useMemo(
+        () =>
+            PLAN_TYPES.map((type) => ({
+                value: type,
+                label: type === 'all' ? 'All Plans' : formatLabel(type),
+            })),
+        []
+    );
+
+    const statusOptions = useMemo(
+        () => [
+            { value: 'all', label: 'All Statuses' },
+            ...ENROLLMENT_STATUSES.map((status) => ({
+                value: status,
+                label: formatLabel(status),
+            })),
+        ],
+        []
+    );
+
+    const filterBadge = useCallback((value) => {
+        if (value === 'all') {
+            return {
+                bg: 'rgba(255,255,255,0.05)',
+                border: 'rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.65)',
+            };
+        }
+
+        return {
+            bg: 'rgba(231,23,99,0.1)',
+            border: 'rgba(231,23,99,0.25)',
+            color: '#e71763',
+        };
+    }, []);
+
     const fetchData = useCallback(async ({ silent = false } = {}) => {
         const now = Date.now();
 
@@ -877,10 +1139,7 @@ export default function AdminEnrollments() {
                 return sort.dir === 'asc' ? cmp : -cmp;
             }
 
-            if (
-                sort.field === 'created_at' ||
-                sort.field === 'payment_date'
-            ) {
+            if (sort.field === 'created_at' || sort.field === 'payment_date') {
                 const cmp =
                     new Date(aVal || 0).getTime() -
                     new Date(bVal || 0).getTime();
@@ -1039,6 +1298,7 @@ export default function AdminEnrollments() {
                     <h1 className="text-xl font-black text-white mb-1">
                         Enrollments
                     </h1>
+
                     <p className="text-xs text-white/35">
                         {filtered.length !== allData.length
                             ? `${filtered.length} of ${allData.length} records`
@@ -1071,18 +1331,21 @@ export default function AdminEnrollments() {
                     sub=""
                     color="white"
                 />
+
                 <StatCard
                     label="Page Revenue"
                     value={fmtCurrency(totalRevenue)}
                     sub=""
                     color="#e71763"
                 />
+
                 <StatCard
                     label="Couple Plans"
                     value={coupleCount}
                     sub=""
                     color="#60a5fa"
                 />
+
                 <StatCard
                     label="Coupons Used"
                     value={couponCount}
@@ -1091,8 +1354,8 @@ export default function AdminEnrollments() {
                 />
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-5">
-                <div className="relative flex-1 min-w-[200px]">
+            <div className="flex flex-wrap gap-3 mb-5 relative z-20">
+                <div className="relative flex-1 min-w-[220px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
 
                     <input
@@ -1116,66 +1379,37 @@ export default function AdminEnrollments() {
                     )}
                 </div>
 
-                <select
+                <FilterDropdown
                     value={coachingFilter}
-                    onChange={(e) => setCoachingFilter(e.target.value)}
-                    className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                    style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        minWidth: 130,
-                    }}
-                >
-                    {COACHING_TYPES.map((t) => (
-                        <option key={t} value={t} style={{ background: '#0a0a0a' }}>
-                            {t === 'all'
-                                ? 'All Types'
-                                : t.charAt(0).toUpperCase() + t.slice(1)}
-                        </option>
-                    ))}
-                </select>
+                    onChange={setCoachingFilter}
+                    options={coachingOptions}
+                    minWidth={145}
+                    getBadge={filterBadge}
+                />
 
-                <select
+                <FilterDropdown
                     value={planFilter}
-                    onChange={(e) => setPlanFilter(e.target.value)}
-                    className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                    style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        minWidth: 130,
-                    }}
-                >
-                    {PLAN_TYPES.map((t) => (
-                        <option key={t} value={t} style={{ background: '#0a0a0a' }}>
-                            {t === 'all'
-                                ? 'All Plans'
-                                : t.charAt(0).toUpperCase() + t.slice(1)}
-                        </option>
-                    ))}
-                </select>
+                    onChange={setPlanFilter}
+                    options={planOptions}
+                    minWidth={145}
+                    getBadge={filterBadge}
+                />
 
-                <select
+                <FilterDropdown
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                    style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        minWidth: 130,
-                    }}
-                >
-                    <option value="all" style={{ background: '#0a0a0a' }}>
-                        All Statuses
-                    </option>
-
-                    {ENROLLMENT_STATUSES.map((s) => (
-                        <option key={s} value={s} style={{ background: '#0a0a0a' }}>
-                            {s.replace(/_/g, ' ').replace(/\b\w/g, (c) =>
-                                c.toUpperCase()
-                            )}
-                        </option>
-                    ))}
-                </select>
+                    onChange={setStatusFilter}
+                    options={statusOptions}
+                    minWidth={160}
+                    getBadge={(value) =>
+                        value === 'all'
+                            ? {
+                                  bg: 'rgba(255,255,255,0.05)',
+                                  border: 'rgba(255,255,255,0.1)',
+                                  color: 'rgba(255,255,255,0.65)',
+                              }
+                            : statusBadge(value)
+                    }
+                />
             </div>
 
             {error && (
@@ -1281,6 +1515,7 @@ export default function AdminEnrollments() {
                                                 <p className="text-sm font-semibold text-white">
                                                     {row.customer_name}
                                                 </p>
+
                                                 <p className="text-[11px] text-white/35">
                                                     {row.customer_email}
                                                 </p>
