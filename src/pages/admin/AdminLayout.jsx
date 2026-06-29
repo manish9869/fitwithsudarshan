@@ -2,16 +2,17 @@
  * src/pages/admin/AdminLayout.jsx
  * Shared sidebar + topbar layout for all admin pages.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, Users, ClipboardList, LogOut,
-    Menu, X, ChevronRight, Dumbbell, Bell,
+    Menu, X,
 } from 'lucide-react';
-import { adminLogout } from './AdminLogin';
+import { logout, getStoredAdmin } from './adminApi';
 
 const NAV = [
+    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
     { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
 ];
@@ -19,9 +20,12 @@ const NAV = [
 export default function AdminLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [admin, setAdmin] = useState(getStoredAdmin());
+
+    useEffect(() => { setAdmin(getStoredAdmin()); }, []);
 
     const handleLogout = () => {
-        adminLogout();
+        logout();
         navigate('/admin', { replace: true });
     };
 
@@ -65,8 +69,22 @@ export default function AdminLayout() {
                 ))}
             </nav>
 
-            {/* Logout */}
+            {/* Profile + logout */}
             <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                {admin && (
+                    <div className="flex items-center gap-2.5 px-4 py-2 mb-1">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: 'rgba(231,23,99,0.15)', border: '1px solid rgba(231,23,99,0.3)' }}>
+                            <span className="text-[10px] font-black" style={{ color: '#e71763' }}>
+                                {(admin.displayName || admin.username || '?').charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-xs font-semibold text-white truncate">{admin.displayName || admin.username}</p>
+                            <p className="text-[10px] text-white/30 capitalize">{admin.role || 'admin'}</p>
+                        </div>
+                    </div>
+                )}
                 <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/40 hover:text-red-400 hover:bg-red-500/8 w-full transition-all"
@@ -129,7 +147,7 @@ export default function AdminLayout() {
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ background: '#34d399' }} />
-                        <span className="text-xs text-white/40">Sudarshan Chavan</span>
+                        <span className="text-xs text-white/40">{admin?.displayName || admin?.username || 'Signed in'}</span>
                     </div>
                 </header>
 
