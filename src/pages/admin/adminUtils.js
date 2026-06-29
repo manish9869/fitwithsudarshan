@@ -539,6 +539,17 @@ export function statusBadge(status) {
     return map[status] || map.new;
 }
 
+export function exportSingleEnrollmentToExcel(enrollment) {
+    exportEnrollmentsToExcel([enrollment], {});
+}
+export function exportSingleAssessmentToExcel(assessment) {
+    exportAssessmentsToExcel([assessment], {});
+}
+export function exportSingleRowToJSON(row, filename) {
+    const blob = new Blob([JSON.stringify(row, null, 2)], { type: 'application/json' });
+    triggerDownload(blob, `${filename}.json`);
+}
+
 export const ENROLLMENT_STATUSES = ['paid', 'pending', 'failed', 'refunded'];
 export const ASSESSMENT_STATUSES = ['new', 'reviewed', 'plan_sent', 'completed', 'archived'];
 export const CHART_COLORS = ['#e71763', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f472b6', '#fb923c'];

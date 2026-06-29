@@ -250,6 +250,24 @@ export default function AdminDashboard() {
                                 </ResponsiveContainer>
                             )}
                         </ChartCard>
+
+                        <ChartCard title="Revenue by Coaching Type" icon={IndianRupee}>
+                            {!c.revenueByCoachingType?.length ? <EmptyChartState /> : (
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <BarChart data={c.revenueByCoachingType} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                        <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} tickFormatter={(v) => fmtCompactCurrency(v)} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={tooltipStyle} formatter={(v) => [fmtCurrency(v), 'Revenue']} />
+                                        <Bar dataKey="value" fill="#34d399" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </ChartCard>
+
+                        <KpiCard icon={ArrowUpRight} label="Assessment → Paid Conversion"
+                            value={k.conversionRate != null ? `${k.conversionRate}%` : '—'}
+                            sub="assessments that became enrollments" accent="#a78bfa" delay={0.2} />
                     </div>
 
                     {/* Assessment pipeline + recent activity */}
