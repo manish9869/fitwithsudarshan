@@ -1,33 +1,16 @@
 /**
  * src/pages/admin/AdminLogin.jsx
  *
- * Simple hardcoded-credential admin login page.
- * No login table required — credentials stored in constants below.
- * Uses sessionStorage to persist auth across page refreshes.
- *
- * ⚠️  Change ADMIN_USERNAME and ADMIN_PASSWORD before deploying!
+ * Calls the backend /api/admin/login endpoint. No credentials live in
+ * this file or anywhere in the frontend — they're hashed and stored in
+ * Supabase, checked server-side only.
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, AlertCircle, Dumbbell, Shield } from 'lucide-react';
+import { Lock, Eye, EyeOff, AlertCircle, Shield } from 'lucide-react';
 import CustomCursor from '@/components/CustomCursor';
-
-// ── Credentials — change these before deploying ────────────────────────────
-const ADMIN_USERNAME = 'sudarshan';
-const ADMIN_PASSWORD = 'Recode2025@Admin';
-export const ADMIN_SESSION_KEY = 'recode_admin_auth';
-
-export function isAdminLoggedIn() {
-    try {
-        const val = sessionStorage.getItem(ADMIN_SESSION_KEY);
-        return val === 'true';
-    } catch { return false; }
-}
-
-export function adminLogout() {
-    try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch { /* noop */ }
-}
+import { login, isLoggedIn } from './adminApi';
 
 export default function AdminLogin() {
     const navigate = useNavigate();
@@ -38,23 +21,21 @@ export default function AdminLogin() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (isAdminLoggedIn()) navigate('/admin/enrollments', { replace: true });
-    }, []);
+        if (isLoggedIn()) navigate('/admin/dashboard', { replace: true });
+    }, [navigate]);
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
-        // Simulate a tiny delay so it doesn't feel instant (UX)
-        setTimeout(() => {
-            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                sessionStorage.setItem(ADMIN_SESSION_KEY, 'true');
-                navigate('/admin/enrollments', { replace: true });
-            } else {
-                setError('Invalid username or password.');
-                setLoading(false);
-            }
-        }, 500);
+        try {
+            await login(username.trim(), password);
+            navigate('/admin/dashboard', { replace: true });
+        } catch (err) {
+            setError(err.message || 'Invalid username or password.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -78,11 +59,9 @@ export default function AdminLogin() {
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 className="relative w-full max-w-md"
             >
-                {/* Card */}
                 <div className="rounded-3xl overflow-hidden"
                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 40px 80px rgba(0,0,0,0.5)' }}>
 
-                    {/* Header */}
                     <div className="px-8 pt-10 pb-8 text-center"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
@@ -93,9 +72,7 @@ export default function AdminLogin() {
                         <p className="text-xs text-white/35">RECODE™ by FitWithSudarshan</p>
                     </div>
 
-                    {/* Form */}
                     <form onSubmit={handleLogin} className="px-8 py-8 space-y-4">
-                        {/* Error */}
                         {error && (
                             <motion.div
                                 initial={{ opacity: 0, y: -6 }}
@@ -107,7 +84,6 @@ export default function AdminLogin() {
                             </motion.div>
                         )}
 
-                        {/* Username */}
                         <div>
                             <label className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">
                                 Username
@@ -115,21 +91,17 @@ export default function AdminLogin() {
                             <input
                                 type="text"
                                 value={username}
-                                onChange={e => setUsername(e.target.value)}
+                                onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Enter username"
                                 autoComplete="username"
                                 required
                                 className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none transition-all"
-                                style={{
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                }}
-                                onFocus={e => e.currentTarget.style.borderColor = 'rgba(231,23,99,0.5)'}
-                                onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(231,23,99,0.5)')}
+                                onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
                             />
                         </div>
 
-                        {/* Password */}
                         <div>
                             <label className="block text-xs font-semibold text-white/50 uppercase tracking-widest mb-1.5">
                                 Password
@@ -138,26 +110,22 @@ export default function AdminLogin() {
                                 <input
                                     type={showPwd ? 'text' : 'password'}
                                     value={password}
-                                    onChange={e => setPassword(e.target.value)}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Enter password"
                                     autoComplete="current-password"
                                     required
                                     className="w-full rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder:text-white/25 outline-none transition-all"
-                                    style={{
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                    }}
-                                    onFocus={e => e.currentTarget.style.borderColor = 'rgba(231,23,99,0.5)'}
-                                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                    onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(231,23,99,0.5)')}
+                                    onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
                                 />
-                                <button type="button" onClick={() => setShowPwd(v => !v)}
+                                <button type="button" onClick={() => setShowPwd((v) => !v)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
                                     {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Submit */}
                         <motion.button
                             type="submit"
                             disabled={loading}
@@ -173,7 +141,6 @@ export default function AdminLogin() {
                         </motion.button>
                     </form>
 
-                    {/* Footer */}
                     <div className="px-8 pb-6 text-center">
                         <p className="text-xs text-white/20">
                             Admin access only · All activity is logged
@@ -184,3 +151,8 @@ export default function AdminLogin() {
         </div>
     );
 }
+
+// Backwards-compat named exports removed on purpose: ADMIN_SESSION_KEY,
+// isAdminLoggedIn() and adminLogout() used to live here. They've moved to
+// adminApi.js (isLoggedIn, logout) since auth state is now a real session
+// backed by a server-issued JWT, not a sessionStorage flag anyone could set.
