@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 
 import FooterSection from '@/components/landing/FooterSection';
-import CustomCursor from '@/components/CustomCursor';
+
 const sections = [
     {
         title: '1. Coaching Plans',
@@ -56,7 +56,7 @@ export default function RefundPolicy() {
     return (
         <div className="min-h-screen bg-background text-foreground">
 
-            <CustomCursor />
+
             {/* Hero */}
             <section className="relative pt-20 pb-16 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none">

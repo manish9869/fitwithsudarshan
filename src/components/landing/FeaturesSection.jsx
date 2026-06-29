@@ -96,7 +96,7 @@ export default function FeaturesSection() {
                 <div className="absolute inset-0 pointer-events-none">
                     <Orb style={{ left: '-10%', top: '20%', width: 500, height: 500, background: 'rgba(231,23,99,0.07)' }} delay={0} />
                     <Orb style={{ right: '-5%', top: '60%', width: 350, height: 350, background: 'rgba(231,23,99,0.05)' }} delay={3} />
-                    <ScatteredIcons count={10} sectionSeed={0} />
+                    <ScatteredIcons count={5} sectionSeed={0} />
                 </div>
 
                 {/* FIX: py-12 sm:py-20 md:py-32 instead of py-24 md:py-32 */}
@@ -215,7 +215,7 @@ export default function FeaturesSection() {
                         animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 6, repeat: Infinity }} />
                     <Orb style={{ left: '55%', top: '10%', width: 400, height: 400, background: 'rgba(231,23,99,0.06)' }} delay={2} />
                     <Orb style={{ left: '5%', bottom: '5%', width: 300, height: 300, background: 'rgba(231,23,99,0.04)' }} delay={4} />
-                    <ScatteredIcons count={8} sectionSeed={1} />
+                    <ScatteredIcons count={4} sectionSeed={1} />
                 </div>
 
                 {/* FIX: py-12 sm:py-20 md:py-32 */}
@@ -317,7 +317,7 @@ export default function FeaturesSection() {
             <SectionAtmosphere>
                 <div className="absolute inset-0 pointer-events-none">
                     <Orb style={{ left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 500, background: 'rgba(231,23,99,0.06)' }} delay={0} />
-                    <ScatteredIcons count={8} sectionSeed={3} />
+                    <ScatteredIcons count={4} sectionSeed={3} />
                 </div>
 
                 {/* FIX: py-12 sm:py-20 md:py-28 */}
@@ -431,7 +431,7 @@ export default function FeaturesSection() {
 
                 <Orb style={{ left: '10%', top: '20%', width: 300, height: 300, background: 'rgba(231,23,99,0.05)' }} delay={1} />
                 <Orb style={{ right: '5%', bottom: '10%', width: 250, height: 250, background: 'rgba(231,23,99,0.04)' }} delay={3} />
-                <ScatteredIcons count={7} sectionSeed={5} />
+                <ScatteredIcons count={4} sectionSeed={5} />
 
                 <div className="container mx-auto px-4 max-w-5xl relative">
                     <motion.div initial={{ opacity: 0, y: 30 }} animate={audienceInView ? { opacity: 1, y: 0 } : {}}

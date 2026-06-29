@@ -1,16 +1,4 @@
-/**
- * src/pages/Onboarding.jsx
- *
- * RECODE™ Body & Lifestyle Assessment Form
- *
- * Fixes in this version:
- *  1. Email field added → customer receives confirmation email
- *  2. Uploaded photo/report previews persist across section navigation
- *     (stored in sessionStorage as base64 — survives Back/Next clicks)
- *  3. "Go Home" button on success screen
- *  4. Blood report accepts image/* OR application/pdf (displayed as PDF icon)
- *  5. Image compression applied only to images (PDFs pass through)
- */
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -19,11 +7,11 @@ import {
     Utensils, Heart, Camera, CheckCircle2,
     ChevronRight, ChevronLeft, Loader2, AlertCircle,
     Flame, Shield, Lock, Star, X, Upload,
-    Activity, Zap, Mail, FileText, Home,
+    Activity, Zap, Mail, FileText, Home, Eye,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import CustomCursor from '@/components/CustomCursor';
+import { wa } from "@/utils/whatsapp";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PLANS = [
@@ -244,6 +232,9 @@ function PhotoUpload({ label, hint, required, onChange, value, accept = 'image/*
         <div>
             <Label className="text-white/60 mb-1.5 block text-xs font-semibold tracking-wide uppercase">
                 {label} {required && <span style={{ color: '#e71763' }}>*</span>}
+                {!required && (
+                    <span className="text-white/25 font-normal tracking-normal uppercase-none"> (optional)</span>
+                )}
             </Label>
 
             {(preview || (value && isPdf)) ? (
@@ -469,15 +460,17 @@ export default function Onboarding() {
         dailyFoodRoutine: !form.dailyFoodRoutine.trim() ? 'Required.' : '',
         biggestStruggle: !form.biggestStruggle.trim() ? 'Required.' : '',
         sleepHours: !form.sleepHours ? 'Required.' : '',
-        photoFront: !form.photoFront ? 'Front photo is required.' : '',
-        photoSide: !form.photoSide ? 'Side photo is required.' : '',
+        // photoFront / photoSide are now optional — no validation error,
+        // ever, regardless of whether they're uploaded.
+        photoFront: '',
+        photoSide: '',
     };
 
     const sectionFields = [
         ['firstName', 'whatsapp', 'age', 'gender', 'city', 'plan'],   // section 0 — email is optional
         ['currentWeight', 'height', 'mainGoal', 'desiredResult', 'whyNow', 'workoutStatus', 'trainingDays'],
         ['foodPreference', 'dailyFoodRoutine', 'biggestStruggle', 'sleepHours'],
-        ['photoFront', 'photoSide'],
+        [],   // section 3 — photos are optional now, nothing gates "Continue" here
         [],
     ];
 
@@ -543,7 +536,7 @@ export default function Onboarding() {
     if (submitted) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center px-4">
-                <CustomCursor />
+
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                     className="max-w-md w-full text-center">
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -561,13 +554,24 @@ export default function Onboarding() {
                             <> A confirmation has also been sent to <strong className="text-white">{form.email}</strong>.</>
                         )}
                     </p>
+                    {(!form.photoFront || !form.photoSide) && (
+                        <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.18)' }}>
+                            <p className="text-sm text-white/60 leading-relaxed flex items-start gap-2">
+                                <Camera className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#60a5fa' }} />
+                                <span>
+                                    You can still send your front and side photos on WhatsApp — they help Sudarshan
+                                    fine-tune your plan based on your actual body composition and posture.
+                                </span>
+                            </p>
+                        </div>
+                    )}
                     <div className="rounded-2xl p-5 mb-6" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.18)' }}>
                         <p className="text-sm text-white/60 leading-relaxed">
                             Keep an eye on your WhatsApp. Feel free to reach out if you have questions in the meantime.
                         </p>
                     </div>
                     <div className="flex flex-col gap-3">
-                        <a href="https://wa.me/919619708124" target="_blank" rel="noopener noreferrer"
+                        <a href={wa.assessmentCompleted} target="_blank" rel="noopener noreferrer"
                             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold text-sm text-white"
                             style={{ background: '#25D366' }}>
                             Message Sudarshan on WhatsApp
@@ -585,7 +589,7 @@ export default function Onboarding() {
 
     return (
         <div className="min-h-screen bg-background text-white">
-            <CustomCursor />
+
 
             {/* Background */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -794,14 +798,26 @@ export default function Onboarding() {
                                         </p>
                                     </div>
 
-                                    <PhotoUpload label="Front Photo" required
+                                    {/* Why photos matter — shown once above both uploads since they're now optional */}
+                                    <div className="flex items-start gap-3 p-3.5 rounded-xl"
+                                        style={{ background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)' }}>
+                                        <Eye className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#60a5fa' }} />
+                                        <p className="text-[11px] text-white/45 leading-relaxed">
+                                            <strong className="text-white/65">Why this helps:</strong> Photos aren't required, but they let Sudarshan
+                                            visually assess your posture, body composition, and starting point — so your workout and nutrition
+                                            plan is built around your actual body, not just numbers on a form. Clients who upload photos
+                                            typically get a more precisely tailored first plan.
+                                        </p>
+                                    </div>
+
+                                    <PhotoUpload label="Front Photo"
                                         hint="Full body, front-facing, comfortable clothing, good lighting."
                                         value={form.photoFront}
                                         onChange={f => { set('photoFront')(f); touch('photoFront'); }}
                                         error={errors.photoFront} touched={touched.photoFront}
                                         persistKey="photoFront" />
 
-                                    <PhotoUpload label="Side Photo" required
+                                    <PhotoUpload label="Side Photo"
                                         hint="Full body, side-facing, good lighting."
                                         value={form.photoSide}
                                         onChange={f => { set('photoSide')(f); touch('photoSide'); }}
@@ -859,7 +875,7 @@ export default function Onboarding() {
                                             ['Plan', form.plan || '—'],
                                             ['Weight / Height', `${form.currentWeight || '—'}kg / ${form.height || '—'}cm`],
                                             ['Training Days', form.trainingDays || '—'],
-                                            ['Photos', form.photoFront && form.photoSide ? '✓ Both uploaded' : '⚠ Missing'],
+                                            ['Photos', form.photoFront && form.photoSide ? '✓ Both uploaded' : form.photoFront || form.photoSide ? '◐ One uploaded' : 'Not uploaded (optional)'],
                                             ['Commitment', `${form.commitment}/10`],
                                         ].map(([k, v]) => (
                                             <div key={k}>
@@ -868,6 +884,14 @@ export default function Onboarding() {
                                             </div>
                                         ))}
                                     </div>
+                                    {!(form.photoFront && form.photoSide) && (
+                                        <div className="flex items-start gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <Camera className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#60a5fa' }} />
+                                            <p className="text-[11px] text-white/35 leading-relaxed">
+                                                Tip: you can still go back to add photos — they help Sudarshan tailor your plan more accurately.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {submitError && (

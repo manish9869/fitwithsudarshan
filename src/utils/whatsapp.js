@@ -121,6 +121,11 @@ I'd like to learn more about RECODE™ and how you can help me.
 My name:
 My goal:`,
 
+    assessmentCompleted: `Hi Sudarshan,
+
+I've completed my RECODE™ assessment form.
+Is there anything else you need from me before we begin?`,
+
 };
 
 // ─── Build all URLs ───────────────────────────────────────────────────────────
@@ -138,7 +143,7 @@ export const wa = {
     blog: build(MESSAGES.blog),
     testimonials: build(MESSAGES.testimonials),
     footer: build(MESSAGES.footer),
-
+    assessmentCompleted: build(MESSAGES.assessmentCompleted),
     /** Build a URL from any custom string */
     custom: (text) => build(text),
 };

@@ -295,7 +295,7 @@ export default function PaymentSuccess() {
             animate={{ opacity: entered ? 1 : 0 }}
             transition={{ duration: 0.5 }}
         >
-            <CustomCursor />
+
             <FloatingOrbs />
 
             <div className="relative" style={{ zIndex: 50 }}>

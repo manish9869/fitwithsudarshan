@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { coachingTypes, pricingTable, durations, basicConsultation } from '@/data/SiteData';
 import { useRazorpay } from '@/hooks/useRazorpay';
-import CustomCursor from '@/components/CustomCursor';
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
@@ -198,7 +198,7 @@ export default function PaymentPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            <CustomCursor />
+
 
             {/* Status Modal */}
             <StatusModal status={modalStatus} paymentId={paymentId} onClose={() => setModalStatus('idle')} />

@@ -8,7 +8,7 @@ import {
     MessageCircle, ChevronRight, Shield, Phone, Mail,
     Hash, WifiOff, CreditCard, Lock, DollarSign,
 } from 'lucide-react';
-import CustomCursor from '@/components/CustomCursor';
+
 import { wa } from "@/utils/whatsapp";
 // ─── Background ───────────────────────────────────────────────────────────────
 function Background() {
@@ -142,7 +142,7 @@ export default function PaymentFailed() {
             transition={{ duration: 0.4 }}
         >
             <Background />
-            <CustomCursor />
+
             {/* ── Navbar ── */}
             <div
                 className="relative z-20 sticky top-0 backdrop-blur-2xl"

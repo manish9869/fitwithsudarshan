@@ -132,7 +132,7 @@ function Particles() {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const heroBg = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&h=1080&fit=crop&q=80";
+const heroBg = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1280&h=720&fit=crop&q=70&auto=format";
 
 export default function HeroSection() {
     const [statsStarted, setStatsStarted] = useState(false);
