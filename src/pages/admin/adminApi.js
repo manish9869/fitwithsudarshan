@@ -151,4 +151,9 @@ export async function saveNote(recordType, recordId, note) {
     return data.note;
 }
 
+export async function exportAssessmentsAll(filters) {
+    const data = await request('/assessments/export', { params: filters });
+    return data.rows;
+}
+
 export { AdminApiError };

@@ -20,6 +20,11 @@ import {
 import {
     fmtDate, fmtRelativeTime, statusBadge, ASSESSMENT_STATUSES,
 } from './adminUtils';
+import { useDebounce } from './useDebounce';
+import ExportMenu from './ExportMenu';
+import { exportAssessmentsAll } from './adminApi';
+import { exportAssessmentsToExcel, exportAssessmentsToPDF, exportToCSV } from './adminUtils';
+
 
 const PAGE_SIZE = 20;
 const PLANS = ['all', 'Online Coaching', 'Video Coaching', 'Mumbai Personal Training', 'Couple Plan'];
@@ -289,6 +294,12 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
                                 )}
                             </>
                         )}
+                        <button onClick={() => exportSingleAssessmentToExcel(assessment)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                            style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa' }}>
+                            <Download className="w-3 h-3" /> Export
+                        </button>
+
                         <button onClick={onClose}
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all">
                             <X className="w-4 h-4" />
@@ -478,6 +489,7 @@ function StatCard({ label, value, color }) {
     );
 }
 
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminAssessments() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -488,7 +500,7 @@ export default function AdminAssessments() {
     const [error, setError] = useState('');
     const [total, setTotal] = useState(0);
 
-    const [search, setSearch] = useState('');
+
     const [statusFilter, setStatusFilter] = useState('all');
     const [planFilter, setPlanFilter] = useState('all');
     const [page, setPage] = useState(1);
@@ -498,12 +510,15 @@ export default function AdminAssessments() {
     const [noteTarget, setNoteTarget] = useState(null);
     const initial = useRef(true);
 
+    const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 400);
+
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
             const res = await fetchAssessments({
-                search, status: statusFilter, plan: planFilter,
+                search: debouncedSearch, status: statusFilter, plan: planFilter,
                 sortField: sort.field, sortDir: sort.dir, page, pageSize: PAGE_SIZE,
             });
             setData(res.rows || []);
@@ -547,6 +562,27 @@ export default function AdminAssessments() {
         }
     };
 
+
+    const handleExport = async (format, range) => {
+        const allRows = await exportAssessmentsAll({
+            search, status: statusFilter, plan: planFilter,
+            dateFrom: range.from, dateTo: range.to,
+        });
+        if (format === 'csv') {
+            const mapped = allRows.map((r) => ({
+                id: r.id, first_name: r.first_name, last_name: r.last_name, whatsapp: r.whatsapp,
+                email: r.email, age: r.age, gender: r.gender, city: r.city, plan: r.plan,
+                main_goal: r.main_goal, workout_status: r.workout_status, commitment: r.commitment,
+                status: r.status, created_at: r.created_at,
+            }));
+            exportToCSV(mapped, `recode-assessments-${new Date().toISOString().slice(0, 10)}`);
+        } else if (format === 'excel') {
+            exportAssessmentsToExcel(allRows, { dateFrom: range.from, dateTo: range.to });
+        } else if (format === 'pdf') {
+            exportAssessmentsToPDF(allRows, { dateFrom: range.from, dateTo: range.to });
+        }
+    };
+
     // Derived stats
     const newCount = data.filter((r) => r.status === 'new').length;
     const avgCommitment = data.length
@@ -572,6 +608,7 @@ export default function AdminAssessments() {
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                 </button>
+                <ExportMenu onExport={handleExport} label="Export Data" />
             </div>
 
             {/* Stats */}

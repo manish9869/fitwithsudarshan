@@ -23,6 +23,10 @@ import {
     fmtCurrency, fmtDate, fmtGoals, exportToCSV, downloadInvoicePDF,
     statusBadge, ENROLLMENT_STATUSES,
 } from './adminUtils';
+import { useDebounce } from './useDebounce';
+import ExportMenu from './ExportMenu';
+import { exportEnrollmentsToExcel, exportEnrollmentsToPDF } from './adminUtils';
+
 
 const PAGE_SIZE = 20;
 const COACHING_TYPES = ['all', 'online', 'video', 'personal'];
@@ -177,7 +181,15 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                 <StickyNote className="w-3 h-3" />
                                 {enrollment.note ? 'Edit Note' : 'Add Note'}
                             </button>
+
                         )}
+
+                        <button onClick={() => exportSingleEnrollmentToExcel(enrollment)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                            style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa' }}>
+                            <Download className="w-3 h-3" /> Export
+                        </button>
+
                         <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5">
                             <X className="w-4 h-4" />
                         </button>
@@ -374,6 +386,7 @@ export default function AdminEnrollments() {
     const [total, setTotal] = useState(0);
 
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 400);
     const [coachingFilter, setCoachingFilter] = useState('all');
     const [planFilter, setPlanFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -390,7 +403,7 @@ export default function AdminEnrollments() {
         setError('');
         try {
             const res = await fetchEnrollments({
-                search, coachingType: coachingFilter, planType: planFilter, status: statusFilter,
+                search: debouncedSearch, coachingType: coachingFilter, planType: planFilter, status: statusFilter,
                 sortField: sort.field, sortDir: sort.dir, page, pageSize: PAGE_SIZE,
             });
             setData(res.rows || []);
@@ -436,41 +449,27 @@ export default function AdminEnrollments() {
     const couponCount = data.filter((r) => r.coupon_code).length;
     const coupleCount = data.filter((r) => r.plan_type === 'couple').length;
 
-    const handleExportCSV = async () => {
-        setExportLoading(true);
-        try {
-            const allRows = await exportEnrollmentsAll({
-                search, coachingType: coachingFilter, planType: planFilter, status: statusFilter,
-            });
-            const mapped = allRows.map((r) => ({
-                enrollment_id: r.enrollment_id,
-                name: r.customer_name,
-                email: r.customer_email,
-                phone: r.customer_phone,
-                program: r.program_name,
-                coaching_type: r.coaching_type,
-                plan_type: r.plan_type,
-                duration_months: r.duration_months,
-                amount_paid: r.amount_paid,
-                original_amount: r.original_amount,
-                coupon_code: r.coupon_code || '',
-                coupon_savings: r.coupon_savings || 0,
-                payment_status: r.payment_status,
-                payment_date: r.payment_date,
-                age: r.age,
-                city: r.city,
-                weight: r.weight,
-                goals: Array.isArray(r.goals) ? r.goals.join('; ') : r.goals,
-                medical_issue: r.medical_issue,
-                partner_name: r.partner_name || '',
-                razorpay_payment_id: r.razorpay_payment_id,
-                created_at: r.created_at,
+    const handleExport = async (format, range) => {
+        const allRows = await exportEnrollmentsAll({
+            search, coachingType: coachingFilter, planType: planFilter, status: statusFilter,
+            dateFrom: range.from, dateTo: range.to,
+        });
+        if (format === 'csv') {
+            const mapped = allRows.map((r) => ({ /* same mapping as your existing handleExportCSV */
+                enrollment_id: r.enrollment_id, name: r.customer_name, email: r.customer_email,
+                phone: r.customer_phone, program: r.program_name, coaching_type: r.coaching_type,
+                plan_type: r.plan_type, duration_months: r.duration_months, amount_paid: r.amount_paid,
+                original_amount: r.original_amount, coupon_code: r.coupon_code || '', coupon_savings: r.coupon_savings || 0,
+                payment_status: r.payment_status, payment_date: r.payment_date, age: r.age, city: r.city,
+                weight: r.weight, goals: Array.isArray(r.goals) ? r.goals.join('; ') : r.goals,
+                medical_issue: r.medical_issue, partner_name: r.partner_name || '',
+                razorpay_payment_id: r.razorpay_payment_id, created_at: r.created_at,
             }));
             exportToCSV(mapped, `recode-enrollments-${new Date().toISOString().slice(0, 10)}`);
-        } catch (e) {
-            setError(e.message || 'Export failed.');
-        } finally {
-            setExportLoading(false);
+        } else if (format === 'excel') {
+            exportEnrollmentsToExcel(allRows, { dateFrom: range.from, dateTo: range.to });
+        } else if (format === 'pdf') {
+            exportEnrollmentsToPDF(allRows, { dateFrom: range.from, dateTo: range.to, filters: { coachingFilter, planFilter, statusFilter } });
         }
     };
 
@@ -492,12 +491,7 @@ export default function AdminEnrollments() {
                         <RefreshCw className="w-3.5 h-3.5" />
                         Refresh
                     </button>
-                    <button onClick={handleExportCSV} disabled={exportLoading}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-50 transition-all"
-                        style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.25)', color: '#e71763' }}>
-                        {exportLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
-                        Export CSV
-                    </button>
+                    <ExportMenu onExport={handleExport} label="Export Data" />
                 </div>
             </div>
 
