@@ -14,7 +14,7 @@ import {
     Dumbbell, Clock, ArrowRight, Shield, Sparkles,
     ChevronRight, Star, Copy, Check, ExternalLink,
 } from 'lucide-react';
-import CustomCursor from '../components/CustomCursor';
+
 import { wa } from "@/utils/whatsapp";
 // ─── Floating orbs background ─────────────────────────────────────────────────
 function FloatingOrbs() {
