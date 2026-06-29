@@ -7,6 +7,7 @@
  *  - Added missing 'exportSingleEnrollmentToExcel' to adminUtils imports
  *  - exportEnrollmentsAll now receives dateFrom/dateTo correctly
  *  - DetailDrawer export button now works correctly
+ *  - StatusSelect upgraded to custom popover (matches AdminAssessments pattern)
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,7 +17,7 @@ import {
     X, Eye, StickyNote, RefreshCw,
     Copy, Save, Loader2, AlertCircle,
     ChevronLeft, ChevronRight, Check,
-    Download, // FIX: was missing
+    Download,
 } from 'lucide-react';
 import {
     fetchEnrollments, fetchEnrollment, setEnrollmentStatus,
@@ -25,8 +26,8 @@ import {
 import {
     fmtCurrency, fmtDate, fmtGoals, exportToCSV, downloadInvoicePDF,
     statusBadge, ENROLLMENT_STATUSES,
-    exportEnrollmentsToExcel, exportEnrollmentsToPDF, // FIX: add these
-    exportSingleEnrollmentToExcel, // FIX: was missing
+    exportEnrollmentsToExcel, exportEnrollmentsToPDF,
+    exportSingleEnrollmentToExcel,
 } from './adminUtils';
 import { useDebounce } from './useDebounce';
 import ExportMenu from './ExportMenu';
@@ -47,23 +48,115 @@ function StatCard({ label, value, sub, color }) {
     );
 }
 
-// ── Status dropdown (inline editable) ────────────────────────────────────────
+// ── Custom status dropdown ─────────────────────────────────────────────────────
+// Matches the popover pattern from AdminAssessments — coloured dots,
+// checkmark for active state, animated panel, closes on outside click.
 function StatusSelect({ value, onChange, disabled }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
     const badge = statusBadge(value);
+
+    // Close on outside click
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    const label = (s) =>
+        s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
     return (
-        <select
-            value={value}
-            disabled={disabled}
-            onChange={(e) => onChange(e.target.value)}
-            className="text-[10px] font-bold px-2 py-1 rounded-full appearance-none cursor-pointer outline-none disabled:opacity-50"
-            style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}
-        >
-            {ENROLLMENT_STATUSES.map((s) => (
-                <option key={s} value={s} style={{ background: '#0a0a0a', color: '#fff' }}>
-                    {s.toUpperCase()}
-                </option>
-            ))}
-        </select>
+        <div ref={ref} className="relative inline-block">
+            {/* Trigger pill */}
+            <button
+                disabled={disabled}
+                onClick={() => setOpen((o) => !o)}
+                className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50 focus:outline-none"
+                style={{
+                    background: badge.bg,
+                    border: `1px solid ${badge.border}`,
+                    color: badge.color,
+                    minWidth: 90,
+                }}
+            >
+                {/* Status dot */}
+                <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ background: badge.color }}
+                />
+                <span className="flex-1 text-left leading-none">{label(value || 'paid')}</span>
+                <ChevronDown
+                    className="w-2.5 h-2.5 flex-shrink-0 transition-transform"
+                    style={{
+                        opacity: 0.6,
+                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }}
+                />
+            </button>
+
+            {/* Dropdown panel */}
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute left-0 top-full mt-1.5 z-[100] rounded-xl overflow-hidden shadow-2xl"
+                        style={{
+                            background: '#13131f',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            minWidth: 160,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                        }}
+                    >
+                        {ENROLLMENT_STATUSES.map((s) => {
+                            const b = statusBadge(s);
+                            const isActive = s === (value || 'paid');
+                            return (
+                                <button
+                                    key={s}
+                                    onClick={() => { onChange(s); setOpen(false); }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-left transition-colors"
+                                    style={{
+                                        background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.06)' : 'transparent';
+                                    }}
+                                >
+                                    {/* Coloured dot */}
+                                    <span
+                                        className="w-2 h-2 rounded-full flex-shrink-0"
+                                        style={{ background: b.color }}
+                                    />
+                                    <span
+                                        className="flex-1"
+                                        style={{ color: isActive ? b.color : 'rgba(255,255,255,0.65)' }}
+                                    >
+                                        {label(s)}
+                                    </span>
+                                    {/* Checkmark for active */}
+                                    {isActive && (
+                                        <Check
+                                            className="w-3 h-3 flex-shrink-0"
+                                            style={{ color: b.color }}
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 
@@ -185,7 +278,6 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                     <StickyNote className="w-3 h-3" />
                                     {enrollment.note ? 'Edit Note' : 'Add Note'}
                                 </button>
-                                {/* FIX: exportSingleEnrollmentToExcel now properly imported */}
                                 <button
                                     onClick={() => exportSingleEnrollmentToExcel(enrollment)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
@@ -224,13 +316,16 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                             </div>
                             <div className="flex-1 rounded-xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                                 <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Status</p>
-                                <StatusSelect
-                                    value={enrollment.payment_status || 'paid'}
-                                    onChange={(newStatus) => {
-                                        onStatusChange(enrollment.id, newStatus);
-                                        setEnrollment((prev) => ({ ...prev, payment_status: newStatus }));
-                                    }}
-                                />
+                                {/* Custom popover StatusSelect — same as table rows */}
+                                <div className="flex justify-center">
+                                    <StatusSelect
+                                        value={enrollment.payment_status || 'paid'}
+                                        onChange={(newStatus) => {
+                                            onStatusChange(enrollment.id, newStatus);
+                                            setEnrollment((prev) => ({ ...prev, payment_status: newStatus }));
+                                        }}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -452,7 +547,6 @@ export default function AdminEnrollments() {
     const couponCount = data.filter((r) => r.coupon_code).length;
     const coupleCount = data.filter((r) => r.plan_type === 'couple').length;
 
-    // FIX: handleExport now correctly passes all filter params including date range
     const handleExport = async (format, range) => {
         try {
             const allRows = await exportEnrollmentsAll({
@@ -649,7 +743,11 @@ export default function AdminEnrollments() {
                                             {row.coupon_code && <p className="text-[10px]" style={{ color: '#34d399' }}>-{fmtCurrency(row.coupon_savings)}</p>}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <StatusSelect value={row.payment_status || 'paid'} onChange={(v) => handleStatusChange(row.id, v)} />
+                                            {/* Custom popover dropdown — replaces native <select> */}
+                                            <StatusSelect
+                                                value={row.payment_status || 'paid'}
+                                                onChange={(v) => handleStatusChange(row.id, v)}
+                                            />
                                         </td>
                                         <td className="px-4 py-3"><p className="text-xs text-white/50">{fmtDate(row.payment_date, true)}</p></td>
                                         <td className="px-4 py-3">
