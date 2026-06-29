@@ -135,3 +135,11 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+@media (hover: hover) and (pointer: fine) {
+  body:not(.admin-page) *, 
+  body:not(.admin-page) *::before, 
+  body:not(.admin-page) *::after {
+    cursor: none !important;
+  }
+}

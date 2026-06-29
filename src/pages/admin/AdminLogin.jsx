@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff, AlertCircle, Shield } from 'lucide-react';
-import CustomCursor from '@/components/CustomCursor';
+
 import { login, isLoggedIn } from './adminApi';
 
 export default function AdminLogin() {
@@ -40,7 +40,7 @@ export default function AdminLogin() {
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
-            <CustomCursor />
+
 
             {/* Background glow */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">

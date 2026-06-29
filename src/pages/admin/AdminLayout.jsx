@@ -24,6 +24,11 @@ export default function AdminLayout() {
 
     useEffect(() => { setAdmin(getStoredAdmin()); }, []);
 
+    useEffect(() => {
+        document.body.classList.add('admin-page');
+        return () => document.body.classList.remove('admin-page');
+    }, []);
+
     const handleLogout = () => {
         logout();
         navigate('/admin', { replace: true });
@@ -98,6 +103,7 @@ export default function AdminLayout() {
 
     return (
         <div className="min-h-screen bg-background flex">
+
             {/* Desktop sidebar */}
             <aside
                 className="hidden lg:flex flex-col w-56 flex-shrink-0 sticky top-0 h-screen"
