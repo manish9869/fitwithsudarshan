@@ -918,8 +918,19 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
 function DownloadInvoiceButton({ enrollment }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
+    const downloadingRef = useRef(false);
 
     const handleDownload = async () => {
+        if (downloadingRef.current || loading) return;
+
+        const enrollmentId = enrollment?.enrollment_id;
+
+        if (!enrollmentId) {
+            setErr('Missing enrollment ID.');
+            return;
+        }
+
+        downloadingRef.current = true;
         setLoading(true);
         setErr('');
 
@@ -943,9 +954,10 @@ function DownloadInvoiceButton({ enrollment }) {
             };
 
             await downloadInvoicePDF(mapped);
-        } catch {
-            setErr('Invoice generation failed.');
+        } catch (error) {
+            setErr(error?.message || 'Invoice generation failed.');
         } finally {
+            downloadingRef.current = false;
             setLoading(false);
         }
     };
@@ -953,9 +965,10 @@ function DownloadInvoiceButton({ enrollment }) {
     return (
         <div>
             <button
+                type="button"
                 onClick={handleDownload}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                     background: '#e71763',
                     boxShadow: '0 0 20px rgba(231,23,99,0.3)',
@@ -967,11 +980,18 @@ function DownloadInvoiceButton({ enrollment }) {
                         Generating…
                     </>
                 ) : (
-                    <>Download Invoice PDF</>
+                    <>
+                        <Download className="w-4 h-4" />
+                        Download Invoice PDF
+                    </>
                 )}
             </button>
 
-            {err && <p className="text-xs text-red-400 mt-2 text-center">{err}</p>}
+            {err && (
+                <p className="text-xs text-red-400 mt-2 text-center">
+                    {err}
+                </p>
+            )}
         </div>
     );
 }
