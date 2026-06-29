@@ -6,8 +6,10 @@ import { CheckCircle2, XCircle, Zap, ArrowRight, Sparkles, Target, Dumbbell, Act
 // Tiny scattered fitness icons for blank space atmosphere
 const fitnessIconSet = [Dumbbell, Activity, Flame, Heart, Timer, Scale, Target];
 function ScatteredIcons({ count = 8, sectionSeed = 0 }) {
+    const ref = useRef(null);
+    const inView = useInView(ref, { margin: '200px' });
     return (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div ref={ref} className="absolute inset-0 pointer-events-none overflow-hidden">
             {Array.from({ length: count }).map((_, i) => {
                 const Icon = fitnessIconSet[(i + sectionSeed) % fitnessIconSet.length];
                 const leftPos = 5 + ((i * 13 + sectionSeed * 7) % 90);
@@ -15,8 +17,8 @@ function ScatteredIcons({ count = 8, sectionSeed = 0 }) {
                 return (
                     <motion.div key={i} className="absolute"
                         style={{ left: `${leftPos}%`, top: `${topPos}%`, opacity: 0.04 }}
-                        animate={{ y: [0, -14, 0], rotate: [0, i % 2 === 0 ? 12 : -12, 0], scale: [0.9, 1.1, 0.9] }}
-                        transition={{ duration: 8 + i * 0.7, repeat: Infinity, delay: i * 0.6, ease: "easeInOut" }}>
+                        animate={inView ? { y: [0, -14, 0], rotate: [0, i % 2 === 0 ? 12 : -12, 0], scale: [0.9, 1.1, 0.9] } : { y: 0, rotate: 0, scale: 1 }}
+                        transition={inView ? { duration: 8 + i * 0.7, repeat: Infinity, delay: i * 0.6, ease: "easeInOut" } : { duration: 0 }}>
                         <Icon className="w-8 h-8 text-primary" />
                     </motion.div>
                 );

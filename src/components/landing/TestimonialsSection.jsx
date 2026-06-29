@@ -14,14 +14,18 @@ function Orb({ style, delay = 0 }) {
 export default function TestimonialsSection() {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-60px" });
+
+    const playRef = useRef(null);
+    const inViewForAutoplay = useInView(playRef, { margin: "-100px" });
+
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
     useEffect(() => {
-        if (!isAutoPlaying) return;
+        if (!isAutoPlaying || !inViewForAutoplay) return;
         const timer = setInterval(() => setCurrentIndex((p) => (p + 1) % testimonials.length), 5000);
         return () => clearInterval(timer);
-    }, [isAutoPlaying]);
+    }, [isAutoPlaying, inViewForAutoplay]);
 
     const next = () => { setIsAutoPlaying(false); setCurrentIndex((p) => (p + 1) % testimonials.length); };
     const prev = () => { setIsAutoPlaying(false); setCurrentIndex((p) => (p - 1 + testimonials.length) % testimonials.length); };
