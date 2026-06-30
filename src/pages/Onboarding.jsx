@@ -101,12 +101,18 @@ function FieldError({ msg }) {
     );
 }
 
+// FIX: label no longer wraps to a second line on narrow screens.
+// - tracking-normal on mobile (the wide letter-spacing was the main cause of overflow)
+// - flex + items-baseline so the "*" never gets orphaned onto its own line
+// - truncate as a safety net for extremely long labels
+// - min-w-0 so this wrapper can actually shrink inside a grid column
 function FormField({ label, required, error, touched, hint, children }) {
     const hasError = touched && error;
     return (
-        <div>
-            <Label className="text-white/60 mb-1.5 block text-xs font-semibold tracking-wide uppercase">
-                {label} {required && <span style={{ color: '#e71763' }}>*</span>}
+        <div className="min-w-0">
+            <Label className="text-white/60 mb-1.5 flex items-baseline gap-1 text-[11px] sm:text-xs font-semibold tracking-normal sm:tracking-wide uppercase">
+                <span className="truncate">{label}</span>
+                {required && <span style={{ color: '#e71763' }} className="flex-shrink-0">*</span>}
             </Label>
             <div style={hasError ? { outline: '1px solid rgba(248,113,113,0.5)', borderRadius: 8 } : {}}>
                 {children}
@@ -229,10 +235,11 @@ function PhotoUpload({ label, hint, required, onChange, value, accept = 'image/*
 
     return (
         <div>
-            <Label className="text-white/60 mb-1.5 block text-xs font-semibold tracking-wide uppercase">
-                {label} {required && <span style={{ color: '#e71763' }}>*</span>}
+            <Label className="text-white/60 mb-1.5 flex items-baseline gap-1 text-[11px] sm:text-xs font-semibold tracking-normal sm:tracking-wide uppercase">
+                <span className="truncate">{label}</span>
+                {required && <span style={{ color: '#e71763' }} className="flex-shrink-0">*</span>}
                 {!required && (
-                    <span className="text-white/25 font-normal tracking-normal uppercase-none"> (optional)</span>
+                    <span className="text-white/25 font-normal tracking-normal normal-case flex-shrink-0"> (optional)</span>
                 )}
             </Label>
 
@@ -686,8 +693,11 @@ export default function Onboarding() {
                         {/* ── SECTION 1: Fitness ── */}
                         {section === 1 && (
                             <SectionCard title="Fitness Profile" icon={Dumbbell}>
-                                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-3">
-                                    <FormField label="Current Weight (kg)" required error={errors.currentWeight} touched={touched.currentWeight}>
+                                {/* FIX: removed the non-existent "xs:" breakpoint (no-op in default Tailwind),
+                                    shortened the weight label so it never wraps, added min-w-0 so inputs can
+                                    actually shrink inside the grid track on very narrow screens. */}
+                                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                                    <FormField label="Weight (kg)" required error={errors.currentWeight} touched={touched.currentWeight}>
                                         <Input type="number" inputMode="decimal" value={form.currentWeight} onChange={e => set('currentWeight')(e.target.value)}
                                             onBlur={() => touch('currentWeight')} placeholder="e.g. 78"
                                             className="w-full min-w-0 bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
