@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -121,7 +120,7 @@ function FormField({ label, required, error, touched, hint, children }) {
 function SelectField({ value, onChange, options, placeholder }) {
     return (
         <select value={value} onChange={e => onChange(e.target.value)}
-            className="w-full rounded-xl px-3 py-2.5 text-sm text-white h-10"
+            className="w-full rounded-xl px-3 py-2.5 text-sm text-white h-11 sm:h-10"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <option value="" style={{ background: '#0a0a0a' }}>{placeholder || 'Select…'}</option>
             {options.map(opt => (
@@ -241,30 +240,31 @@ function PhotoUpload({ label, hint, required, onChange, value, accept = 'image/*
                 <div className="relative rounded-xl overflow-hidden group"
                     style={{ border: '1px solid rgba(231,23,99,0.3)' }}>
                     {isPdf ? (
-                        <div className="flex flex-col items-center justify-center gap-3 py-8"
+                        <div className="flex flex-col items-center justify-center gap-3 py-6 sm:py-8 px-3"
                             style={{ background: 'rgba(231,23,99,0.05)' }}>
-                            <FileText className="w-10 h-10" style={{ color: '#e71763' }} />
-                            <p className="text-sm text-white/70 font-medium">{value?.name || 'Blood Report (PDF)'}</p>
+                            <FileText className="w-9 h-9 sm:w-10 sm:h-10" style={{ color: '#e71763' }} />
+                            <p className="text-sm text-white/70 font-medium text-center break-all">{value?.name || 'Blood Report (PDF)'}</p>
                             <p className="text-xs text-white/35">PDF uploaded successfully</p>
                         </div>
                     ) : (
                         <img src={preview} alt="Preview"
-                            className="w-full object-cover"
-                            style={{ maxHeight: 220, objectFit: 'cover', objectPosition: 'center top' }} />
+                            className="w-full object-cover max-h-[180px] sm:max-h-[220px] md:max-h-[260px]"
+                            style={{ objectFit: 'cover', objectPosition: 'center top' }} />
                     )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
+                    {/* Touch-friendly always-visible controls on small screens, hover-reveal on larger ones */}
+                    <div className="absolute inset-0 bg-black/0 sm:group-hover:bg-black/40 transition-all flex items-end sm:items-center justify-center gap-2 sm:gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-2 sm:p-0">
                         <button type="button" onClick={() => inputRef.current?.click()}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
-                            style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}>
+                            className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-xs font-bold text-white"
+                            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
                             <Upload className="w-3 h-3" /> Change
                         </button>
                         <button type="button" onClick={clear}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
-                            style={{ background: 'rgba(239,68,68,0.2)', backdropFilter: 'blur(8px)' }}>
+                            className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-xs font-bold text-white"
+                            style={{ background: 'rgba(239,68,68,0.45)', backdropFilter: 'blur(8px)' }}>
                             <X className="w-3 h-3" /> Remove
                         </button>
                     </div>
-                    <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold"
+                    <div className="absolute top-2 right-2 sm:bottom-2 sm:top-auto flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold"
                         style={{ background: 'rgba(52,211,153,0.9)', color: '#000' }}>
                         <CheckCircle2 className="w-3 h-3" />
                         {isPdf ? 'PDF ready' : 'Photo ready'}
@@ -277,11 +277,11 @@ function PhotoUpload({ label, hint, required, onChange, value, accept = 'image/*
                     style={{
                         border: hasError ? '2px dashed rgba(248,113,113,0.5)' : '2px dashed rgba(255,255,255,0.12)',
                         background: 'rgba(255,255,255,0.02)',
-                        padding: '24px 16px',
+                        padding: '20px 12px',
                     }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(231,23,99,0.4)'}
                     onMouseLeave={e => e.currentTarget.style.borderColor = hasError ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.12)'}>
-                    <div className="flex flex-col items-center text-center gap-2">
+                    <div className="flex flex-col items-center text-center gap-2 sm:py-1">
                         {compressing ? (
                             <>
                                 <Loader2 className="w-7 h-7 text-white/30 animate-spin" />
@@ -289,7 +289,7 @@ function PhotoUpload({ label, hint, required, onChange, value, accept = 'image/*
                             </>
                         ) : (
                             <>
-                                <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+                                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center"
                                     style={{ background: 'rgba(231,23,99,0.08)', border: '1px solid rgba(231,23,99,0.15)' }}>
                                     <Camera className="w-5 h-5" style={{ color: '#e71763' }} />
                                 </div>
@@ -333,14 +333,14 @@ function PillSelector({ options, value, onChange }) {
 // ─── Step progress bar ────────────────────────────────────────────────────────
 function StepBar({ current, total, sections }) {
     return (
-        <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
+        <div className="mb-6 sm:mb-8">
+            <div className="flex items-center justify-between mb-3 px-0.5 sm:px-0">
                 {sections.map((sec, i) => {
                     const Icon = sec.icon;
                     const done = i < current, active = i === current;
                     return (
                         <div key={sec.id} className="flex flex-col items-center gap-1.5">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all"
                                 style={active
                                     ? { background: '#e71763', boxShadow: '0 0 16px rgba(231,23,99,0.45)' }
                                     : done
@@ -349,7 +349,7 @@ function StepBar({ current, total, sections }) {
                                 }>
                                 {done
                                     ? <CheckCircle2 className="w-4 h-4" style={{ color: '#34d399' }} />
-                                    : <Icon className="w-4 h-4" style={{ color: active ? 'white' : 'rgba(255,255,255,0.25)' }} />}
+                                    : <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: active ? 'white' : 'rgba(255,255,255,0.25)' }} />}
                             </div>
                             <span className="text-[10px] font-semibold hidden sm:block"
                                 style={{ color: active ? '#e71763' : done ? '#34d399' : 'rgba(255,255,255,0.2)' }}>
@@ -374,7 +374,7 @@ function StepBar({ current, total, sections }) {
 function SectionCard({ title, icon: Icon, children }) {
     return (
         <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <div className="flex items-center gap-3 px-5 py-4"
+            <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-4"
                 style={{ background: 'rgba(231,23,99,0.06)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: 'rgba(231,23,99,0.15)', border: '1px solid rgba(231,23,99,0.2)' }}>
@@ -382,7 +382,7 @@ function SectionCard({ title, icon: Icon, children }) {
                 </div>
                 <h2 className="font-black text-white text-sm">{title}</h2>
             </div>
-            <div className="p-5 space-y-5">{children}</div>
+            <div className="p-4 sm:p-5 md:p-6 space-y-5">{children}</div>
         </div>
     );
 }
@@ -535,17 +535,17 @@ export default function Onboarding() {
     // ── Success screen ────────────────────────────────────────────────────────
     if (submitted) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center px-4">
+            <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
 
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                     className="max-w-md w-full text-center">
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                         transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
-                        className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
                         style={{ background: 'rgba(52,211,153,0.1)', border: '2px solid rgba(52,211,153,0.3)' }}>
-                        <CheckCircle2 className="w-10 h-10" style={{ color: '#34d399' }} />
+                        <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: '#34d399' }} />
                     </motion.div>
-                    <h1 className="text-3xl font-black text-white mb-3">You're All Set!</h1>
+                    <h1 className="text-2xl sm:text-3xl font-black text-white mb-3">You're All Set!</h1>
                     <p className="text-white/50 text-sm leading-relaxed mb-6">
                         Your RECODE™ assessment has been submitted. Sudarshan will review your details
                         and get back to you within <strong className="text-white">24–48 hours</strong> on WhatsApp
@@ -555,7 +555,7 @@ export default function Onboarding() {
                         )}
                     </p>
                     {(!form.photoFront || !form.photoSide) && (
-                        <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.18)' }}>
+                        <div className="rounded-2xl p-4 sm:p-5 mb-6 text-left" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.18)' }}>
                             <p className="text-sm text-white/60 leading-relaxed flex items-start gap-2">
                                 <Camera className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#60a5fa' }} />
                                 <span>
@@ -565,7 +565,7 @@ export default function Onboarding() {
                             </p>
                         </div>
                     )}
-                    <div className="rounded-2xl p-5 mb-6" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.18)' }}>
+                    <div className="rounded-2xl p-4 sm:p-5 mb-6" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.18)' }}>
                         <p className="text-sm text-white/60 leading-relaxed">
                             Keep an eye on your WhatsApp. Feel free to reach out if you have questions in the meantime.
                         </p>
@@ -593,7 +593,7 @@ export default function Onboarding() {
 
             {/* Background */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[100px]"
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90vw] max-w-[600px] h-[220px] sm:h-[300px] rounded-full blur-[80px] sm:blur-[100px]"
                     style={{ background: 'rgba(231,23,99,0.06)' }} />
                 <div className="absolute inset-0"
                     style={{
@@ -602,20 +602,20 @@ export default function Onboarding() {
                     }} />
             </div>
 
-            <div className="relative z-10 container mx-auto px-4 py-10 max-w-xl">
+            <div className="relative z-10 container mx-auto px-4 sm:px-6 py-8 sm:py-10 max-w-xl md:max-w-2xl lg:max-w-3xl">
 
                 {/* Header */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6 sm:mb-8">
                     <img src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png"
-                        alt="FitWithSudarshan" className="h-12 mx-auto mb-4 rounded-xl" />
+                        alt="FitWithSudarshan" className="h-10 sm:h-12 mx-auto mb-4 rounded-xl" />
                     <div className="flex items-center justify-center gap-2 mb-2">
                         <Flame className="w-4 h-4" style={{ color: '#e71763' }} />
                         <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#e71763' }}>
                             RECODE™ Assessment
                         </span>
                     </div>
-                    <h1 className="text-2xl font-black text-white mb-1">Let's Build Your Plan</h1>
-                    <p className="text-white/35 text-sm">The more honestly you fill this, the better your roadmap.</p>
+                    <h1 className="text-xl sm:text-2xl font-black text-white mb-1">Let's Build Your Plan</h1>
+                    <p className="text-white/35 text-xs sm:text-sm">The more honestly you fill this, the better your roadmap.</p>
                 </motion.div>
 
                 {/* Progress */}
@@ -631,16 +631,16 @@ export default function Onboarding() {
                         {/* ── SECTION 0: Personal Info ── */}
                         {section === 0 && (
                             <SectionCard title="Personal Information" icon={User}>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <FormField label="First Name" required error={errors.firstName} touched={touched.firstName}>
                                         <Input value={form.firstName} onChange={e => set('firstName')(e.target.value)}
                                             onBlur={() => touch('firstName')} placeholder="First name"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                     </FormField>
                                     <FormField label="Last Name">
                                         <Input value={form.lastName} onChange={e => set('lastName')(e.target.value)}
                                             placeholder="Last name"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                     </FormField>
                                 </div>
 
@@ -648,21 +648,21 @@ export default function Onboarding() {
                                     hint="Optional — receive a confirmation email after submission.">
                                     <Input type="email" value={form.email} onChange={e => set('email')(e.target.value)}
                                         onBlur={() => touch('email')} placeholder="your@email.com"
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                 </FormField>
 
                                 <FormField label="WhatsApp Number" required error={errors.whatsapp} touched={touched.whatsapp}
                                     hint="We'll use this to send your onboarding details.">
                                     <Input value={form.whatsapp} onChange={e => set('whatsapp')(e.target.value)}
                                         onBlur={() => touch('whatsapp')} placeholder="+91 XXXXXXXXXX"
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                 </FormField>
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <FormField label="Age" required error={errors.age} touched={touched.age}>
                                         <Input type="number" value={form.age} onChange={e => set('age')(e.target.value)}
                                             onBlur={() => touch('age')} placeholder="Your age"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                     </FormField>
                                     <FormField label="Gender" required error={errors.gender} touched={touched.gender}>
                                         <SelectField value={form.gender} onChange={v => { set('gender')(v); touch('gender'); }}
@@ -673,7 +673,7 @@ export default function Onboarding() {
                                 <FormField label="City / Area" required error={errors.city} touched={touched.city}>
                                     <Input value={form.city} onChange={e => set('city')(e.target.value)}
                                         onBlur={() => touch('city')} placeholder="e.g. Mumbai, Andheri"
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                 </FormField>
 
                                 <FormField label="Which RECODE™ Plan Are You On?" required error={errors.plan} touched={touched.plan}>
@@ -690,12 +690,12 @@ export default function Onboarding() {
                                     <FormField label="Current Weight (kg)" required error={errors.currentWeight} touched={touched.currentWeight}>
                                         <Input type="number" value={form.currentWeight} onChange={e => set('currentWeight')(e.target.value)}
                                             onBlur={() => touch('currentWeight')} placeholder="e.g. 78"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                     </FormField>
                                     <FormField label="Height (cm)" required error={errors.height} touched={touched.height}>
                                         <Input type="number" value={form.height} onChange={e => set('height')(e.target.value)}
                                             onBlur={() => touch('height')} placeholder="e.g. 172"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                     </FormField>
                                 </div>
 
@@ -720,7 +720,7 @@ export default function Onboarding() {
                                 <FormField label="Profession / Work Type">
                                     <Input value={form.profession} onChange={e => set('profession')(e.target.value)}
                                         placeholder="e.g. Software engineer, student, homemaker…"
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                 </FormField>
 
                                 <FormField label="Current Workout Status" required error={errors.workoutStatus} touched={touched.workoutStatus}>
@@ -731,7 +731,7 @@ export default function Onboarding() {
                                 <FormField label="Preferred Training Location">
                                     <Input value={form.trainingLocation} onChange={e => set('trainingLocation')(e.target.value)}
                                         placeholder="e.g. Home, society gym, commercial gym"
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-10" />
+                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                 </FormField>
 
                                 <FormField label="Training days per week" required error={errors.trainingDays} touched={touched.trainingDays}>
@@ -845,7 +845,7 @@ export default function Onboarding() {
                                         <div className="text-center mb-5">
                                             <motion.span key={form.commitment}
                                                 initial={{ scale: 0.8 }} animate={{ scale: 1 }}
-                                                className="text-6xl font-black block" style={{ color: '#e71763' }}>
+                                                className="text-5xl sm:text-6xl font-black block" style={{ color: '#e71763' }}>
                                                 {form.commitment}
                                             </motion.span>
                                             <span className="text-sm text-white/40 block mt-1">
@@ -867,7 +867,7 @@ export default function Onboarding() {
                                 </SectionCard>
 
                                 {/* Summary */}
-                                <div className="rounded-2xl p-5 space-y-3" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.15)' }}>
+                                <div className="rounded-2xl p-4 sm:p-5 space-y-3" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.15)' }}>
                                     <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#e71763' }}>Assessment Summary</p>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                                         {[
@@ -880,7 +880,7 @@ export default function Onboarding() {
                                         ].map(([k, v]) => (
                                             <div key={k}>
                                                 <span className="text-white/30 block">{k}</span>
-                                                <span className="text-white/80 font-semibold">{v}</span>
+                                                <span className="text-white/80 font-semibold break-words">{v}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -908,10 +908,10 @@ export default function Onboarding() {
                 </AnimatePresence>
 
                 {/* Navigation */}
-                <div className="flex gap-3 mt-6">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
                     {section > 0 && (
                         <button onClick={handleBack}
-                            className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white/60 transition-all"
+                            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white/60 transition-all w-full sm:w-auto"
                             style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
                             <ChevronLeft className="w-4 h-4" /> Back
                         </button>
