@@ -272,8 +272,8 @@ export const basicConsultation = {
     tagline: "One-time basic guidance — nutrition & workout direction.",
     description:
         "A single one-time consultation with basic nutrition and workout guidance. Ideal if you just want a starting roadmap rather than full ongoing coaching.",
-    priceIndividual: 599,
-    priceCouple: 999,
+    priceIndividual: 10,
+    priceCouple: 10,
     features: [
         "One-time basic workout guidance",
         "One-time basic nutrition guidance",
