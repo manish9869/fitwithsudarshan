@@ -216,34 +216,34 @@ export const coachingTypes = [
 export const pricingTable = {
     online: {
         individual: {
-            "1": 10,
+            "1": 1999,
             "3": 3999,
             "6": 6999,
             "12": 15999,
         },
         couple: {
-            "1": 10,
+            "1": 4999,
             "3": 12999,
             "6": 22999,
             "12": 38999,
         },
         // NEW — one-time basic consultation, online only
         basic_individual: {
-            "1": 10,
+            "1": 599,
         },
         basic_couple: {
-            "1": 10,
+            "1": 999,
         },
     },
     video: {
         individual: {
-            "1": 10,
+            "1": 4999,
             "3": 12999,
             "6": 22999,
             "12": 38999,
         },
         couple: {
-            "1": 10,
+            "1": 7999,
             "3": 19999,
             "6": 35999,
             "12": 59999,
@@ -251,13 +251,13 @@ export const pricingTable = {
     },
     personal: {
         individual: {
-            "1": 10,
+            "1": 20000,
             "3": 55000,
             "6": 105000,
             "12": 200000,
         },
         couple: {
-            "1": 10,
+            "1": 35000,
             "3": 70000,
             "6": 120000,
             "12": 220000,
@@ -272,8 +272,8 @@ export const basicConsultation = {
     tagline: "One-time basic guidance — nutrition & workout direction.",
     description:
         "A single one-time consultation with basic nutrition and workout guidance. Ideal if you just want a starting roadmap rather than full ongoing coaching.",
-    priceIndividual: 10,
-    priceCouple: 10,
+    priceIndividual: 599,
+    priceCouple: 999,
     features: [
         "One-time basic workout guidance",
         "One-time basic nutrition guidance",
