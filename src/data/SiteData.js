@@ -216,20 +216,20 @@ export const coachingTypes = [
 export const pricingTable = {
     online: {
         individual: {
-            "1": 5,
+            "1": 10,
             "3": 3999,
             "6": 6999,
             "12": 15999,
         },
         couple: {
-            "1": 5,
+            "1": 10,
             "3": 12999,
             "6": 22999,
             "12": 38999,
         },
         // NEW — one-time basic consultation, online only
         basic_individual: {
-            "1": 5,
+            "1": 10,
         },
         basic_couple: {
             "1": 10,
@@ -237,7 +237,7 @@ export const pricingTable = {
     },
     video: {
         individual: {
-            "1": 5,
+            "1": 10,
             "3": 12999,
             "6": 22999,
             "12": 38999,
@@ -251,13 +251,13 @@ export const pricingTable = {
     },
     personal: {
         individual: {
-            "1": 3,
+            "1": 10,
             "3": 55000,
             "6": 105000,
             "12": 200000,
         },
         couple: {
-            "1": 5,
+            "1": 10,
             "3": 70000,
             "6": 120000,
             "12": 220000,
