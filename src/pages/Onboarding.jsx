@@ -686,16 +686,16 @@ export default function Onboarding() {
                         {/* ── SECTION 1: Fitness ── */}
                         {section === 1 && (
                             <SectionCard title="Fitness Profile" icon={Dumbbell}>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-3">
                                     <FormField label="Current Weight (kg)" required error={errors.currentWeight} touched={touched.currentWeight}>
-                                        <Input type="number" value={form.currentWeight} onChange={e => set('currentWeight')(e.target.value)}
+                                        <Input type="number" inputMode="decimal" value={form.currentWeight} onChange={e => set('currentWeight')(e.target.value)}
                                             onBlur={() => touch('currentWeight')} placeholder="e.g. 78"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
+                                            className="w-full min-w-0 bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                     </FormField>
                                     <FormField label="Height (cm)" required error={errors.height} touched={touched.height}>
-                                        <Input type="number" value={form.height} onChange={e => set('height')(e.target.value)}
+                                        <Input type="number" inputMode="decimal" value={form.height} onChange={e => set('height')(e.target.value)}
                                             onBlur={() => touch('height')} placeholder="e.g. 172"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
+                                            className="w-full min-w-0 bg-white/5 border-white/10 text-white placeholder:text-white/25 rounded-xl h-11 sm:h-10" />
                                     </FormField>
                                 </div>
 
