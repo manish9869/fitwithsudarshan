@@ -712,19 +712,16 @@ export default function Onboarding() {
                                 <FormField label="What's your main goal?" required error={errors.mainGoal} touched={touched.mainGoal}>
                                     <TextArea value={form.mainGoal} onChange={v => { set('mainGoal')(v); if (!touched.mainGoal) touch('mainGoal'); }}
                                         placeholder="e.g. Lose 15kg, build lean muscle, improve energy…" rows={2} />
-                                    <FieldError msg={touched.mainGoal && errors.mainGoal ? errors.mainGoal : ''} />
                                 </FormField>
 
                                 <FormField label="Describe your ideal result" required error={errors.desiredResult} touched={touched.desiredResult}>
                                     <TextArea value={form.desiredResult} onChange={v => { set('desiredResult')(v); if (!touched.desiredResult) touch('desiredResult'); }}
                                         placeholder="What does success look like at the end of this program?" rows={2} />
-                                    <FieldError msg={touched.desiredResult && errors.desiredResult ? errors.desiredResult : ''} />
                                 </FormField>
 
                                 <FormField label="Why do you want to start now?" required error={errors.whyNow} touched={touched.whyNow}>
                                     <TextArea value={form.whyNow} onChange={v => { set('whyNow')(v); if (!touched.whyNow) touch('whyNow'); }}
                                         placeholder="What's driving you to start this journey today?" rows={2} />
-                                    <FieldError msg={touched.whyNow && errors.whyNow ? errors.whyNow : ''} />
                                 </FormField>
 
                                 <FormField label="Profession / Work Type">
@@ -747,7 +744,6 @@ export default function Onboarding() {
                                 <FormField label="Training days per week" required error={errors.trainingDays} touched={touched.trainingDays}>
                                     <PillSelector options={TRAINING_DAYS} value={form.trainingDays}
                                         onChange={v => { set('trainingDays')(v); touch('trainingDays'); }} />
-                                    <FieldError msg={touched.trainingDays && errors.trainingDays ? errors.trainingDays : ''} />
                                 </FormField>
                             </SectionCard>
                         )}
@@ -758,26 +754,22 @@ export default function Onboarding() {
                                 <FormField label="Food Preference" required error={errors.foodPreference} touched={touched.foodPreference}>
                                     <PillSelector options={FOOD_PREFS} value={form.foodPreference}
                                         onChange={v => { set('foodPreference')(v); touch('foodPreference'); }} />
-                                    <FieldError msg={touched.foodPreference && errors.foodPreference ? errors.foodPreference : ''} />
                                 </FormField>
 
                                 <FormField label="Describe your full-day food routine" required error={errors.dailyFoodRoutine} touched={touched.dailyFoodRoutine}
                                     hint="Be specific — breakfast, lunch, evening snack, dinner.">
                                     <TextArea value={form.dailyFoodRoutine} onChange={v => { set('dailyFoodRoutine')(v); if (!touched.dailyFoodRoutine) touch('dailyFoodRoutine'); }}
                                         placeholder="Breakfast: Poha + chai. Lunch: Rice, dal, sabzi. Evening: Biscuits. Dinner: Roti, sabzi…" rows={4} />
-                                    <FieldError msg={touched.dailyFoodRoutine && errors.dailyFoodRoutine ? errors.dailyFoodRoutine : ''} />
                                 </FormField>
 
                                 <FormField label="Your biggest struggle with fitness / nutrition" required error={errors.biggestStruggle} touched={touched.biggestStruggle}>
                                     <TextArea value={form.biggestStruggle} onChange={v => { set('biggestStruggle')(v); if (!touched.biggestStruggle) touch('biggestStruggle'); }}
                                         placeholder="e.g. Late-night eating, no consistency, stress eating…" rows={3} />
-                                    <FieldError msg={touched.biggestStruggle && errors.biggestStruggle ? errors.biggestStruggle : ''} />
                                 </FormField>
 
                                 <FormField label="Average sleep per night" required error={errors.sleepHours} touched={touched.sleepHours}>
                                     <PillSelector options={SLEEP_OPTIONS.map(s => `${s} hrs`)} value={form.sleepHours ? `${form.sleepHours} hrs` : ''}
                                         onChange={v => { set('sleepHours')(v.replace(' hrs', '')); touch('sleepHours'); }} />
-                                    <FieldError msg={touched.sleepHours && errors.sleepHours ? errors.sleepHours : ''} />
                                 </FormField>
                             </SectionCard>
                         )}
