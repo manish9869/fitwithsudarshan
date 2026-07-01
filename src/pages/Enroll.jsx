@@ -88,12 +88,7 @@ function Field({ label, error, touched, children }) {
 
 // ── Goal Pill Multi-Select ────────────────────────────────────────────────────
 function GoalPicker({ selected, onChange, touched, error }) {
-    usePageMeta({
-        title: 'Enroll Now',
-        description: 'Enroll in RECODE™ coaching — choose your plan and complete secure checkout.',
-        path: '/enroll',
-        noindex: true, // checkout flow — no need to rank
-    });
+
 
     const toggle = (goal) => {
         if (selected.includes(goal)) {
@@ -291,6 +286,14 @@ function CouponInput({ coachingId, planType, durationMonths, originalPrice, onAp
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function Enroll() {
+
+    usePageMeta({
+        title: 'Enroll Now',
+        description: 'Enroll in RECODE™ coaching — choose your plan and complete secure checkout.',
+        path: '/enroll',
+        noindex: true, // checkout flow — no need to rank
+    });
+
     const location = useLocation();
     const navigate = useNavigate();
     const pre = location.state || {};
