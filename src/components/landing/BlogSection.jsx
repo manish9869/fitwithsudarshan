@@ -2,7 +2,7 @@ import { useRef, useState } from "react"
 import { motion, useInView, AnimatePresence } from "framer-motion"
 import { Clock, ArrowRight, X, ChevronLeft, ChevronRight, BookOpen, Zap, Activity, Flame } from "lucide-react"
 import { blogPosts } from "@/data/SiteData"
-
+import { Link } from "react-router-dom";
 const categoryColors = {
     "Recovery": { bg: "rgba(96,165,250,0.12)", color: "#60a5fa" },
     "Fat Loss": { bg: "rgba(251,146,60,0.12)", color: "#fb923c" },
@@ -115,91 +115,93 @@ function BlogModal({ post, onClose, onPrev, onNext, hasPrev, hasNext }) {
 }
 
 // Featured large card (first post)
-function FeaturedCard({ post, onClick }) {
+function FeaturedCard({ post }) {
     const cat = categoryColors[post.category] || defaultCat;
     return (
-        <motion.article
-            initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -6 }}
-            className="cursor-pointer col-span-full lg:col-span-2 rounded-3xl overflow-hidden relative group"
-            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', minHeight: 380 }}
-            onClick={onClick}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.35)'; e.currentTarget.style.boxShadow = '0 0 50px rgba(231,23,99,0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; }}>
+        <Link to={`/blog/${post.slug}`} className="col-span-full lg:col-span-2">
+            <motion.article
+                initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -6 }}
+                className="cursor-pointer rounded-3xl overflow-hidden relative group"
+                style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', minHeight: 380 }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.35)'; e.currentTarget.style.boxShadow = '0 0 50px rgba(231,23,99,0.1)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; }}>
 
-            <div className="absolute inset-0">
-                <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%)' }} />
-            </div>
-
-            <div className="absolute top-5 left-5 flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-black"
-                    style={{ background: cat.bg, color: cat.color, border: `1px solid ${cat.color}40`, backdropFilter: 'blur(8px)' }}>
-                    {post.category}
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-black text-white"
-                    style={{ background: 'rgba(231,23,99,0.9)', boxShadow: '0 0 15px rgba(231,23,99,0.5)' }}>
-                    Featured
-                </span>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                <div className="flex items-center gap-3 text-xs text-white/40 mb-3">
-                    <span>{post.date}</span><span>·</span>
-                    <Clock className="w-3 h-3" /><span>{post.readTime}</span>
+                <div className="absolute inset-0">
+                    <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%)' }} />
                 </div>
-                <h3 className="text-2xl md:text-3xl font-black text-white mb-3 leading-tight group-hover:text-primary transition-colors">{post.title}</h3>
-                <p className="text-white/50 text-sm mb-4 line-clamp-2 max-w-lg">{post.excerpt}</p>
-                <div className="flex items-center gap-2 font-black text-sm" style={{ color: '#e71763' }}>
-                    Read Full Article <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+
+                <div className="absolute top-5 left-5 flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-black"
+                        style={{ background: cat.bg, color: cat.color, border: `1px solid ${cat.color}40`, backdropFilter: 'blur(8px)' }}>
+                        {post.category}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-black text-white"
+                        style={{ background: 'rgba(231,23,99,0.9)', boxShadow: '0 0 15px rgba(231,23,99,0.5)' }}>
+                        Featured
+                    </span>
                 </div>
-            </div>
-        </motion.article>
+
+                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                    <div className="flex items-center gap-3 text-xs text-white/40 mb-3">
+                        <span>{post.date}</span><span>·</span>
+                        <Clock className="w-3 h-3" /><span>{post.readTime}</span>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-black text-white mb-3 leading-tight group-hover:text-primary transition-colors">{post.title}</h3>
+                    <p className="text-white/50 text-sm mb-4 line-clamp-2 max-w-lg">{post.excerpt}</p>
+                    <div className="flex items-center gap-2 font-black text-sm" style={{ color: '#e71763' }}>
+                        Read Full Article <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                    </div>
+                </div>
+            </motion.article>
+        </Link>
     );
 }
 
 // Regular small card
-function BlogCard({ post, onClick, index }) {
+function BlogCard({ post, index }) {
     const cat = categoryColors[post.category] || defaultCat;
     return (
-        <motion.article
-            initial={{ opacity: 0, y: 30, scale: 0.94 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true }}
-            transition={{ duration: 0.55, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -8, scale: 1.02 }}
-            className="cursor-pointer rounded-2xl overflow-hidden flex flex-col group relative"
-            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
-            onClick={onClick}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.35)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(231,23,99,0.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; }}>
+        <Link to={`/blog/${post.slug}`}>
+            <motion.article
+                initial={{ opacity: 0, y: 30, scale: 0.94 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true }}
+                transition={{ duration: 0.55, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -8, scale: 1.02 }}
+                className="cursor-pointer rounded-2xl overflow-hidden flex flex-col group relative"
+                style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.35)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(231,23,99,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; }}>
 
-            {/* Top accent line */}
-            <motion.div className="absolute top-0 left-0 right-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: `linear-gradient(90deg, transparent, ${cat.color}, transparent)` }} />
+                {/* Top accent line */}
+                <motion.div className="absolute top-0 left-0 right-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ background: `linear-gradient(90deg, transparent, ${cat.color}, transparent)` }} />
 
-            <div className="aspect-video relative overflow-hidden flex-shrink-0">
-                <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-600" />
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)' }} />
-                <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-black"
-                    style={{ background: cat.bg, color: cat.color, border: `1px solid ${cat.color}30`, backdropFilter: 'blur(8px)' }}>
-                    {post.category}
-                </span>
-            </div>
-
-            <div className="p-5 flex flex-col flex-1">
-                <div className="flex items-center gap-2 text-[10px] text-white/30 mb-3">
-                    <span>{post.date}</span>
-                    <span className="w-0.5 h-0.5 rounded-full bg-white/20" />
-                    <Clock className="w-2.5 h-2.5" /><span>{post.readTime}</span>
+                <div className="aspect-video relative overflow-hidden flex-shrink-0">
+                    <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-600" />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)' }} />
+                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-black"
+                        style={{ background: cat.bg, color: cat.color, border: `1px solid ${cat.color}30`, backdropFilter: 'blur(8px)' }}>
+                        {post.category}
+                    </span>
                 </div>
-                <h3 className="font-black text-base text-white mb-2 line-clamp-2 group-hover:text-primary transition-colors leading-snug">{post.title}</h3>
-                <p className="text-xs text-white/40 mb-4 line-clamp-2 flex-1 leading-relaxed">{post.excerpt}</p>
-                <div className="flex items-center gap-1 text-xs font-black" style={{ color: '#e71763' }}>
-                    Read More <ArrowRight className="w-3 h-3 group-hover:translate-x-1.5 transition-transform" />
+
+                <div className="p-5 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 text-[10px] text-white/30 mb-3">
+                        <span>{post.date}</span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-white/20" />
+                        <Clock className="w-2.5 h-2.5" /><span>{post.readTime}</span>
+                    </div>
+                    <h3 className="font-black text-base text-white mb-2 line-clamp-2 group-hover:text-primary transition-colors leading-snug">{post.title}</h3>
+                    <p className="text-xs text-white/40 mb-4 line-clamp-2 flex-1 leading-relaxed">{post.excerpt}</p>
+                    <div className="flex items-center gap-1 text-xs font-black" style={{ color: '#e71763' }}>
+                        Read More <ArrowRight className="w-3 h-3 group-hover:translate-x-1.5 transition-transform" />
+                    </div>
                 </div>
-            </div>
-        </motion.article>
+            </motion.article>
+        </Link>
     );
 }
 
@@ -251,11 +253,10 @@ export default function BlogSection() {
                     {/* Grid — Featured (large) + regular cards */}
                     <div className="grid lg:grid-cols-3 gap-5">
                         {visiblePosts.map((post, index) => {
-                            const realIndex = blogPosts.findIndex(p => p.id === post.id);
                             if (index === 0) {
-                                return <FeaturedCard key={post.id} post={post} onClick={() => setSelectedIndex(realIndex)} />;
+                                return <FeaturedCard key={post.id} post={post} />;
                             }
-                            return <BlogCard key={post.id} post={post} onClick={() => setSelectedIndex(realIndex)} index={index} />;
+                            return <BlogCard key={post.id} post={post} index={index} />;
                         })}
                     </div>
 

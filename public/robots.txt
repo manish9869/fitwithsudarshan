@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /payment
+Disallow: /payment-success
+Disallow: /payment-failed
+Disallow: /onboarding
+Disallow: /enroll
+
+Sitemap: https://fitwithsudarshan.com/sitemap.xml

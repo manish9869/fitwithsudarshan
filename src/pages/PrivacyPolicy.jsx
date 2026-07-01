@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Lock } from 'lucide-react';
 import FooterSection from '@/components/landing/FooterSection';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const sections = [
     {
@@ -42,6 +43,14 @@ We use industry-standard encryption and secure payment processing via Razorpay f
 ];
 
 export default function PrivacyPolicy() {
+
+    usePageMeta({
+        title: 'Privacy Policy',
+        description: 'How FitWithSudarshan collects, uses, and protects your personal information.',
+        path: '/privacy-policy',
+        noindex: true,
+    });
+
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
     }, []);

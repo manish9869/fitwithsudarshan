@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
-
+import { usePageMeta } from '@/hooks/usePageMeta';
 import FooterSection from '@/components/landing/FooterSection';
 
 const sections = [
@@ -49,6 +49,13 @@ Documentation may be required. Please contact us immediately via WhatsApp or ema
 ];
 
 export default function RefundPolicy() {
+    usePageMeta({
+        title: 'Refund & Cancellation Policy',
+        description: 'Refund and cancellation policy for RECODE™ coaching plans and personal training sessions.',
+        path: '/refund-policy',
+        noindex: true,
+    });
+
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
     }, []);

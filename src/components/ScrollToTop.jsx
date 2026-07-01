@@ -22,7 +22,7 @@ export default function ScrollToTop() {
             const id = getHashId(hash);
             const timer = window.setTimeout(() => {
                 document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-            }, 50);
+            }, 300);
             return () => window.clearTimeout(timer);
         }
 

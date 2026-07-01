@@ -7,11 +7,13 @@
     <!-- ═══════════════════════════════════════════════════════════
          FAVICONS
     ════════════════════════════════════════════════════════════════ -->
+
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <meta name="theme-color" content="#e71763" />
 
     <!-- ═══════════════════════════════════════════════════════════
@@ -223,18 +225,18 @@
             "priceCurrency": "INR",
             "availability": "https://schema.org/InStock"
           },
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "RECODE Video Coaching",
-              "description": "Online coaching plus scheduled 1-on-1 video consultation calls. Includes exercise form review, diet review on call, and personalised roadmap correction.",
-              "provider": { "@id": "https://fitwithsudarshan.com/#business" }
-            },
-            "price": "4999",
-            "priceCurrency": "INR",
-            "availability": "https://schema.org/InStock"
-          },
+         {
+  "@type": "Offer",
+  "itemOffered": {
+    "@type": "Service",
+    "name": "RECODE Video Coaching",
+    "description": "Online coaching plus scheduled 1-on-1 video consultation calls. Includes exercise form review, diet review on call, personalised roadmap correction, and 12 sessions per month.",
+    "provider": { "@id": "https://fitwithsudarshan.com/#business" }
+  },
+  "price": "10000",
+  "priceCurrency": "INR",
+  "availability": "https://schema.org/InStock"
+},
           {
             "@type": "Offer",
             "itemOffered": {
@@ -334,13 +336,13 @@
           }
         },
         {
-          "@type": "Question",
-          "name": "How much does online personal training cost with Sudarshan?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Online coaching plans start from ₹2,999 per month for individual clients. Video coaching plans start from ₹4,999/month. Mumbai in-person personal training starts from ₹9,999/month. Couple plans are also available. Longer durations (3, 6, 12 months) offer better value. Contact via WhatsApp for a free consultation."
-          }
-        },
+  "@type": "Question",
+  "name": "How much does online personal training cost with Sudarshan?",
+  "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Online coaching plans start from ₹1,999 per month for individual clients. Video coaching plans start from ₹10,000/month. Mumbai in-person personal training starts from ₹20,000/month. Couple plans are also available. Longer durations (3, 6, 12 months) offer better value. Contact via WhatsApp for a free consultation."
+  }
+}
         {
           "@type": "Question",
           "name": "Is Sudarshan Chavan ACSM certified?",
@@ -397,42 +399,12 @@
       "description": "Science-backed fitness articles on recovery, fat loss, nutrition, mobility and mindset by Sudarshan Chavan.",
       "url": "https://fitwithsudarshan.com/#blog",
       "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "url": "https://fitwithsudarshan.com/#blog",
-          "name": "Why Recovery Is the Missing Piece in Your Transformation"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "url": "https://fitwithsudarshan.com/#blog",
-          "name": "Fat Loss Without Starving: The RECODE Nutrition Approach"
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "url": "https://fitwithsudarshan.com/#blog",
-          "name": "Mobility: The Forgotten Component That Unlocks Everything"
-        },
-        {
-          "@type": "ListItem",
-          "position": 4,
-          "url": "https://fitwithsudarshan.com/#blog",
-          "name": "Building Muscle the Smart Way: The RECODE Approach to Hypertrophy"
-        },
-        {
-          "@type": "ListItem",
-          "position": 5,
-          "url": "https://fitwithsudarshan.com/#blog",
-          "name": "Sleep: Your Most Powerful Transformation Tool"
-        },
-        {
-          "@type": "ListItem",
-          "position": 6,
-          "url": "https://fitwithsudarshan.com/#blog",
-          "name": "The Mindset Shift That Makes Transformation Sustainable"
-        }
+      { "@type": "ListItem", "position": 1, "url": "https://fitwithsudarshan.com/blog/why-recovery-is-the-missing-piece", "name": "Why Recovery Is the Missing Piece in Your Transformation" },
+      { "@type": "ListItem", "position": 2, "url": "https://fitwithsudarshan.com/blog/fat-loss-without-starving", "name": "Fat Loss Without Starving: The RECODE Nutrition Approach" },
+      { "@type": "ListItem", "position": 3, "url": "https://fitwithsudarshan.com/blog/mobility-the-forgotten-component", "name": "Mobility: The Forgotten Component That Unlocks Everything" },
+      { "@type": "ListItem", "position": 4, "url": "https://fitwithsudarshan.com/blog/building-muscle-the-smart-way", "name": "Building Muscle the Smart Way: The RECODE Approach to Hypertrophy" },
+      { "@type": "ListItem", "position": 5, "url": "https://fitwithsudarshan.com/blog/sleep-your-secret-weapon", "name": "Sleep: Your Most Powerful Transformation Tool" },
+      { "@type": "ListItem", "position": 6, "url": "https://fitwithsudarshan.com/blog/the-mindset-shift-that-makes-transformation-sustainable", "name": "The Mindset Shift That Makes Transformation Sustainable" }
       ]
     }
     </script>

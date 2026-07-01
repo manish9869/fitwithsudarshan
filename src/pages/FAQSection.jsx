@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, HelpCircle, ChevronDown, MessageCircle } from 'lucide-react';
 import { wa } from "@/utils/whatsapp";
 import FooterSection from '@/components/landing/FooterSection';
-
+import { usePageMeta } from '@/hooks/usePageMeta';
 const faqs = [
     {
         category: "Getting Started",
@@ -97,6 +97,12 @@ function FAQItem({ item, isOpen, onClick }) {
 
 export default function FAQ() {
     const [openKey, setOpenKey] = useState(null);
+
+    usePageMeta({
+        title: 'FAQ',
+        description: "Answers to common questions about RECODE™ coaching — pricing, results timeline, online vs in-person training, and more.",
+        path: '/faq',
+    });
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
