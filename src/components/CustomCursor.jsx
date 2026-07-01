@@ -13,7 +13,7 @@ export default function CustomCursor() {
 
     // Ring trails slightly behind — but much snappier than before
     const ringX = useSpring(dotX, { damping: 30, stiffness: 900, mass: 0.25 });
-    const ringY = useSpring(dotY, { damping: 30, stiffness: 900, mass: 0.25 }); baseStyle =
+    const ringY = useSpring(dotY, { damping: 30, stiffness: 900, mass: 0.25 });
 
     // Tracks whether we're currently over a hoverable element, without
     // calling closest() on every mousemove — only re-checks when the
