@@ -12,8 +12,8 @@ export default function CustomCursor() {
     const dotY = useMotionValue(-200);
 
     // Ring trails slightly behind — but much snappier than before
-    const ringX = useSpring(dotX, { damping: 22, stiffness: 700, mass: 0.3 });
-    const ringY = useSpring(dotY, { damping: 22, stiffness: 700, mass: 0.3 });
+    const ringX = useSpring(dotX, { damping: 30, stiffness: 900, mass: 0.25 });
+    const ringY = useSpring(dotY, { damping: 30, stiffness: 900, mass: 0.25 }); baseStyle =
 
     // Tracks whether we're currently over a hoverable element, without
     // calling closest() on every mousemove — only re-checks when the
@@ -69,8 +69,9 @@ export default function CustomCursor() {
         translateX: "-50%",
         translateY: "-50%",
         pointerEvents: "none",
-        zIndex: 2147483647, // max z-index — above all overlays including mobile menu
+        zIndex: 2147483647,
         borderRadius: "50%",
+        willChange: "transform",
     };
 
     return (

@@ -178,6 +178,7 @@ export const coachingTypes = [
         features: [
             "Everything included in Online Coaching",
             "Scheduled video consultation / review calls",
+            "12 sessions in a month",
             "Exercise form discussion",
             "Diet and routine review on call",
             "Progress discussion",
@@ -237,16 +238,16 @@ export const pricingTable = {
     },
     video: {
         individual: {
-            "1": 4999,
-            "3": 12999,
-            "6": 22999,
-            "12": 38999,
+            "1": 10000,
+            "3": 28000,
+            "6": 55000,
+            "12": 100000,
         },
         couple: {
-            "1": 7999,
-            "3": 19999,
-            "6": 35999,
-            "12": 59999,
+            "1": 18000,
+            "3": 50000,
+            "6": 100000,
+            "12": 180000,
         },
     },
     personal: {
