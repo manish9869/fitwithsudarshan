@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, FileText } from 'lucide-react';
 import { wa } from "@/utils/whatsapp";
 import FooterSection from '@/components/landing/FooterSection';
-
+import { usePageMeta } from '@/hooks/usePageMeta';
 const sections = [
     {
         title: '1. Services',
@@ -109,6 +109,15 @@ Existing paid services will continue as per the agreed plan unless mutually upda
 ];
 
 export default function Terms() {
+
+
+    usePageMeta({
+        title: 'Terms & Conditions',
+        description: 'Terms and conditions for FitWithSudarshan and RECODE™ coaching services.',
+        path: '/terms',
+        noindex: true,
+    });
+
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
     }, []);

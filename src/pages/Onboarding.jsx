@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { wa } from "@/utils/whatsapp";
-
+import { usePageMeta } from '@/hooks/usePageMeta';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PLANS = [
     'Online Coaching',
@@ -434,6 +434,14 @@ const INITIAL_FORM = {
 };
 
 export default function Onboarding() {
+
+    usePageMeta({
+        title: 'Client Onboarding',
+        description: 'Complete your RECODE™ onboarding assessment.',
+        path: '/onboarding',
+        noindex: true,
+    });
+
     const navigate = useNavigate();
 
     const [section, setSection] = useState(0);

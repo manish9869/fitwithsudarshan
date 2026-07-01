@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { coachingTypes, pricingTable, durations, basicConsultation } from '@/data/SiteData';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { validateCoupon, formatPrice as fmtPrice } from '@/utils/coupons';
 
@@ -88,6 +88,13 @@ function Field({ label, error, touched, children }) {
 
 // ── Goal Pill Multi-Select ────────────────────────────────────────────────────
 function GoalPicker({ selected, onChange, touched, error }) {
+    usePageMeta({
+        title: 'Enroll Now',
+        description: 'Enroll in RECODE™ coaching — choose your plan and complete secure checkout.',
+        path: '/enroll',
+        noindex: true, // checkout flow — no need to rank
+    });
+
     const toggle = (goal) => {
         if (selected.includes(goal)) {
             onChange(selected.filter((g) => g !== goal));

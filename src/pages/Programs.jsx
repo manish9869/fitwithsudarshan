@@ -4,8 +4,14 @@ import FooterSection from '@/components/landing/FooterSection';
 import { Button } from '@/components/ui/button';
 import { Flame, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
+import { usePageMeta } from '@/hooks/usePageMeta';
 export default function Programs() {
+    usePageMeta({
+        title: 'Programs & Pricing',
+        description: 'Explore RECODE™ Online, Video, and Mumbai Personal Training coaching plans — pricing for individuals and couples.',
+        path: '/programs',
+    });
+
     return (
         <div className="min-h-screen bg-background">
             <nav className="glass border-b border-white/5 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
