@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -6,7 +7,8 @@ import CustomCursor from '@/components/CustomCursor';
 import ScrollToTop from '@/components/ScrollToTop';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 import Landing from '@/pages/Landing';
-
+import { lazyRetry } from '@/utils/lazyRetry';
+import RouteErrorBoundary from '@/components/RouteErrorBoundary';
 const Enroll = lazy(() => import('@/pages/Enroll'));
 const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
 const PaymentSuccess = lazy(() => import('@/pages/PaymentSuccess'));
@@ -99,13 +101,13 @@ function App() {
       <CustomCursor />
       <ScrollToTop />
       <AnalyticsTracker />
-      <Suspense fallback={<PageFallback />}>
-        <AnimatedRoutes />
-      </Suspense>
-
+      <RouteErrorBoundary>
+        <Suspense fallback={<PageFallback />}>
+          <AnimatedRoutes />
+        </Suspense>
+      </RouteErrorBoundary>
       <SpeedInsights />
     </Router>
   );
 }
-
 export default App;
