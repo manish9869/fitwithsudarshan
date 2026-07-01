@@ -1,4 +1,3 @@
-// src/components/landing/BlogSection.jsx
 import { useRef, useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence, useInView } from "framer-motion"
 import { Clock, ArrowRight, X, ChevronLeft, ChevronRight, BookOpen, Zap, Activity, Flame } from "lucide-react"
@@ -57,7 +56,7 @@ function renderContent(content) {
     return elements;
 }
 
-// ── Blog Modal — shell stays mounted; only inner content crossfades on nav ───
+// ── Blog Modal — fixed-height shell (no jump on nav) + themed slim scrollbar ─
 function BlogModal({ post, onClose, onPrev, onNext, hasPrev, hasNext }) {
     const cat = categoryColors[post.category] || defaultCat;
     const [navDir, setNavDir] = useState(1); // 1 = next, -1 = prev — drives slide direction
@@ -102,10 +101,33 @@ function BlogModal({ post, onClose, onPrev, onNext, hasPrev, hasNext }) {
             className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6"
             onClick={onClose}
         >
+            {/* Themed slim scrollbar — scoped to the modal body only */}
+            <style>{`
+                .blog-modal-scroll {
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(231,23,99,0.45) rgba(255,255,255,0.03);
+                }
+                .blog-modal-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .blog-modal-scroll::-webkit-scrollbar-track {
+                    background: rgba(255,255,255,0.03);
+                    border-radius: 999px;
+                }
+                .blog-modal-scroll::-webkit-scrollbar-thumb {
+                    background: rgba(231,23,99,0.4);
+                    border-radius: 999px;
+                    border: 1px solid rgba(0,0,0,0.15);
+                }
+                .blog-modal-scroll::-webkit-scrollbar-thumb:hover {
+                    background: rgba(231,23,99,0.7);
+                }
+            `}</style>
+
             {/* Backdrop */}
             <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)' }} />
 
-            {/* Modal shell — mounts ONCE per open session, never remounts on nav */}
+            {/* Modal shell — fixed height, mounts ONCE per open session, never remounts on nav */}
             <motion.div
                 initial={{ opacity: 0, scale: 0.94, y: 24 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -159,8 +181,8 @@ function BlogModal({ post, onClose, onPrev, onNext, hasPrev, hasNext }) {
                     </AnimatePresence>
                 </div>
 
-                {/* Scrollable body — content crossfades, shell doesn't */}
-                <div ref={bodyRef} className="flex-1 overflow-y-auto px-5 sm:px-8 py-6" style={{ scrollbarWidth: 'thin' }}>
+                {/* Scrollable body — fixed height area (flex-1), themed slim scrollbar */}
+                <div ref={bodyRef} className="blog-modal-scroll flex-1 overflow-y-auto px-5 sm:px-8 py-6">
                     <AnimatePresence mode="wait" custom={navDir} initial={false}>
                         <motion.div
                             key={`body-${post.id}`}
@@ -366,7 +388,7 @@ export default function BlogSection() {
                 </div>
             </section>
 
-            {/* Modal shell keyed on "isOpen" (not post.id) so it only mounts/unmounts on true open/close */}
+            {/* Modal shell keyed on a stable string (not post.id) so it only mounts/unmounts on true open/close */}
             <AnimatePresence>
                 {isOpen && (
                     <BlogModal
