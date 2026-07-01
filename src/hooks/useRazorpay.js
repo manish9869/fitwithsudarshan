@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { buildEnrollment, saveEnrollmentToSupabase } from '../services/enrollmentService';
 import { sendEmail } from '../services/emailService';
-
+import { trackEvent } from '@/utils/analytics';
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -185,6 +185,15 @@ export function useRazorpay() {
 
                     // ── 6. Send emails (fire-and-forget) ─────────────────────────────────
                     sendEmail({ type: 'enrollment_both', to: null, data: enrollment });
+
+                    trackEvent('purchase', {
+                        transaction_id: enrollment.razorpayPaymentId,
+                        value: enrollment.amountPaid,
+                        currency: 'INR',
+                        plan_type: enrollment.planType,
+                        coaching_type: enrollment.coachingType,
+                        coupon: enrollment.couponCode || undefined,
+                    });
 
                     console.log('[Razorpay] ✅ Calling onSuccess.');
                     console.groupEnd();

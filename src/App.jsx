@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import CustomCursor from '@/components/CustomCursor';
 import ScrollToTop from '@/components/ScrollToTop';
-
+import AnalyticsTracker from '@/components/AnalyticsTracker';
 import Landing from '@/pages/Landing';
 
 const Enroll = lazy(() => import('@/pages/Enroll'));
@@ -98,7 +98,7 @@ function App() {
     <Router>
       <CustomCursor />
       <ScrollToTop />
-
+      <AnalyticsTracker />
       <Suspense fallback={<PageFallback />}>
         <AnimatedRoutes />
       </Suspense>
