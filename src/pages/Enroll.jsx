@@ -302,11 +302,12 @@ export default function Enroll() {
     // Restore any in-progress draft (e.g. user hit the header "Back" link or
     // browser back button by accident) before falling back to router state.
     const draft = loadDraft();
+    const hasIncomingSelection = Boolean(pre.coachingId);
 
-    const [step, setStep] = useState(draft?.step ?? 0);
-    const [coachingId, setCoachingId] = useState(draft?.coachingId ?? pre.coachingId ?? 'online');
-    const [planType, setPlanType] = useState(draft?.planType ?? pre.planType ?? 'individual');
-    const [durationMonths, setDur] = useState(draft?.durationMonths ?? pre.duration ?? '3');
+    const [step, setStep] = useState(hasIncomingSelection ? 0 : (draft?.step ?? 0));
+    const [coachingId, setCoachingId] = useState(pre.coachingId ?? draft?.coachingId ?? 'online');
+    const [planType, setPlanType] = useState(pre.planType ?? draft?.planType ?? 'individual');
+    const [durationMonths, setDur] = useState(pre.duration ?? draft?.durationMonths ?? '3');
 
     const [modalStatus, setModalStatus] = useState('idle');
 
