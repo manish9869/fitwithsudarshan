@@ -104,7 +104,29 @@ export default function AdminLayout() {
 
     return (
         <div className="min-h-screen bg-background flex">
+            <style>
+                {`
+                body.admin-page input,
+                body.admin-page select,
+                body.admin-page textarea,
+                body.admin-page button {
+                    outline: none !important;
+                }
 
+                body.admin-page input:focus,
+                body.admin-page select:focus,
+                body.admin-page textarea:focus {
+                    outline: none !important;
+                    border-color: rgba(231,23,99,0.5) !important;
+                    box-shadow: 0 0 0 3px rgba(231,23,99,0.12) !important;
+                }
+
+                body.admin-page button:focus-visible {
+                    outline: none !important;
+                    box-shadow: 0 0 0 3px rgba(231,23,99,0.18) !important;
+                }
+            `}
+            </style>
             {/* Desktop sidebar */}
             <aside
                 className="hidden lg:flex flex-col w-56 flex-shrink-0 sticky top-0 h-screen"
