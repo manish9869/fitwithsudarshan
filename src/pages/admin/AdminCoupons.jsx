@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Trash2, Edit2, X, Loader2, Tag, Search, Eye,
     Percent, IndianRupee, Layers, Calendar, CheckCircle2,
-    XCircle, Copy, Check, AlertCircle, TrendingUp,
+    XCircle, Copy, Check, AlertCircle, AlertTriangle, TrendingUp, Sparkles,
 } from 'lucide-react';
 import { coachingTypes, durations } from '@/data/SiteData';
 import { fetchCoupons, createCouponAdmin, updateCouponAdmin, deleteCouponAdmin } from './adminApi';
@@ -60,6 +60,10 @@ function discountSummary(c) {
     return '—';
 }
 
+function appliesToEverything(c) {
+    return !c.applicable_coaching_types?.length && !c.applicable_plan_types?.length && !c.applicable_durations?.length;
+}
+
 // ── Small building blocks ────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, accent }) {
     return (
@@ -87,21 +91,87 @@ function Chip({ active, onClick, children, color = '#e71763' }) {
     );
 }
 
-function CodeCopy({ code }) {
+function CodeCopy({ code, size = 'sm' }) {
     const [copied, setCopied] = useState(false);
     return (
         <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(code).catch(() => { }); setCopied(true); setTimeout(() => setCopied(false), 1400); }}
-            className="flex items-center gap-1.5 font-mono font-bold text-sm text-white group">
+            className={`flex items-center gap-1.5 font-mono font-bold text-white group ${size === 'lg' ? 'text-sm' : 'text-xs'}`}>
             {code}
             {copied ? <Check className="w-3 h-3" style={{ color: '#34d399' }} /> : <Copy className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />}
         </button>
     );
 }
 
+// ── Row used inside "Applies To" / "Details" boxes ───────────────────────────
+function InfoRow({ label, children, last = false }) {
+    return (
+        <div
+            className="flex items-start justify-between gap-4 py-2.5"
+            style={!last ? { borderBottom: '1px solid rgba(255,255,255,0.04)' } : undefined}
+        >
+            <span className="text-xs text-white/35 flex-shrink-0 w-28">{label}</span>
+            <div className="flex-1 flex flex-wrap gap-1.5 justify-end">{children}</div>
+        </div>
+    );
+}
+
+// ── Themed confirm-delete modal (replaces window.confirm) ───────────────────
+function ConfirmDeleteModal({ coupon, onCancel, onConfirm, deleting }) {
+    return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={!deleting ? onCancel : undefined}>
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 4 }}
+                transition={{ duration: 0.16 }}
+                className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+                style={{ background: '#0e0e16', border: '1px solid rgba(239,68,68,0.25)', boxShadow: '0 30px 70px rgba(0,0,0,0.55)' }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-6 text-center">
+                    <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                        style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}
+                    >
+                        <AlertTriangle className="w-5 h-5" style={{ color: '#f87171' }} />
+                    </div>
+
+                    <p className="font-bold text-white text-sm mb-1.5">Delete this coupon?</p>
+                    <p className="text-xs text-white/40 leading-relaxed">
+                        <span className="font-mono font-bold text-white/70">{coupon?.code}</span> will be permanently removed and can no longer be redeemed. This can't be undone.
+                    </p>
+
+                    <div className="flex gap-3 mt-5">
+                        <button
+                            onClick={onCancel}
+                            disabled={deleting}
+                            className="flex-1 py-2.5 rounded-xl text-sm text-white/50 hover:text-white transition-all disabled:opacity-50"
+                            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            disabled={deleting}
+                            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
+                            style={{ background: '#ef4444' }}
+                        >
+                            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            {deleting ? 'Deleting…' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
 // ── View drawer (read-only) ──────────────────────────────────────────────────
-function ViewDrawer({ coupon, onClose, onEdit }) {
+function ViewDrawer({ coupon, onClose, onEdit, onDeleteRequest }) {
     const status = statusOf(coupon);
     const usagePct = coupon.max_uses ? Math.min(100, Math.round((coupon.used_count / coupon.max_uses) * 100)) : null;
+    const allApplicable = appliesToEverything(coupon);
 
     const row = (label, value) => (
         <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -122,7 +192,7 @@ function ViewDrawer({ coupon, onClose, onEdit }) {
                 <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4"
                     style={{ background: 'rgba(10,10,20,0.97)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}>
                     <div>
-                        <CodeCopy code={coupon.code} />
+                        <CodeCopy code={coupon.code} size="lg" />
                         <p className="text-[11px] text-white/35 mt-0.5">{coupon.label}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -131,6 +201,16 @@ function ViewDrawer({ coupon, onClose, onEdit }) {
                             style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.25)', color: '#e71763' }}>
                             <Edit2 className="w-3 h-3" /> Edit
                         </button>
+                        <button
+                            onClick={() => onDeleteRequest(coupon)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                            style={{ color: 'rgba(248,113,113,0.75)' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                            title="Delete coupon"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                         <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5">
                             <X className="w-4 h-4" />
                         </button>
@@ -138,13 +218,19 @@ function ViewDrawer({ coupon, onClose, onEdit }) {
                 </div>
 
                 <div className="p-5 space-y-6">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: status.bg, color: status.color }}>
                             {status.label}
                         </span>
                         <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: `${TYPE_META[coupon.type]?.color}18`, color: TYPE_META[coupon.type]?.color }}>
                             {discountSummary(coupon)}
                         </span>
+                        {allApplicable && (
+                            <span className="text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5"
+                                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                                <Sparkles className="w-3 h-3" /> Site-wide
+                            </span>
+                        )}
                     </div>
 
                     {coupon.description && <p className="text-sm text-white/50 leading-relaxed">{coupon.description}</p>}
@@ -199,46 +285,64 @@ function ViewDrawer({ coupon, onClose, onEdit }) {
                         </section>
                     )}
 
+                    {/* ── Applies To — compact rows, no repeated "All ..." blocks ── */}
                     <section>
-                        <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#e71763' }}>Applies to</p>
-                        <div className="space-y-3">
-                            <div>
-                                <p className="text-xs text-white/35 mb-1.5">Coaching type</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {coupon.applicable_coaching_types?.length
-                                        ? coupon.applicable_coaching_types.map((id) => (
-                                            <span key={id} className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(231,23,99,0.1)', color: '#e71763' }}>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#e71763' }}>Applies To</p>
+                            {allApplicable && (
+                                <span className="text-[10px] text-white/25">Everything — no restrictions</span>
+                            )}
+                        </div>
+
+                        {allApplicable ? (
+                            <div
+                                className="rounded-xl px-4 py-3 flex items-center gap-2.5"
+                                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                            >
+                                <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                                <p className="text-xs text-white/45">
+                                    This coupon works on <span className="text-white/70 font-medium">any coaching type</span>,{' '}
+                                    <span className="text-white/70 font-medium">any plan</span>, and{' '}
+                                    <span className="text-white/70 font-medium">any duration</span>.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="rounded-xl px-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <InfoRow label="Coaching Type">
+                                    {coupon.applicable_coaching_types?.length ? (
+                                        coupon.applicable_coaching_types.map((id) => (
+                                            <span key={id} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(231,23,99,0.1)', color: '#e71763' }}>
                                                 {coachingTypes.find((c) => c.id === id)?.shortName || id}
                                             </span>
                                         ))
-                                        : <span className="text-xs text-white/30">All types</span>}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-xs text-white/35 mb-1.5">Plan type</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {coupon.applicable_plan_types?.length
-                                        ? coupon.applicable_plan_types.map((id) => (
-                                            <span key={id} className="text-xs px-2.5 py-1 rounded-full capitalize" style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa' }}>
+                                    ) : (
+                                        <span className="text-xs text-white/25">Any</span>
+                                    )}
+                                </InfoRow>
+                                <InfoRow label="Plan Type">
+                                    {coupon.applicable_plan_types?.length ? (
+                                        coupon.applicable_plan_types.map((id) => (
+                                            <span key={id} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa' }}>
                                                 {PLAN_TYPES.find((p) => p.id === id)?.label || id}
                                             </span>
                                         ))
-                                        : <span className="text-xs text-white/30">All plan types</span>}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-xs text-white/35 mb-1.5">Duration</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {coupon.applicable_durations?.length
-                                        ? coupon.applicable_durations.map((m) => (
-                                            <span key={m} className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399' }}>
+                                    ) : (
+                                        <span className="text-xs text-white/25">Any</span>
+                                    )}
+                                </InfoRow>
+                                <InfoRow label="Duration" last>
+                                    {coupon.applicable_durations?.length ? (
+                                        coupon.applicable_durations.map((m) => (
+                                            <span key={m} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399' }}>
                                                 {m} Month{m !== '1' ? 's' : ''}
                                             </span>
                                         ))
-                                        : <span className="text-xs text-white/30">All durations</span>}
-                                </div>
+                                    ) : (
+                                        <span className="text-xs text-white/25">Any</span>
+                                    )}
+                                </InfoRow>
                             </div>
-                        </div>
+                        )}
                     </section>
                 </div>
             </motion.div>
@@ -427,6 +531,10 @@ export default function AdminCoupons() {
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
 
+    // Delete-confirmation state (replaces window.confirm)
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
     const load = async () => {
         setLoading(true);
         try { setCoupons(await fetchCoupons()); }
@@ -495,11 +603,23 @@ export default function AdminCoupons() {
         finally { setSaving(false); }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('Delete this coupon? This cannot be undone.')) return;
-        await deleteCouponAdmin(id);
-        setViewing(null);
-        load();
+    // Opens the themed confirm modal instead of window.confirm(...)
+    const requestDelete = (coupon) => setDeleteTarget(coupon);
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            await deleteCouponAdmin(deleteTarget.id);
+            setViewing(null);
+            setDeleteTarget(null);
+            load();
+        } catch (e) {
+            setError(e.message || 'Failed to delete coupon.');
+            setDeleteTarget(null);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     return (
@@ -544,7 +664,16 @@ export default function AdminCoupons() {
                 </div>
             </div>
 
-            {error && <div className="mb-4 text-sm text-red-400">{error}</div>}
+            {error && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 text-sm"
+                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {error}
+                    <button onClick={() => setError('')} className="ml-auto text-white/30 hover:text-white">
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            )}
 
             {loading ? (
                 <div className="py-24 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/25" /></div>
@@ -554,52 +683,52 @@ export default function AdminCoupons() {
                     <p className="text-sm text-white/30">{coupons.length === 0 ? 'No coupons created yet' : 'No coupons match your filters'}</p>
                 </div>
             ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {filtered.map((c) => {
                         const status = statusOf(c);
                         const meta = TYPE_META[c.type] || TYPE_META.PERCENT;
                         const Icon = meta.icon;
                         return (
                             <motion.div key={c.id}
-                                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                                className="rounded-2xl p-5 cursor-pointer transition-all"
+                                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                className="rounded-xl p-3.5 cursor-pointer transition-all"
                                 style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}
                                 onClick={() => setViewing(c)}
-                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.3)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.3)'; e.currentTarget.style.boxShadow = '0 8px 22px rgba(0,0,0,0.28)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
 
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${meta.color}18` }}>
-                                        <Icon className="w-4 h-4" style={{ color: meta.color }} />
+                                <div className="flex items-start justify-between mb-2.5">
+                                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${meta.color}18` }}>
+                                        <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
                                     </div>
-                                    <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: status.bg, color: status.color }}>
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: status.bg, color: status.color }}>
                                         {status.label}
                                     </span>
                                 </div>
 
-                                <div onClick={(e) => e.stopPropagation()} className="mb-1">
+                                <div onClick={(e) => e.stopPropagation()} className="mb-0.5">
                                     <CodeCopy code={c.code} />
                                 </div>
-                                <p className="text-xs text-white/40 mb-3 truncate">{c.label}</p>
+                                <p className="text-[11px] text-white/35 mb-2.5 truncate">{c.label}</p>
 
-                                <div className="flex items-center justify-between text-xs mb-3">
+                                <div className="flex items-center justify-between text-[11px] mb-2.5">
                                     <span className="font-bold" style={{ color: meta.color }}>{discountSummary(c)}</span>
-                                    <span className="text-white/30">{c.used_count || 0}{c.max_uses ? ` / ${c.max_uses}` : ''} used</span>
+                                    <span className="text-white/25">{c.used_count || 0}{c.max_uses ? `/${c.max_uses}` : ''} used</span>
                                 </div>
 
-                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                     <button onClick={() => setViewing(c)}
-                                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold text-white/50 hover:text-white transition-colors"
+                                        className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-bold text-white/50 hover:text-white transition-colors"
                                         style={{ background: 'rgba(255,255,255,0.04)' }}>
                                         <Eye className="w-3 h-3" /> View
                                     </button>
                                     <button onClick={() => openEdit(c)}
-                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8">
-                                        <Edit2 className="w-3.5 h-3.5" />
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 transition-colors">
+                                        <Edit2 className="w-3 h-3" />
                                     </button>
-                                    <button onClick={() => handleDelete(c.id)}
-                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/8">
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                    <button onClick={() => requestDelete(c)}
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/8 transition-colors">
+                                        <Trash2 className="w-3 h-3" />
                                     </button>
                                 </div>
                             </motion.div>
@@ -609,11 +738,29 @@ export default function AdminCoupons() {
             )}
 
             <AnimatePresence>
-                {viewing && <ViewDrawer coupon={viewing} onClose={() => setViewing(null)} onEdit={openEdit} />}
+                {viewing && (
+                    <ViewDrawer
+                        coupon={viewing}
+                        onClose={() => setViewing(null)}
+                        onEdit={openEdit}
+                        onDeleteRequest={requestDelete}
+                    />
+                )}
             </AnimatePresence>
 
             <AnimatePresence>
                 {editing && <EditModal editing={editing} setEditing={setEditing} onSave={handleSave} saving={saving} error={saveError} />}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {deleteTarget && (
+                    <ConfirmDeleteModal
+                        coupon={deleteTarget}
+                        deleting={deleting}
+                        onCancel={() => !deleting && setDeleteTarget(null)}
+                        onConfirm={confirmDelete}
+                    />
+                )}
             </AnimatePresence>
         </div>
     );

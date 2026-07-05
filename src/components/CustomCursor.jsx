@@ -1,7 +1,14 @@
 import { useEffect, useState, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 export default function CustomCursor() {
+    const location = useLocation();
+    // Admin pages restore the native system cursor (see styles/index.css
+    // `body.admin-page` rules) — this custom overlay must not render there,
+    // or you get both the native pointer AND the custom dot/ring at once.
+    const isAdminRoute = location.pathname.startsWith("/admin");
+
     const [visible, setVisible] = useState(false);
     const [clicking, setClicking] = useState(false);
     const [hovering, setHovering] = useState(false);
@@ -21,6 +28,12 @@ export default function CustomCursor() {
     const lastTargetRef = useRef(null);
 
     useEffect(() => {
+        // Bail out entirely on admin routes — no listeners, no overlay.
+        if (isAdminRoute) {
+            setVisible(false);
+            return;
+        }
+
         const touch = window.matchMedia("(hover: none)").matches;
         setIsTouchDevice(touch);
         if (touch) return; // no listeners at all on touch devices
@@ -58,9 +71,9 @@ export default function CustomCursor() {
             document.removeEventListener("mouseleave", onLeave);
             document.removeEventListener("mouseenter", onEnter);
         };
-    }, []);
+    }, [isAdminRoute]);
 
-    if (isTouchDevice) return null;
+    if (isAdminRoute || isTouchDevice) return null;
 
     const baseStyle = {
         position: "fixed",
