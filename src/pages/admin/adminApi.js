@@ -155,4 +155,20 @@ export async function saveNote(recordType, recordId, note) {
     return data.note;
 }
 
+export async function fetchCoupons() {
+    const data = await request('/coupons');
+    return data.coupons;
+}
+export async function createCouponAdmin(payload) {
+    const data = await request('/coupons', { method: 'POST', body: payload });
+    return data.coupon;
+}
+export async function updateCouponAdmin(id, payload) {
+    const data = await request(`/coupons/${id}`, { method: 'PATCH', body: payload });
+    return data.coupon;
+}
+export async function deleteCouponAdmin(id) {
+    return request(`/coupons/${id}`, { method: 'DELETE' });
+}
+
 export { AdminApiError };

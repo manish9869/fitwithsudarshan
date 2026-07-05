@@ -2,6 +2,10 @@ import { useCallback } from 'react';
 import { buildEnrollment, saveEnrollmentToSupabase } from '../services/enrollmentService';
 import { sendEmail } from '../services/emailService';
 import { trackEvent } from '@/utils/analytics';
+import { redeemCouponRemote } from '@/services/couponService';
+
+
+
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -185,6 +189,9 @@ export function useRazorpay() {
 
                     // ── 6. Send emails (fire-and-forget) ─────────────────────────────────
                     sendEmail({ type: 'enrollment_both', to: null, data: enrollment });
+
+
+                    if (couponCode) redeemCouponRemote(couponCode);
 
                     trackEvent('purchase', {
                         transaction_id: enrollment.razorpayPaymentId,

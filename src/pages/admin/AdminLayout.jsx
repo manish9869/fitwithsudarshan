@@ -7,7 +7,7 @@ import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, Users, ClipboardList, LogOut,
-    Menu, X,
+    Menu, X, Tag
 } from 'lucide-react';
 import { logout, getStoredAdmin } from './adminApi';
 
@@ -15,6 +15,7 @@ const NAV = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
     { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
+    { to: '/admin/coupons', icon: Tag, label: 'Coupons' }
 ];
 
 export default function AdminLayout() {
