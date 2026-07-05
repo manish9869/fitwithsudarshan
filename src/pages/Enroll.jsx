@@ -12,7 +12,8 @@ import { coachingTypes, pricingTable, durations, basicConsultation } from '@/dat
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useRazorpay } from '@/hooks/useRazorpay';
-import { validateCoupon, formatPrice as fmtPrice } from '@/utils/coupons';
+import { validateCouponRemote } from '@/services/couponService';
+import { formatPrice as fmtPrice } from '@/utils/coupons';
 
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
 const formatPrice = (p) =>
@@ -192,28 +193,24 @@ function CouponInput({ coachingId, planType, durationMonths, originalPrice, onAp
     const [error, setError] = useState('');
     const [checking, setChecking] = useState(false);
 
-    const handleApply = () => {
+    const handleApply = async () => {
         setError('');
         setChecking(true);
+        const result = await validateCouponRemote(inputValue, coachingId, planType, durationMonths, originalPrice);
+        setChecking(false);
 
-        setTimeout(() => {
-            const result = validateCoupon(inputValue, coachingId, planType, durationMonths, originalPrice);
-            setChecking(false);
-
-            if (!result.valid) {
-                setError(result.error);
-                return;
-            }
-
-            onApply({
-                code: inputValue.trim().toUpperCase(),
-                discountedPrice: result.discountedPrice,
-                savings: result.savings,
-                label: result.coupon.label,
-                description: result.coupon.description,
-            });
-            setInputValue('');
-        }, 400);
+        if (!result.valid) {
+            setError(result.error);
+            return;
+        }
+        onApply({
+            code: inputValue.trim().toUpperCase(),
+            discountedPrice: result.discountedPrice,
+            savings: result.savings,
+            label: result.coupon.label,
+            description: result.coupon.description,
+        });
+        setInputValue('');
     };
 
     if (appliedCoupon) {

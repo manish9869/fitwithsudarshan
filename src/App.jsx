@@ -31,6 +31,7 @@ const AdminGuard = lazy(() => lazyRetry(() => import('@/pages/admin/AdminGuard')
 const AdminDashboard = lazy(() => lazyRetry(() => import('@/pages/admin/AdminDashboard')));
 const AdminEnrollments = lazy(() => lazyRetry(() => import('@/pages/admin/AdminEnrollments')));
 const AdminAssessments = lazy(() => lazyRetry(() => import('@/pages/admin/AdminAssessments')));
+const AdminCoupons = lazy(() => lazyRetry(() => import('@/pages/admin/AdminCoupons')));
 
 function PageFallback() {
   return (
@@ -106,6 +107,7 @@ function App() {
             <Route path="dashboard" element={<LazyRoute><AdminDashboard /></LazyRoute>} />
             <Route path="enrollments" element={<LazyRoute><AdminEnrollments /></LazyRoute>} />
             <Route path="assessments" element={<LazyRoute><AdminAssessments /></LazyRoute>} />
+            <Route path="coupons" element={<LazyRoute><AdminCoupons /></LazyRoute>} />
             <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
           </Route>
         </Routes>
