@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Trash2, Edit2, X, Loader2, Tag, Search, Eye,
     Percent, IndianRupee, Layers, Calendar, CheckCircle2,
     XCircle, Copy, Check, AlertCircle, AlertTriangle, TrendingUp, Sparkles,
+    ChevronDown,
 } from 'lucide-react';
 import { coachingTypes, durations } from '@/data/SiteData';
 import { fetchCoupons, createCouponAdmin, updateCouponAdmin, deleteCouponAdmin } from './adminApi';
@@ -20,6 +21,12 @@ const TYPE_META = {
     FLAT: { label: 'Flat amount off', icon: IndianRupee, color: '#34d399' },
     FIXED_PRICE: { label: 'Fixed price', icon: Layers, color: '#fbbf24' },
 };
+
+const DISCOUNT_TYPE_OPTIONS = [
+    { value: 'PERCENT', label: 'Percent off' },
+    { value: 'FLAT', label: 'Flat ₹ off' },
+    { value: 'FIXED_PRICE', label: 'Fixed price override' },
+];
 
 function emptyForm() {
     return {
@@ -99,6 +106,106 @@ function CodeCopy({ code, size = 'sm' }) {
             {code}
             {copied ? <Check className="w-3 h-3" style={{ color: '#34d399' }} /> : <Copy className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />}
         </button>
+    );
+}
+
+// ── Theme-matching dropdown (replaces native <select>) ───────────────────────
+function ThemedDropdown({ value, onChange, options, placeholder = 'Select', minWidth }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+    const active = options.find((o) => o.value === value) || options[0];
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    return (
+        <div ref={ref} className="relative" style={minWidth ? { minWidth } : undefined}>
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none"
+                style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'white',
+                    boxShadow: open ? '0 0 0 3px rgba(231,23,99,0.12)' : 'none',
+                }}
+            >
+                <span className="flex-1 text-left truncate">
+                    {active?.label || placeholder}
+                </span>
+
+                <ChevronDown
+                    className="w-3.5 h-3.5 flex-shrink-0 transition-transform"
+                    style={{
+                        opacity: 0.6,
+                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }}
+                />
+            </button>
+
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute left-0 top-full mt-2 z-[130] rounded-xl overflow-hidden shadow-2xl w-full"
+                        style={{
+                            background: '#13131f',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                        }}
+                    >
+                        {options.map((option) => {
+                            const isActive = option.value === value;
+
+                            return (
+                                <button
+                                    type="button"
+                                    key={option.value}
+                                    onClick={() => {
+                                        onChange(option.value);
+                                        setOpen(false);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-left transition-colors"
+                                    style={{
+                                        background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.06)' : 'transparent';
+                                    }}
+                                >
+                                    <span
+                                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                        style={{ background: isActive ? '#e71763' : 'rgba(255,255,255,0.25)' }}
+                                    />
+
+                                    <span
+                                        className="flex-1"
+                                        style={{ color: isActive ? '#e71763' : 'rgba(255,255,255,0.65)' }}
+                                    >
+                                        {option.label}
+                                    </span>
+
+                                    {isActive && <Check className="w-3 h-3 flex-shrink-0" style={{ color: '#e71763' }} />}
+                                </button>
+                            );
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 
@@ -389,12 +496,11 @@ function EditModal({ editing, setEditing, onSave, saving, error }) {
                         </div>
                         <div>
                             <label className="text-[10px] text-white/35 uppercase tracking-widest mb-1.5 block">Discount type</label>
-                            <select value={editing.type} onChange={(e) => setEditing((f) => ({ ...f, type: e.target.value }))}
-                                className="w-full rounded-lg px-3 py-2.5 text-sm text-white bg-white/5 border border-white/10">
-                                <option value="PERCENT" style={{ background: '#0a0a0a' }}>Percent off</option>
-                                <option value="FLAT" style={{ background: '#0a0a0a' }}>Flat ₹ off</option>
-                                <option value="FIXED_PRICE" style={{ background: '#0a0a0a' }}>Fixed price override</option>
-                            </select>
+                            <ThemedDropdown
+                                value={editing.type}
+                                onChange={(v) => setEditing((f) => ({ ...f, type: v }))}
+                                options={DISCOUNT_TYPE_OPTIONS}
+                            />
                         </div>
                     </div>
 
