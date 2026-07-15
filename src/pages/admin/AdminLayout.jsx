@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Users, ClipboardList, LogOut, Menu, X, Tag, UserPlus, BellRing } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
+import { ToastProvider } from './ToastProvider';
+
 const NAV = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
@@ -16,6 +18,7 @@ const NAV = [
     { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
     { to: '/admin/coupons', icon: Tag, label: 'Coupons' },
 ];
+
 export default function AdminLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -101,88 +104,90 @@ export default function AdminLayout() {
     );
 
     return (
-        <div className="min-h-screen bg-background flex">
-            <style>
-                {`
-                body.admin-page input,
-                body.admin-page select,
-                body.admin-page textarea,
-                body.admin-page button {
-                    outline: none !important;
-                }
+        <ToastProvider>
+            <div className="min-h-screen bg-background flex">
+                <style>
+                    {`
+                    body.admin-page input,
+                    body.admin-page select,
+                    body.admin-page textarea,
+                    body.admin-page button {
+                        outline: none !important;
+                    }
 
-                body.admin-page input:focus,
-                body.admin-page select:focus,
-                body.admin-page textarea:focus {
-                    outline: none !important;
-                    border-color: rgba(231,23,99,0.5) !important;
-                    box-shadow: 0 0 0 3px rgba(231,23,99,0.12) !important;
-                }
+                    body.admin-page input:focus,
+                    body.admin-page select:focus,
+                    body.admin-page textarea:focus {
+                        outline: none !important;
+                        border-color: rgba(231,23,99,0.5) !important;
+                        box-shadow: 0 0 0 3px rgba(231,23,99,0.12) !important;
+                    }
 
-                body.admin-page button:focus-visible {
-                    outline: none !important;
-                    box-shadow: 0 0 0 3px rgba(231,23,99,0.18) !important;
-                }
-            `}
-            </style>
-            {/* Desktop sidebar */}
-            <aside
-                className="hidden lg:flex flex-col w-56 flex-shrink-0 sticky top-0 h-screen"
-                style={{ background: 'rgba(255,255,255,0.02)', borderRight: '1px solid rgba(255,255,255,0.06)' }}
-            >
-                <SidebarContent />
-            </aside>
-
-            {/* Mobile sidebar overlay */}
-            <AnimatePresence>
-                {sidebarOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-                            onClick={() => setSidebarOpen(false)}
-                        />
-                        <motion.aside
-                            initial={{ x: -256 }} animate={{ x: 0 }} exit={{ x: -256 }}
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                            className="fixed left-0 top-0 bottom-0 z-50 w-56 lg:hidden"
-                            style={{ background: '#0a0a0a', borderRight: '1px solid rgba(255,255,255,0.08)' }}
-                        >
-                            <SidebarContent />
-                        </motion.aside>
-                    </>
-                )}
-            </AnimatePresence>
-
-            {/* Main content */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Topbar */}
-                <header
-                    className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 h-14 flex-shrink-0"
-                    style={{ background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}
+                    body.admin-page button:focus-visible {
+                        outline: none !important;
+                        box-shadow: 0 0 0 3px rgba(231,23,99,0.18) !important;
+                    }
+                `}
+                </style>
+                {/* Desktop sidebar */}
+                <aside
+                    className="hidden lg:flex flex-col w-56 flex-shrink-0 sticky top-0 h-screen"
+                    style={{ background: 'rgba(255,255,255,0.02)', borderRight: '1px solid rgba(255,255,255,0.06)' }}
                 >
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setSidebarOpen(true)}
-                            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/5"
-                        >
-                            <Menu className="w-4 h-4" />
-                        </button>
-                        <span className="text-xs text-white/30 font-medium hidden sm:block">
-                            FitWithSudarshan Admin
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ background: '#34d399' }} />
-                        <span className="text-xs text-white/40">{admin?.displayName || admin?.username || 'Signed in'}</span>
-                    </div>
-                </header>
+                    <SidebarContent />
+                </aside>
 
-                {/* Page content */}
-                <main className="flex-1 overflow-auto p-4 sm:p-6">
-                    <Outlet />
-                </main>
+                {/* Mobile sidebar overlay */}
+                <AnimatePresence>
+                    {sidebarOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+                                onClick={() => setSidebarOpen(false)}
+                            />
+                            <motion.aside
+                                initial={{ x: -256 }} animate={{ x: 0 }} exit={{ x: -256 }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                className="fixed left-0 top-0 bottom-0 z-50 w-56 lg:hidden"
+                                style={{ background: '#0a0a0a', borderRight: '1px solid rgba(255,255,255,0.08)' }}
+                            >
+                                <SidebarContent />
+                            </motion.aside>
+                        </>
+                    )}
+                </AnimatePresence>
+
+                {/* Main content */}
+                <div className="flex-1 flex flex-col min-w-0">
+                    {/* Topbar */}
+                    <header
+                        className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 h-14 flex-shrink-0"
+                        style={{ background: 'rgba(10,10,10,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/5"
+                            >
+                                <Menu className="w-4 h-4" />
+                            </button>
+                            <span className="text-xs text-white/30 font-medium hidden sm:block">
+                                FitWithSudarshan Admin
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full" style={{ background: '#34d399' }} />
+                            <span className="text-xs text-white/40">{admin?.displayName || admin?.username || 'Signed in'}</span>
+                        </div>
+                    </header>
+
+                    {/* Page content */}
+                    <main className="flex-1 overflow-auto p-4 sm:p-6">
+                        <Outlet />
+                    </main>
+                </div>
             </div>
-        </div>
+        </ToastProvider>
     );
 }

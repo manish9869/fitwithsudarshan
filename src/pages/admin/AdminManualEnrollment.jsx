@@ -5,6 +5,8 @@
  * cash) without going through the website checkout. Lists every manually
  * created enrollment in a table, with an "Add" button that opens a modal
  * form — the same modal is reused to edit any existing record.
+ *
+ * NEW: toast notifications on save/update + email send.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +18,7 @@ import { coachingTypes, durations, pricingTable } from '@/data/SiteData';
 import { createManualEnrollment, updateManualEnrollment, sendEnrollmentEmail, fetchEnrollments } from './adminApi';
 import { fmtCurrency, fmtDate, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
 import EmailSendMenu from './EmailSendMenu';
+import { useToast } from './ToastProvider';
 
 const PAYMENT_METHODS = [
     { value: 'razorpay', label: 'Razorpay Link' },
@@ -95,6 +98,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
     const [form, setForm] = useState(() => rowToForm(editingRow));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const toast = useToast();
 
     useEffect(() => {
         setForm(rowToForm(editingRow));
@@ -161,8 +165,10 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                 : await createManualEnrollment(payload);
 
             onSaved(saved);
+            toast.success(isEdit ? 'Enrollment updated successfully' : 'Enrollment added successfully');
         } catch (err) {
             setError(err.message || 'Failed to save enrollment.');
+            toast.error(err.message || 'Failed to save enrollment.');
         } finally {
             setSaving(false);
         }
@@ -342,6 +348,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
 }
 
 export default function AdminManualEnrollment() {
+    const toast = useToast();
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -393,8 +400,10 @@ export default function AdminManualEnrollment() {
     const handleSendEmail = async (row, template) => {
         try {
             await sendEnrollmentEmail(row.id, template);
-        } catch {
+            toast.success('Email sent successfully');
+        } catch (e) {
             setError('Failed to send email.');
+            toast.error(e.message || 'Failed to send email.');
         }
     };
 

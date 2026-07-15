@@ -1,13 +1,16 @@
 /**
  * src/pages/admin/AdminDashboard.jsx
  *
- * Fixes:
- * - Removed ugly white/grey hover backgrounds.
- * - Hover now elevates cards/rows using transform + shadow.
- * - Donut/ring chart tooltip now shows label + value + percentage.
- * - Bar charts improved with gradients, labels, cleaner tooltip, no grey hover cursor.
- * - Recent Activity now has max height + custom scroll so Assessment Pipeline stays clean.
- * - NEW: "Today's To-Do" widget surfaces unreviewed assessments + due follow-ups.
+ * Changes:
+ * - Removed "Assessment Pipeline" chart. Replaced with "Today's To-Do",
+ *   now driven by the assessment `reviewed` flag (not `status`), sitting
+ *   next to Recent Activity.
+ * - Added ambient background glow + gradient header icon + sliding pill
+ *   range selector so the page reads less flat.
+ * - Removed ugly white/grey hover backgrounds; hover elevates
+ *   cards/rows using transform + shadow.
+ * - Donut/ring chart tooltip shows label + value + percentage.
+ * - Bar charts improved with gradients, labels, cleaner tooltip.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -21,7 +24,7 @@ import {
 import {
     IndianRupee, TrendingUp, Users, ClipboardList, Tag, Heart,
     RefreshCw, AlertCircle, ArrowUpRight, Calendar, Sparkles, Loader2,
-    Percent, BellRing, ListChecks, ChevronRight,
+    Percent, BellRing, ListChecks,
 } from 'lucide-react';
 import { fetchDashboard, fetchAssessments, fetchFollowUps } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
@@ -48,15 +51,6 @@ const tooltipWrapperStyle = {
     color: '#fff',
     boxShadow: '0 18px 50px rgba(0,0,0,0.65)',
     padding: '10px 12px',
-};
-
-const tooltipStyle = {
-    background: 'rgba(12,12,22,0.98)',
-    border: '1px solid rgba(231,23,99,0.28)',
-    borderRadius: 14,
-    fontSize: 12,
-    color: '#fff',
-    boxShadow: '0 18px 50px rgba(0,0,0,0.65)',
 };
 
 // ── Shared Tooltip ────────────────────────────────────────────────────────────
@@ -149,7 +143,7 @@ function KpiCard({ icon: Icon, label, value, sub, accent, delay = 0 }) {
             <div className="flex items-start justify-between mb-3">
                 <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}
+                    style={{ background: `linear-gradient(135deg, ${accent}30, ${accent}08)`, border: `1px solid ${accent}30` }}
                 >
                     <Icon className="w-4 h-4" style={{ color: accent }} />
                 </div>
@@ -344,15 +338,15 @@ function TodoItem({ icon: Icon, color, title, subtitle, to }) {
                 <p className="text-sm font-semibold text-white truncate">{title}</p>
                 <p className="text-[11px] text-white/35 truncate">{subtitle}</p>
             </div>
-            <ChevronRight className="w-4 h-4 text-white/20 flex-shrink-0" />
         </Link>
     );
 }
 
 // ── Today's To-Do List ─────────────────────────────────────────────────────────
-// Surfaces the two most actionable admin tasks: assessments still marked
-// "new" (not yet reviewed) and enrollments whose 7-day follow-up is due.
-function TodoList() {
+// Surfaces the two most actionable admin tasks: assessments NOT YET
+// REVIEWED (using the standalone `reviewed` flag, independent of the
+// status pipeline) and enrollments whose 7-day follow-up is due.
+function TodoList({ refreshKey }) {
     const [newAssessments, setNewAssessments] = useState([]);
     const [dueFollowUps, setDueFollowUps] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -362,8 +356,8 @@ function TodoList() {
         setLoading(true);
         setError(false);
         Promise.all([
-            fetchAssessments({ status: 'new', pageSize: 5, sortField: 'created_at', sortDir: 'desc' }).catch(() => ({ rows: [] })),
-            fetchFollowUps({ due: 'true', pageSize: 5 }).catch(() => ({ rows: [] })),
+            fetchAssessments({ reviewed: 'false', pageSize: 8, sortField: 'created_at', sortDir: 'desc' }).catch(() => ({ rows: [] })),
+            fetchFollowUps({ due: 'true', pageSize: 8 }).catch(() => ({ rows: [] })),
         ])
             .then(([a, f]) => {
                 setNewAssessments(a.rows || []);
@@ -373,87 +367,63 @@ function TodoList() {
             .finally(() => setLoading(false));
     }, []);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() => { load(); }, [load, refreshKey]);
 
-    const total = newAssessments.length + dueFollowUps.length;
+    const items = [
+        ...dueFollowUps.map((f) => ({
+            key: `f-${f.id}`,
+            icon: BellRing,
+            color: '#f87171',
+            title: `Follow up with ${f.customer_name}`,
+            subtitle: f.program_name || 'Follow-up due',
+            to: '/admin/follow-ups',
+        })),
+        ...newAssessments.map((a) => ({
+            key: `a-${a.id}`,
+            icon: ClipboardList,
+            color: '#60a5fa',
+            title: `Review assessment — ${`${a.first_name || ''} ${a.last_name || ''}`.trim()}`,
+            subtitle: a.plan || 'Not yet reviewed',
+            to: `/admin/assessments?focus=${a.id}`,
+        })),
+    ];
 
     return (
-        <div className="rounded-2xl overflow-hidden mb-6" style={cardBaseStyle}>
-            <div
-                className="flex items-center justify-between px-5 py-4"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-            >
-                <div className="flex items-center gap-2">
-                    <ListChecks className="w-3.5 h-3.5" style={{ color: '#e71763' }} />
-                    <span className="text-xs font-black uppercase tracking-widest text-white/60">
-                        Today's To-Do
-                    </span>
+        <ChartCard
+            title="Today's To-Do"
+            icon={ListChecks}
+            badge={!loading ? (items.length ? `${items.length} pending` : 'All clear') : undefined}
+        >
+            {loading ? (
+                <div className="flex justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-white/25" />
                 </div>
-
-                <div className="flex items-center gap-2">
-                    {!loading && (
-                        <span
-                            className="text-[10px] font-bold px-2 py-1 rounded-full"
-                            style={{
-                                background: total ? 'rgba(231,23,99,0.1)' : 'rgba(52,211,153,0.1)',
-                                color: total ? '#e71763' : '#34d399',
-                            }}
-                        >
-                            {total ? `${total} pending` : 'All clear'}
-                        </span>
-                    )}
-                    <button
-                        onClick={load}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center text-white/30 hover:text-white transition-all"
-                        title="Refresh"
-                    >
-                        <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
+            ) : error ? (
+                <div className="flex items-center gap-2 px-3 py-3 rounded-xl text-xs"
+                    style={{ background: 'rgba(239,68,68,0.06)', color: '#f87171' }}>
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Couldn't load to-dos. Try refreshing.
                 </div>
-            </div>
-
-            <div className="p-4 space-y-2">
-                {loading ? (
-                    <div className="flex justify-center py-6">
-                        <Loader2 className="w-5 h-5 animate-spin text-white/25" />
-                    </div>
-                ) : error ? (
-                    <div className="flex items-center gap-2 px-3 py-3 rounded-xl text-xs"
-                        style={{ background: 'rgba(239,68,68,0.06)', color: '#f87171' }}>
-                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                        Couldn't load to-dos. Try refreshing.
-                    </div>
-                ) : total === 0 ? (
-                    <div className="text-center py-6">
-                        <Sparkles className="w-5 h-5 mx-auto mb-2 text-white/15" />
-                        <p className="text-xs text-white/25">Nothing needs your attention right now.</p>
-                    </div>
-                ) : (
-                    <>
-                        {dueFollowUps.map((f) => (
-                            <TodoItem
-                                key={`f-${f.id}`}
-                                icon={BellRing}
-                                color="#f87171"
-                                title={`Follow up with ${f.customer_name}`}
-                                subtitle={f.program_name || 'Follow-up due'}
-                                to="/admin/follow-ups"
-                            />
-                        ))}
-                        {newAssessments.map((a) => (
-                            <TodoItem
-                                key={`a-${a.id}`}
-                                icon={ClipboardList}
-                                color="#60a5fa"
-                                title={`Review assessment — ${`${a.first_name || ''} ${a.last_name || ''}`.trim()}`}
-                                subtitle={a.plan || 'New submission, not yet reviewed'}
-                                to={`/admin/assessments?focus=${a.id}`}
-                            />
-                        ))}
-                    </>
-                )}
-            </div>
-        </div>
+            ) : items.length === 0 ? (
+                <div className="text-center py-8">
+                    <Sparkles className="w-5 h-5 mx-auto mb-2 text-white/15" />
+                    <p className="text-xs text-white/25">Nothing needs your attention right now.</p>
+                </div>
+            ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto dashboard-thin-scroll pr-1">
+                    {items.map((item) => (
+                        <TodoItem
+                            key={item.key}
+                            icon={item.icon}
+                            color={item.color}
+                            title={item.title}
+                            subtitle={item.subtitle}
+                            to={item.to}
+                        />
+                    ))}
+                </div>
+            )}
+        </ChartCard>
     );
 }
 
@@ -463,6 +433,7 @@ export default function AdminDashboard() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [refreshTick, setRefreshTick] = useState(0);
 
     const load = useCallback(async (r) => {
         setLoading(true);
@@ -471,6 +442,7 @@ export default function AdminDashboard() {
         try {
             const d = await fetchDashboard(r);
             setData(d);
+            setRefreshTick((t) => t + 1);
         } catch (e) {
             setError(e.message || 'Failed to load dashboard.');
         } finally {
@@ -489,8 +461,16 @@ export default function AdminDashboard() {
     const planTypeTotal = c.planTypeSplit?.reduce((sum, item) => sum + Number(item.value || 0), 0) || 0;
 
     return (
-        <div>
-            {/* Local scrollbar style for recent activity */}
+        <div className="relative">
+            {/* Ambient background glow — purely decorative */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+                <div className="absolute -top-32 -right-24 w-[520px] h-[520px] rounded-full blur-[140px]"
+                    style={{ background: 'rgba(231,23,99,0.07)' }} />
+                <div className="absolute top-1/2 -left-32 w-[420px] h-[420px] rounded-full blur-[130px]"
+                    style={{ background: 'rgba(96,165,250,0.05)' }} />
+            </div>
+
+            {/* Local scrollbar style */}
             <style>
                 {`
                     .dashboard-thin-scroll::-webkit-scrollbar {
@@ -516,29 +496,45 @@ export default function AdminDashboard() {
             {/* ── Header ── */}
             <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
                 <div>
-                    <h1 className="text-xl font-black text-white mb-1">Dashboard</h1>
-                    <p className="text-xs text-white/35">
+                    <div className="flex items-center gap-2.5 mb-1">
+                        <div
+                            className="w-8 h-8 rounded-xl flex items-center justify-center"
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(231,23,99,0.3), rgba(231,23,99,0.05))',
+                                border: '1px solid rgba(231,23,99,0.3)',
+                            }}
+                        >
+                            <Sparkles className="w-4 h-4" style={{ color: '#e71763' }} />
+                        </div>
+                        <h1 className="text-2xl font-black text-white">Dashboard</h1>
+                    </div>
+                    <p className="text-xs text-white/35 ml-[42px]">
                         Overview of the last {range === 365 ? '12 months' : `${range} days`}
                     </p>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <div
-                        className="flex items-center rounded-xl overflow-hidden"
-                        style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                        className="relative flex items-center rounded-xl p-1"
+                        style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}
                     >
                         {RANGE_OPTIONS.map((opt) => (
                             <button
                                 key={opt.value}
                                 onClick={() => setRange(opt.value)}
-                                className="px-3 py-2 text-xs font-bold transition-all"
-                                style={
-                                    range === opt.value
-                                        ? { background: '#e71763', color: 'white' }
-                                        : { color: 'rgba(255,255,255,0.4)', background: 'transparent' }
-                                }
+                                className="relative px-3 py-1.5 rounded-lg text-xs font-bold overflow-hidden"
                             >
-                                {opt.label}
+                                {range === opt.value && (
+                                    <motion.div
+                                        layoutId="rangePill"
+                                        className="absolute inset-0"
+                                        style={{ background: '#e71763', borderRadius: 8, boxShadow: '0 0 16px rgba(231,23,99,0.4)' }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                                    />
+                                )}
+                                <span className="relative z-10" style={{ color: range === opt.value ? 'white' : 'rgba(255,255,255,0.4)' }}>
+                                    {opt.label}
+                                </span>
                             </button>
                         ))}
                     </div>
@@ -570,9 +566,6 @@ export default function AdminDashboard() {
                     {error}
                 </div>
             )}
-
-            {/* ── Today's To-Do (independent of range/loading state below) ── */}
-            <TodoList />
 
             {loading && !data ? (
                 <div className="flex items-center justify-center py-32">
@@ -990,75 +983,9 @@ export default function AdminDashboard() {
                         </ChartCard>
                     </div>
 
-                    {/* ── Assessment Pipeline + Recent Activity ── */}
+                    {/* ── Today's To-Do + Recent Activity ── */}
                     <div className="grid lg:grid-cols-3 gap-5 items-start">
-                        <ChartCard title="Assessment Pipeline" icon={ClipboardList}>
-                            {!c.assessmentStatusSplit?.length ? (
-                                <EmptyState label="No assessments in this range yet" />
-                            ) : (
-                                <div className="space-y-3.5 py-1">
-                                    {(() => {
-                                        const total = c.assessmentStatusSplit.reduce(
-                                            (s, x) => s + Number(x.value || 0),
-                                            0
-                                        );
-
-                                        const statusColors = {
-                                            new: '#60a5fa',
-                                            reviewed: '#fbbf24',
-                                            plan_sent: '#a78bfa',
-                                            completed: '#34d399',
-                                            archived: 'rgba(255,255,255,0.25)',
-                                        };
-
-                                        return c.assessmentStatusSplit.map((s, i) => {
-                                            const pct = total ? Math.round((Number(s.value || 0) / total) * 100) : 0;
-                                            const color = statusColors[s.name] || PIE_COLORS[i % PIE_COLORS.length];
-
-                                            return (
-                                                <div key={s.name}>
-                                                    <div className="flex items-center justify-between mb-1.5">
-                                                        <span className="text-xs text-white/60 capitalize font-medium">
-                                                            {String(s.name).replace('_', ' ')}
-                                                        </span>
-
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] text-white/30">{pct}%</span>
-                                                            <span className="text-xs font-bold text-white">{s.value}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div
-                                                        className="h-2 rounded-full overflow-hidden"
-                                                        style={{ background: 'rgba(255,255,255,0.06)' }}
-                                                    >
-                                                        <motion.div
-                                                            className="h-full rounded-full"
-                                                            style={{
-                                                                background: `linear-gradient(90deg, ${color}, ${color}99)`,
-                                                                boxShadow: `0 0 16px ${color}35`,
-                                                            }}
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${pct}%` }}
-                                                            transition={{ duration: 0.8, delay: i * 0.08 }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            );
-                                        });
-                                    })()}
-
-                                    <div
-                                        className="pt-2 border-t mt-2"
-                                        style={{ borderColor: 'rgba(255,255,255,0.05)' }}
-                                    >
-                                        <p className="text-[10px] text-white/25 text-right">
-                                            {c.assessmentStatusSplit.reduce((s, x) => s + Number(x.value || 0), 0)} total
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </ChartCard>
+                        <TodoList refreshKey={refreshTick} />
 
                         <motion.div
                             whileHover={{

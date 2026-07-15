@@ -11,6 +11,9 @@
  *  - Custom StatusSelect for table + drawer status updates
  *  - Custom FilterDropdown for top Status and Plan filters
  *  - Header: Refresh + Export grouped, vertically centred
+ *  - NEW: standalone "Reviewed" flag (separate from status pipeline) —
+ *    drives the dashboard's "Today's To-Do" list
+ *  - NEW: toast notifications on save/update/export actions
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -54,11 +57,13 @@ import {
 
 import { useDebounce } from './useDebounce';
 import ExportMenu from './ExportMenu';
+import { useToast } from './ToastProvider';
 
 import {
     fetchAssessments,
     fetchAssessment,
     setAssessmentStatus,
+    setAssessmentReviewed,
     saveNote,
     exportAssessmentsAll,
 } from './adminApi';
@@ -87,6 +92,25 @@ function formatLabel(value) {
         .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function ReviewedToggle({ reviewed, onChange, disabled }) {
+    return (
+        <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(!reviewed)}
+            className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50"
+            style={{
+                background: reviewed ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${reviewed ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.12)'}`,
+                color: reviewed ? '#34d399' : 'rgba(255,255,255,0.4)',
+            }}
+        >
+            <Check className="w-3 h-3" />
+            {reviewed ? 'Reviewed' : 'Pending'}
+        </button>
+    );
+}
+
 function FilterDropdown({
     value,
     onChange,
@@ -104,10 +128,10 @@ function FilterDropdown({
     const activeBadge = getBadge
         ? getBadge(activeOption.value)
         : {
-              bg: 'rgba(255,255,255,0.05)',
-              border: 'rgba(255,255,255,0.1)',
-              color: '#ffffff',
-          };
+            bg: 'rgba(255,255,255,0.05)',
+            border: 'rgba(255,255,255,0.1)',
+            color: '#ffffff',
+        };
 
     useEffect(() => {
         if (!open) return;
@@ -191,11 +215,11 @@ function FilterDropdown({
                             const optionBadge = getBadge
                                 ? getBadge(option.value)
                                 : {
-                                      color:
-                                          option.value === 'all'
-                                              ? 'rgba(255,255,255,0.45)'
-                                              : '#e71763',
-                                  };
+                                    color:
+                                        option.value === 'all'
+                                            ? 'rgba(255,255,255,0.45)'
+                                            : '#e71763',
+                                };
 
                             return (
                                 <button
@@ -438,6 +462,7 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
     const [text, setText] = useState(currentNote?.text || '');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const toast = useToast();
 
     const handleSave = async () => {
         setSaving(true);
@@ -446,9 +471,11 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
             const note = await saveNote('assessment', recordId, text);
             onSaved(note);
             setSaved(true);
+            toast.success('Note saved');
             setTimeout(() => onClose(), 700);
-        } catch {
+        } catch (e) {
             setSaving(false);
+            toast.error(e.message || 'Failed to save note.');
         }
     };
 
@@ -673,6 +700,7 @@ function PhotoViewer({ url, label }) {
                                 <X className="w-4 h-4" />
                             </button>
 
+
                             <a
                                 href={url}
                                 target="_blank"
@@ -684,14 +712,15 @@ function PhotoViewer({ url, label }) {
                                 Open original
                             </a>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    </motion.div >
+                )
+                }
+            </AnimatePresence >
         </>
     );
 }
 
-function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
+function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange, onReviewedChange }) {
     const [assessment, setAssessment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState('');
@@ -713,7 +742,7 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
     }, [assessmentId]);
 
     const copy = (val, key) => {
-        navigator.clipboard.writeText(val).catch(() => {});
+        navigator.clipboard.writeText(val).catch(() => { });
         setCopied(key);
         setTimeout(() => setCopied(''), 1500);
     };
@@ -760,9 +789,8 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
                     <div>
                         <p className="font-black text-white text-sm">
                             {assessment
-                                ? `${assessment.first_name} ${
-                                      assessment.last_name || ''
-                                  }`.trim()
+                                ? `${assessment.first_name} ${assessment.last_name || ''
+                                    }`.trim()
                                 : '…'}
                         </p>
 
@@ -789,10 +817,7 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
 
                                 {assessment.whatsapp && (
                                     <a
-                                        href={`https://wa.me/${assessment.whatsapp.replace(
-                                            /\D/g,
-                                            ''
-                                        )}`}
+                                        href={`https://wa.me/${assessment.whatsapp.replace(/\D/g, '')}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
@@ -835,344 +860,366 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange }) {
                     </div>
                 </div>
 
-                {loading || !assessment ? (
-                    <div className="flex items-center justify-center py-24">
-                        <Loader2 className="w-5 h-5 animate-spin text-white/25" />
-                    </div>
-                ) : (
-                    <div className="p-5 space-y-6">
-                        {assessment.note && (
-                            <div
-                                className="rounded-xl p-4"
-                                style={{
-                                    background: 'rgba(231,23,99,0.06)',
-                                    border: '1px solid rgba(231,23,99,0.15)',
-                                }}
-                            >
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <StickyNote
-                                            className="w-3.5 h-3.5"
-                                            style={{ color: '#e71763' }}
-                                        />
+                {
+                    loading || !assessment ? (
+                        <div className="flex items-center justify-center py-24">
+                            <Loader2 className="w-5 h-5 animate-spin text-white/25" />
+                        </div>
+                    ) : (
+                        <div className="p-5 space-y-6">
+                            {assessment.note && (
+                                <div
+                                    className="rounded-xl p-4"
+                                    style={{
+                                        background: 'rgba(231,23,99,0.06)',
+                                        border: '1px solid rgba(231,23,99,0.15)',
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <StickyNote
+                                                className="w-3.5 h-3.5"
+                                                style={{ color: '#e71763' }}
+                                            />
 
-                                        <p
-                                            className="text-[10px] font-bold uppercase tracking-widest"
-                                            style={{ color: '#e71763' }}
-                                        >
-                                            Coach Note
+                                            <p
+                                                className="text-[10px] font-bold uppercase tracking-widest"
+                                                style={{ color: '#e71763' }}
+                                            >
+                                                Coach Note
+                                            </p>
+                                        </div>
+
+                                        <p className="text-[10px] text-white/25">
+                                            {fmtDate(assessment.note.updatedAt, true)}
                                         </p>
                                     </div>
 
-                                    <p className="text-[10px] text-white/25">
-                                        {fmtDate(assessment.note.updatedAt, true)}
+                                    <p className="text-xs text-white/60 leading-relaxed">
+                                        {assessment.note.text}
                                     </p>
-                                </div>
-
-                                <p className="text-xs text-white/60 leading-relaxed">
-                                    {assessment.note.text}
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div
-                                className="rounded-xl p-4"
-                                style={{
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.07)',
-                                }}
-                            >
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">
-                                    Status
-                                </p>
-
-                                <StatusSelect
-                                    value={assessment.status || 'new'}
-                                    onChange={(s) => {
-                                        onStatusChange(assessment.id, s);
-                                        setAssessment((prev) => ({
-                                            ...prev,
-                                            status: s,
-                                        }));
-                                    }}
-                                />
-                            </div>
-
-                            <div
-                                className="rounded-xl p-4 flex flex-col items-center justify-center text-center"
-                                style={{
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.07)',
-                                }}
-                            >
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">
-                                    Commitment
-                                </p>
-
-                                <CommitmentRing score={assessment.commitment} />
-                            </div>
-                        </div>
-
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                Assessment Photos
-                            </p>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <PhotoViewer
-                                    url={assessment.photoFrontUrl}
-                                    label="Front Photo"
-                                />
-                                <PhotoViewer
-                                    url={assessment.photoSideUrl}
-                                    label="Side Photo"
-                                />
-                            </div>
-
-                            {assessment.bloodReportUrl && (
-                                <div className="mt-3">
-                                    <PhotoViewer
-                                        url={assessment.bloodReportUrl}
-                                        label="Blood Report"
-                                    />
                                 </div>
                             )}
 
-                            <p className="text-[10px] text-white/20 mt-2 text-center">
-                                Signed links — expire in 7 days for privacy
-                            </p>
-                        </section>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div
+                                    className="rounded-xl p-4"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">
+                                        Status
+                                    </p>
 
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                Personal Details
-                            </p>
-
-                            <div
-                                className="rounded-xl overflow-hidden"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                <div className="px-4">
-                                    {dl(
-                                        'Full Name',
-                                        `${assessment.first_name} ${
-                                            assessment.last_name || ''
-                                        }`.trim()
-                                    )}
-                                    {dl('WhatsApp', assessment.whatsapp)}
-                                    {assessment.email && dl('Email', assessment.email)}
-                                    {dl(
-                                        'Age / Gender',
-                                        `${assessment.age || '—'} yrs · ${
-                                            assessment.gender || '—'
-                                        }`
-                                    )}
-                                    {dl('City', assessment.city)}
-                                    {dl('Plan', assessment.plan)}
-                                    {dl('Profession', assessment.profession)}
-                                    {dl('Submitted', fmtDate(assessment.created_at))}
-                                </div>
-                            </div>
-                        </section>
-
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                <span className="inline-flex items-center gap-1">
-                                    <Dumbbell className="w-3 h-3" />
-                                    Fitness Profile
-                                </span>
-                            </p>
-
-                            <div
-                                className="rounded-xl overflow-hidden"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                <div className="px-4">
-                                    {dl(
-                                        'Weight / Height',
-                                        `${assessment.current_weight || '—'} kg · ${
-                                            assessment.height || '—'
-                                        } cm`
-                                    )}
-                                    {dl('Workout Status', assessment.workout_status)}
-                                    {dl('Training Days/Week', assessment.training_days)}
-                                    {dl(
-                                        'Training Location',
-                                        assessment.training_location
-                                    )}
-                                </div>
-                            </div>
-                        </section>
-
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                Goals & Motivation
-                            </p>
-
-                            <div className="space-y-3">
-                                {[
-                                    {
-                                        label: 'Main Goal',
-                                        value: assessment.main_goal,
-                                    },
-                                    {
-                                        label: 'Desired Result',
-                                        value: assessment.desired_result,
-                                    },
-                                    {
-                                        label: 'Why Now',
-                                        value: assessment.why_now,
-                                    },
-                                ].map(({ label, value }) => (
-                                    <div
-                                        key={label}
-                                        className="rounded-xl p-4"
-                                        style={{
-                                            background: 'rgba(255,255,255,0.02)',
-                                            border: '1px solid rgba(255,255,255,0.06)',
+                                    <StatusSelect
+                                        value={assessment.status || 'new'}
+                                        onChange={(s) => {
+                                            onStatusChange(assessment.id, s);
+                                            setAssessment((prev) => ({
+                                                ...prev,
+                                                status: s,
+                                            }));
                                         }}
-                                    >
-                                        <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">
-                                            {label}
-                                        </p>
+                                    />
+                                </div>
 
-                                        <p className="text-xs text-white/70 leading-relaxed">
-                                            {value || '—'}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                                <div
+                                    className="rounded-xl p-4"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">
+                                        Reviewed
+                                    </p>
 
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                <span className="inline-flex items-center gap-1">
-                                    <Utensils className="w-3 h-3" />
-                                    Nutrition & Lifestyle
-                                </span>
-                            </p>
+                                    <ReviewedToggle
+                                        reviewed={!!assessment.reviewed}
+                                        onChange={(v) => {
+                                            onReviewedChange(assessment.id, v);
+                                            setAssessment((prev) => ({
+                                                ...prev,
+                                                reviewed: v,
+                                            }));
+                                        }}
+                                    />
+                                </div>
 
-                            <div
-                                className="rounded-xl overflow-hidden"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                <div className="px-4">
-                                    {dl('Food Preference', assessment.food_preference)}
-                                    {dl(
-                                        'Sleep / Night',
-                                        `${assessment.sleep_hours || '—'} hrs`
-                                    )}
+                                <div
+                                    className="rounded-xl p-4 flex flex-col items-center justify-center text-center"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">
+                                        Commitment
+                                    </p>
+
+                                    <CommitmentRing score={assessment.commitment} />
                                 </div>
                             </div>
 
-                            <div
-                                className="mt-3 rounded-xl p-4"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">
-                                    Daily Food Routine
+                            <section>
+                                <p
+                                    className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: '#e71763' }}
+                                >
+                                    Assessment Photos
                                 </p>
 
-                                <p className="text-xs text-white/60 leading-relaxed whitespace-pre-line">
-                                    {assessment.daily_food_routine || '—'}
-                                </p>
-                            </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <PhotoViewer
+                                        url={assessment.photoFrontUrl}
+                                        label="Front Photo"
+                                    />
+                                    <PhotoViewer
+                                        url={assessment.photoSideUrl}
+                                        label="Side Photo"
+                                    />
+                                </div>
 
-                            <div
-                                className="mt-3 rounded-xl p-4"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">
-                                    Biggest Struggle
+                                {assessment.bloodReportUrl && (
+                                    <div className="mt-3">
+                                        <PhotoViewer
+                                            url={assessment.bloodReportUrl}
+                                            label="Blood Report"
+                                        />
+                                    </div>
+                                )}
+
+                                <p className="text-[10px] text-white/20 mt-2 text-center">
+                                    Signed links — expire in 7 days for privacy
+                                </p>
+                            </section>
+
+                            <section>
+                                <p
+                                    className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: '#e71763' }}
+                                >
+                                    Personal Details
                                 </p>
 
-                                <p className="text-xs text-white/60 leading-relaxed">
-                                    {assessment.biggest_struggle || '—'}
-                                </p>
-                            </div>
-                        </section>
+                                <div
+                                    className="rounded-xl overflow-hidden"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    <div className="px-4">
+                                        {dl(
+                                            'Full Name',
+                                            `${assessment.first_name} ${assessment.last_name || ''
+                                                }`.trim()
+                                        )}
+                                        {dl('WhatsApp', assessment.whatsapp)}
+                                        {assessment.email && dl('Email', assessment.email)}
+                                        {dl(
+                                            'Age / Gender',
+                                            `${assessment.age || '—'} yrs · ${assessment.gender || '—'
+                                            }`
+                                        )}
+                                        {dl('City', assessment.city)}
+                                        {dl('Plan', assessment.plan)}
+                                        {dl('Profession', assessment.profession)}
+                                        {dl('Submitted', fmtDate(assessment.created_at))}
+                                    </div>
+                                </div>
+                            </section>
 
-                        {assessment.medical_conditions && (
                             <section>
                                 <p
                                     className="text-[10px] font-black uppercase tracking-widest mb-3"
                                     style={{ color: '#e71763' }}
                                 >
                                     <span className="inline-flex items-center gap-1">
-                                        <Heart className="w-3 h-3" />
-                                        Health Background
+                                        <Dumbbell className="w-3 h-3" />
+                                        Fitness Profile
                                     </span>
                                 </p>
 
                                 <div
-                                    className="rounded-xl p-4"
+                                    className="rounded-xl overflow-hidden"
                                     style={{
                                         background: 'rgba(255,255,255,0.02)',
                                         border: '1px solid rgba(255,255,255,0.06)',
                                     }}
                                 >
+                                    <div className="px-4">
+                                        {dl(
+                                            'Weight / Height',
+                                            `${assessment.current_weight || '—'} kg · ${assessment.height || '—'
+                                            } cm`
+                                        )}
+                                        {dl('Workout Status', assessment.workout_status)}
+                                        {dl('Training Days/Week', assessment.training_days)}
+                                        {dl(
+                                            'Training Location',
+                                            assessment.training_location
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <p
+                                    className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: '#e71763' }}
+                                >
+                                    Goals & Motivation
+                                </p>
+
+                                <div className="space-y-3">
+                                    {[
+                                        {
+                                            label: 'Main Goal',
+                                            value: assessment.main_goal,
+                                        },
+                                        {
+                                            label: 'Desired Result',
+                                            value: assessment.desired_result,
+                                        },
+                                        {
+                                            label: 'Why Now',
+                                            value: assessment.why_now,
+                                        },
+                                    ].map(({ label, value }) => (
+                                        <div
+                                            key={label}
+                                            className="rounded-xl p-4"
+                                            style={{
+                                                background: 'rgba(255,255,255,0.02)',
+                                                border: '1px solid rgba(255,255,255,0.06)',
+                                            }}
+                                        >
+                                            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">
+                                                {label}
+                                            </p>
+
+                                            <p className="text-xs text-white/70 leading-relaxed">
+                                                {value || '—'}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section>
+                                <p
+                                    className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: '#e71763' }}
+                                >
+                                    <span className="inline-flex items-center gap-1">
+                                        <Utensils className="w-3 h-3" />
+                                        Nutrition & Lifestyle
+                                    </span>
+                                </p>
+
+                                <div
+                                    className="rounded-xl overflow-hidden"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    <div className="px-4">
+                                        {dl('Food Preference', assessment.food_preference)}
+                                        {dl(
+                                            'Sleep / Night',
+                                            `${assessment.sleep_hours || '—'} hrs`
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="mt-3 rounded-xl p-4"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">
+                                        Daily Food Routine
+                                    </p>
+
+                                    <p className="text-xs text-white/60 leading-relaxed whitespace-pre-line">
+                                        {assessment.daily_food_routine || '—'}
+                                    </p>
+                                </div>
+
+                                <div
+                                    className="mt-3 rounded-xl p-4"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">
+                                        Biggest Struggle
+                                    </p>
+
                                     <p className="text-xs text-white/60 leading-relaxed">
-                                        {assessment.medical_conditions}
+                                        {assessment.biggest_struggle || '—'}
                                     </p>
                                 </div>
                             </section>
-                        )}
 
-                        {assessment.whatsapp && (
-                            <a
-                                href={`https://wa.me/${assessment.whatsapp.replace(
-                                    /\D/g,
-                                    ''
-                                )}?text=Hi%20${encodeURIComponent(
-                                    assessment.first_name
-                                )}%2C%20I%27ve%20reviewed%20your%20RECODE%E2%84%A2%20assessment.%20Here%20are%20your%20next%20steps%3A`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold text-sm text-white"
-                                style={{
-                                    background: '#25D366',
-                                    boxShadow: '0 0 20px rgba(37,211,102,0.25)',
-                                }}
-                            >
-                                <MessageCircle className="w-4 h-4" />
-                                Message {assessment.first_name} on WhatsApp
-                            </a>
-                        )}
-                    </div>
-                )}
-            </motion.div>
-        </div>
+                            {assessment.medical_conditions && (
+                                <section>
+                                    <p
+                                        className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                        style={{ color: '#e71763' }}
+                                    >
+                                        <span className="inline-flex items-center gap-1">
+                                            <Heart className="w-3 h-3" />
+                                            Health Background
+                                        </span>
+                                    </p>
+
+                                    <div
+                                        className="rounded-xl p-4"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.02)',
+                                            border: '1px solid rgba(255,255,255,0.06)',
+                                        }}
+                                    >
+                                        <p className="text-xs text-white/60 leading-relaxed">
+                                            {assessment.medical_conditions}
+                                        </p>
+                                    </div>
+                                </section>
+                            )}
+
+                            {assessment.whatsapp && (
+                                <a
+                                    href={`https://wa.me/${assessment.whatsapp.replace(
+                                        /\D/g,
+                                        ''
+                                    )}?text=Hi%20${encodeURIComponent(
+                                        assessment.first_name
+                                    )}%2C%20I%27ve%20reviewed%20your%20RECODE%E2%84%A2%20assessment.%20Here%20are%20your%20next%20steps%3A`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold text-sm text-white"
+                                    style={{
+                                        background: '#25D366',
+                                        boxShadow: '0 0 20px rgba(37,211,102,0.25)',
+                                    }}
+                                >
+                                    <MessageCircle className="w-4 h-4" />
+                                    Message {assessment.first_name} on WhatsApp
+                                </a>
+                            )}
+                        </div >
+                    )
+                }
+            </motion.div >
+        </div >
     );
 }
 
@@ -1209,6 +1256,7 @@ function StatCard({ label, value, color }) {
 }
 
 export default function AdminAssessments() {
+    const toast = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
     const focusId = searchParams.get('focus');
 
@@ -1379,8 +1427,30 @@ export default function AdminAssessments() {
 
         try {
             await setAssessmentStatus(id, newStatus);
+            toast.success('Status updated');
         } catch (e) {
             setError(e.message || 'Failed to update status.');
+            toast.error(e.message || 'Failed to update status.');
+            fetchData({ silent: true });
+        }
+    };
+
+    const handleReviewedChange = async (id, reviewed) => {
+        const patch = (rows) =>
+            rows.map((r) => (r.id === id ? { ...r, reviewed } : r));
+
+        setAllData(patch);
+
+        if (_cache.allRows) {
+            _cache.allRows = patch(_cache.allRows);
+        }
+
+        try {
+            await setAssessmentReviewed(id, reviewed);
+            toast.success(reviewed ? 'Marked as reviewed' : 'Marked as pending');
+        } catch (e) {
+            setError(e.message || 'Failed to update reviewed flag.');
+            toast.error(e.message || 'Failed to update reviewed flag.');
             fetchData({ silent: true });
         }
     };
@@ -1402,7 +1472,7 @@ export default function AdminAssessments() {
             }
 
             if (!allRows || allRows.length === 0) {
-                alert('No data to export for the selected filters.');
+                toast.error('No data to export for the selected filters.');
                 return;
             }
 
@@ -1421,6 +1491,7 @@ export default function AdminAssessments() {
                     workout_status: r.workout_status,
                     commitment: r.commitment,
                     status: r.status,
+                    reviewed: r.reviewed ? 'Yes' : 'No',
                     created_at: r.created_at,
                 }));
 
@@ -1439,8 +1510,11 @@ export default function AdminAssessments() {
                     dateTo: range?.to,
                 });
             }
+
+            toast.success(`Exported ${allRows.length} record${allRows.length !== 1 ? 's' : ''} as ${format.toUpperCase()}`);
         } catch (e) {
             setError(e.message || 'Export failed. Please try again.');
+            toast.error(e.message || 'Export failed. Please try again.');
         }
     };
 
@@ -1448,9 +1522,9 @@ export default function AdminAssessments() {
 
     const avgCommitment = pageData.length
         ? Math.round(
-              pageData.reduce((s, r) => s + (r.commitment || 0), 0) /
-                  pageData.length
-          )
+            pageData.reduce((s, r) => s + (r.commitment || 0), 0) /
+            pageData.length
+        )
         : 0;
 
     const noteCount = pageData.filter((r) => r.note).length;
@@ -1480,9 +1554,8 @@ export default function AdminAssessments() {
                         style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                     >
                         <RefreshCw
-                            className={`w-3.5 h-3.5 ${
-                                loading ? 'animate-spin' : ''
-                            }`}
+                            className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''
+                                }`}
                         />
                         Refresh
                     </button>
@@ -1546,10 +1619,10 @@ export default function AdminAssessments() {
                     getBadge={(value) =>
                         value === 'all'
                             ? {
-                                  bg: 'rgba(255,255,255,0.05)',
-                                  border: 'rgba(255,255,255,0.1)',
-                                  color: 'rgba(255,255,255,0.65)',
-                              }
+                                bg: 'rgba(255,255,255,0.05)',
+                                border: 'rgba(255,255,255,0.1)',
+                                color: 'rgba(255,255,255,0.65)',
+                            }
                             : statusBadge(value)
                     }
                 />
@@ -1606,6 +1679,7 @@ export default function AdminAssessments() {
                                     ['city', 'City'],
                                     ['workout_status', 'Fitness Level'],
                                     ['commitment', 'Commitment'],
+                                    ['reviewed', 'Reviewed'],
                                     ['status', 'Status'],
                                     ['created_at', 'Submitted'],
                                 ].map(([field, label]) => (
@@ -1630,13 +1704,13 @@ export default function AdminAssessments() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-16 text-center">
+                                    <td colSpan={9} className="px-4 py-16 text-center">
                                         <Loader2 className="w-6 h-6 animate-spin mx-auto text-white/25" />
                                     </td>
                                 </tr>
                             ) : pageData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-16 text-center">
+                                    <td colSpan={9} className="px-4 py-16 text-center">
                                         <p className="text-sm text-white/25">
                                             No assessments found
                                         </p>
@@ -1655,8 +1729,8 @@ export default function AdminAssessments() {
                                                     '1px solid rgba(255,255,255,0.04)',
                                             }}
                                             onMouseEnter={(e) =>
-                                                (e.currentTarget.style.background =
-                                                    'rgba(255,255,255,0.02)')
+                                            (e.currentTarget.style.background =
+                                                'rgba(255,255,255,0.02)')
                                             }
                                             onMouseLeave={(e) =>
                                                 (e.currentTarget.style.background = '')
@@ -1702,15 +1776,24 @@ export default function AdminAssessments() {
                                                 <span className="text-xs text-white/60">
                                                     {row.workout_status
                                                         ? row.workout_status.replace(
-                                                              /\s*\(.*?\)/,
-                                                              ''
-                                                          )
+                                                            /\s*\(.*?\)/,
+                                                            ''
+                                                        )
                                                         : '—'}
                                                 </span>
                                             </td>
 
                                             <td className="px-4 py-3">
                                                 <CommitmentRing score={row.commitment} />
+                                            </td>
+
+                                            <td className="px-4 py-3">
+                                                <ReviewedToggle
+                                                    reviewed={!!row.reviewed}
+                                                    onChange={(v) =>
+                                                        handleReviewedChange(row.id, v)
+                                                    }
+                                                />
                                             </td>
 
                                             <td className="px-4 py-3">
@@ -1760,12 +1843,12 @@ export default function AdminAssessments() {
                                                                 : 'Add note'
                                                         }
                                                         onMouseEnter={(e) =>
-                                                            (e.currentTarget.style.background =
-                                                                'rgba(255,255,255,0.08)')
+                                                        (e.currentTarget.style.background =
+                                                            'rgba(255,255,255,0.08)')
                                                         }
                                                         onMouseLeave={(e) =>
-                                                            (e.currentTarget.style.background =
-                                                                '')
+                                                        (e.currentTarget.style.background =
+                                                            '')
                                                         }
                                                     >
                                                         <StickyNote className="w-3.5 h-3.5" />
@@ -1773,22 +1856,18 @@ export default function AdminAssessments() {
 
                                                     {row.whatsapp && (
                                                         <a
-                                                            href={`https://wa.me/${row.whatsapp.replace(
-                                                                /\D/g,
-                                                                ''
-                                                            )}`}
+                                                            href={`https://wa.me/${row.whatsapp.replace(/\D/g, '')}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
                                                             style={{ color: '#25D366' }}
                                                             title="Open WhatsApp"
                                                             onMouseEnter={(e) =>
-                                                                (e.currentTarget.style.background =
-                                                                    'rgba(37,211,102,0.1)')
+                                                            (e.currentTarget.style.background =
+                                                                'rgba(37,211,102,0.1)')
                                                             }
                                                             onMouseLeave={(e) =>
-                                                                (e.currentTarget.style.background =
-                                                                    '')
+                                                                (e.currentTarget.style.background = '')
                                                             }
                                                         >
                                                             <MessageCircle className="w-3.5 h-3.5" />
@@ -1839,13 +1918,13 @@ export default function AdminAssessments() {
                                             style={
                                                 page === p
                                                     ? {
-                                                          background: '#e71763',
-                                                          color: 'white',
-                                                      }
+                                                        background: '#e71763',
+                                                        color: 'white',
+                                                    }
                                                     : {
-                                                          color:
-                                                              'rgba(255,255,255,0.35)',
-                                                      }
+                                                        color:
+                                                            'rgba(255,255,255,0.35)',
+                                                    }
                                             }
                                         >
                                             {p}
@@ -1876,6 +1955,7 @@ export default function AdminAssessments() {
                             setSelectedId(null);
                         }}
                         onStatusChange={handleStatusChange}
+                        onReviewedChange={handleReviewedChange}
                     />
                 )}
             </AnimatePresence>
@@ -1884,9 +1964,8 @@ export default function AdminAssessments() {
                 {noteTarget && (
                     <NoteModal
                         recordId={noteTarget.id}
-                        name={`${noteTarget.first_name} ${
-                            noteTarget.last_name || ''
-                        }`.trim()}
+                        name={`${noteTarget.first_name} ${noteTarget.last_name || ''
+                            }`.trim()}
                         currentNote={noteTarget.note}
                         onClose={() => setNoteTarget(null)}
                         onSaved={(note) => {
@@ -1906,6 +1985,6 @@ export default function AdminAssessments() {
                     />
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
