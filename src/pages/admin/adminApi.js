@@ -143,6 +143,16 @@ export async function setAssessmentStatus(id, status) {
     return data.assessment;
 }
 
+// ── Reviewed flag — separate from the status pipeline. Used to drive the
+// dashboard "Today's To-Do" list (assessments with reviewed = false).
+// Backend needs: `reviewed boolean default false` column on `assessments`,
+// and PATCH /api/admin/assessments/:id/reviewed returning { assessment }.
+// GET /api/admin/assessments must also accept ?reviewed=false as a filter.
+export async function setAssessmentReviewed(id, reviewed) {
+    const data = await request(`/assessments/${id}/reviewed`, { method: 'PATCH', body: { reviewed } });
+    return data.assessment;
+}
+
 // ── FIX: was missing — assessments export endpoint ───────────────────────────
 export async function exportAssessmentsAll(filters) {
     const data = await request('/assessments/export', { params: filters });

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { coachingTypes, durations } from '@/data/SiteData';
 import { fetchCoupons, createCouponAdmin, updateCouponAdmin, deleteCouponAdmin } from './adminApi';
-
+import { useToast } from './ToastProvider';
 const PLAN_TYPES = [
     { id: 'individual', label: 'Individual' },
     { id: 'couple', label: 'Couple' },
@@ -636,7 +636,7 @@ export default function AdminCoupons() {
     const [viewing, setViewing] = useState(null);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
-
+    const toast = useToast();
     // Delete-confirmation state (replaces window.confirm)
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -703,9 +703,13 @@ export default function AdminCoupons() {
             };
             if (editing.id) await updateCouponAdmin(editing.id, payload);
             else await createCouponAdmin(payload);
+            toast.success(editing.id ? 'Coupon updated successfully' : 'Coupon created successfully');
             setEditing(null);
             load();
-        } catch (e) { setSaveError(e.message); }
+        } catch (e) {
+            setSaveError(e.message);
+            toast.error(e.message || 'Failed to save coupon.');
+        }
         finally { setSaving(false); }
     };
 
@@ -717,11 +721,13 @@ export default function AdminCoupons() {
         setDeleting(true);
         try {
             await deleteCouponAdmin(deleteTarget.id);
+            toast.success('Coupon deleted successfully');
             setViewing(null);
             setDeleteTarget(null);
             load();
         } catch (e) {
             setError(e.message || 'Failed to delete coupon.');
+            toast.error(e.message || 'Failed to delete coupon.');
             setDeleteTarget(null);
         } finally {
             setDeleting(false);

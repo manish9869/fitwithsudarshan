@@ -8,6 +8,7 @@
  * - Status and note updates patch local state/cache
  * - Custom styled dropdowns for type, plan, and status filters
  * - Multi-template email sending via EmailSendMenu
+ * - NEW: toast notifications on status change, note save, export, email send
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -57,6 +58,7 @@ import {
 import { useDebounce } from './useDebounce';
 import ExportMenu from './ExportMenu';
 import EmailSendMenu from './EmailSendMenu';
+import { useToast } from './ToastProvider';
 
 const PAGE_SIZE = 20;
 const CACHE_TTL = 60_000;
@@ -406,6 +408,7 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
     const [text, setText] = useState(currentNote?.text || '');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const toast = useToast();
 
     const handleSave = async () => {
         setSaving(true);
@@ -414,9 +417,11 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
             const note = await saveNote('enrollment', recordId, text);
             onSaved(note);
             setSaved(true);
+            toast.success('Note saved');
             setTimeout(() => onClose(), 700);
-        } catch {
+        } catch (e) {
             setSaving(false);
+            toast.error(e.message || 'Failed to save note.');
         }
     };
 
@@ -516,6 +521,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
     const [enrollment, setEnrollment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState('');
+    const toast = useToast();
 
     useEffect(() => {
         let cancelled = false;
@@ -536,6 +542,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
     const copy = (val, key) => {
         navigator.clipboard.writeText(val).catch(() => { });
         setCopied(key);
+        toast.success('Copied to clipboard');
         setTimeout(() => setCopied(''), 1500);
     };
 
@@ -614,7 +621,15 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
 
                             <EmailSendMenu
                                 hasCustomerEmail={!!enrollment.customer_email}
-                                onSend={(template) => sendEnrollmentEmail(enrollment.id, template)}
+                                onSend={async (template) => {
+                                    try {
+                                        await sendEnrollmentEmail(enrollment.id, template);
+                                        toast.success('Email sent successfully');
+                                    } catch (e) {
+                                        toast.error(e.message || 'Failed to send email.');
+                                        throw e;
+                                    }
+                                }}
                             />
 
                             <button
@@ -948,6 +963,7 @@ function DownloadInvoiceButton({ enrollment }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
     const downloadingRef = useRef(false);
+    const toast = useToast();
 
     const handleDownload = async () => {
         if (downloadingRef.current || loading) return;
@@ -956,6 +972,7 @@ function DownloadInvoiceButton({ enrollment }) {
 
         if (!enrollmentId) {
             setErr('Missing enrollment ID.');
+            toast.error('Missing enrollment ID.');
             return;
         }
 
@@ -983,8 +1000,10 @@ function DownloadInvoiceButton({ enrollment }) {
             };
 
             await downloadInvoicePDF(mapped);
+            toast.success('Invoice downloaded');
         } catch (error) {
             setErr(error?.message || 'Invoice generation failed.');
+            toast.error(error?.message || 'Invoice generation failed.');
         } finally {
             downloadingRef.current = false;
             setLoading(false);
@@ -1038,6 +1057,7 @@ function SortIcon({ field, sort }) {
 }
 
 export default function AdminEnrollments() {
+    const toast = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
     const focusId = searchParams.get('focus');
 
@@ -1243,8 +1263,10 @@ export default function AdminEnrollments() {
 
         try {
             await setEnrollmentStatus(id, newStatus);
+            toast.success('Status updated');
         } catch (e) {
             setError(e.message || 'Failed to update status.');
+            toast.error(e.message || 'Failed to update status.');
             fetchData({ silent: true });
         }
     };
@@ -1275,7 +1297,7 @@ export default function AdminEnrollments() {
             }
 
             if (!allRows || allRows.length === 0) {
-                alert('No data to export for the selected filters.');
+                toast.error('No data to export for the selected filters.');
                 return;
             }
 
@@ -1332,8 +1354,11 @@ export default function AdminEnrollments() {
                     },
                 });
             }
+
+            toast.success(`Exported ${allRows.length} record${allRows.length !== 1 ? 's' : ''} as ${format.toUpperCase()}`);
         } catch (e) {
             setError(e.message || 'Export failed. Please try again.');
+            toast.error(e.message || 'Export failed. Please try again.');
         }
     };
 
@@ -1697,11 +1722,15 @@ export default function AdminEnrollments() {
                                                     <EmailSendMenu
                                                         compact
                                                         hasCustomerEmail={!!row.customer_email}
-                                                        onSend={(template) =>
-                                                            sendEnrollmentEmail(row.id, template).catch(() =>
-                                                                setError('Failed to send email.')
-                                                            )
-                                                        }
+                                                        onSend={async (template) => {
+                                                            try {
+                                                                await sendEnrollmentEmail(row.id, template);
+                                                                toast.success('Email sent successfully');
+                                                            } catch (e) {
+                                                                setError('Failed to send email.');
+                                                                toast.error(e.message || 'Failed to send email.');
+                                                            }
+                                                        }}
                                                     />
                                                 </div>
                                             </td>

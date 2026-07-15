@@ -5,6 +5,8 @@
  * (and again 7 days after each logged follow-up). This page lists who's
  * due, lets the admin log a follow-up (resets the 7-day clock), snooze
  * with a custom gap, or stop reminders for a client entirely.
+ *
+ * NEW: toast notifications on log/snooze/stop.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +16,7 @@ import {
 } from 'lucide-react';
 import { fetchFollowUps, markFollowUp } from './adminApi';
 import { fmtCurrency, fmtDate } from './adminUtils';
+import { useToast } from './ToastProvider';
 
 function daysAgo(iso) {
     if (!iso) return null;
@@ -44,6 +47,7 @@ function ActionModal({ row, action, onClose, onDone }) {
     const [note, setNote] = useState('');
     const [days, setDays] = useState(7);
     const [saving, setSaving] = useState(false);
+    const toast = useToast();
 
     const titles = {
         completed: 'Log Follow-Up',
@@ -51,13 +55,21 @@ function ActionModal({ row, action, onClose, onDone }) {
         stopped: 'Stop Reminders',
     };
 
+    const successMessages = {
+        completed: 'Follow-up logged',
+        snoozed: 'Reminder snoozed',
+        stopped: 'Reminders stopped',
+    };
+
     const handleSave = async () => {
         setSaving(true);
         try {
             const updated = await markFollowUp(row.id, { action, note: note || undefined, days: action === 'snoozed' ? days : undefined });
             onDone(updated);
-        } catch {
+            toast.success(successMessages[action] || 'Updated');
+        } catch (e) {
             setSaving(false);
+            toast.error(e.message || 'Failed to update follow-up.');
         }
     };
 
