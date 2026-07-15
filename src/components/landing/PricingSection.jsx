@@ -297,12 +297,11 @@ export function PricingSection() {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Individual / Couple / Basic — clean 3-way toggle (no "one-time" or price text in the tab itself) */}
+                {/* Individual / Couple / Basic — clean 3-way toggle */}
                 <div className="flex justify-center gap-3 mb-6 flex-wrap">
                     {[
                         { id: "individual", icon: User, label: "Individual" },
                         { id: "couple", icon: Users, label: "Couple" },
-                        ...(activeTab === "online" ? [{ id: "basic", icon: Zap, label: "Basic" }] : []),
                     ].map(({ id, icon: Ic, label }) => (
                         <motion.button key={id} onClick={() => setPlanType(id)}
                             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
@@ -313,6 +312,44 @@ export function PricingSection() {
                             <Ic className="w-4 h-4" /> {label}
                         </motion.button>
                     ))}
+
+                    {activeTab === "online" && (
+                        <motion.button
+                            onClick={() => setPlanType("basic")}
+                            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                            className="relative flex items-center gap-2 px-6 py-2.5 rounded-full font-black text-sm"
+                            style={planType === "basic"
+                                ? { background: '#e71763', color: 'white', boxShadow: '0 0 22px rgba(231,23,99,0.45)' }
+                                : { background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(231,23,99,0.45)', color: 'rgba(255,255,255,0.75)' }}
+                        >
+                            {/* Pulsing glow ring — draws the eye without being selected */}
+                            {planType !== "basic" && (
+                                <motion.span
+                                    className="absolute inset-0 rounded-full pointer-events-none"
+                                    animate={{
+                                        boxShadow: [
+                                            '0 0 0px rgba(231,23,99,0)',
+                                            '0 0 20px rgba(231,23,99,0.6)',
+                                            '0 0 0px rgba(231,23,99,0)',
+                                        ],
+                                    }}
+                                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                                />
+                            )}
+
+                            <Zap className="w-4 h-4" /> Basic
+
+                            {/* Flashing "SALE" badge */}
+                            <motion.span
+                                className="absolute -top-3 -right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black text-white whitespace-nowrap"
+                                style={{ background: '#e71763', boxShadow: '0 0 12px rgba(231,23,99,0.8)' }}
+                                animate={{ scale: [1, 1.18, 1], opacity: [1, 0.7, 1] }}
+                                transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+                            >
+                                <Flame className="w-2.5 h-2.5" /> SALE
+                            </motion.span>
+                        </motion.button>
+                    )}
                 </div>
 
                 {/* Basic sub-toggle — only shown once "Basic" is selected. Simple Individual/Couple choice. */}
