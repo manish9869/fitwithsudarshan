@@ -171,4 +171,29 @@ export async function deleteCouponAdmin(id) {
     return request(`/coupons/${id}`, { method: 'DELETE' });
 }
 
+// ── Manual enrollment + on-demand email ─────────────────────────────────────
+export async function createManualEnrollment(payload) {
+    const data = await request('/enrollments/manual', { method: 'POST', body: payload });
+    return data.enrollment;
+}
+
+export async function sendEnrollmentEmail(id, type = 'customer') {
+    return request(`/enrollments/${id}/send-email`, { method: 'POST', body: { type } });
+}
+
+// ── Follow-ups ────────────────────────────────────────────────────────────────
+export async function fetchFollowUps(filters) {
+    return request('/follow-ups', { params: filters });
+}
+
+export async function fetchFollowUpsDueCount() {
+    const data = await request('/follow-ups/count');
+    return data.count;
+}
+
+export async function markFollowUp(id, payload) {
+    const data = await request(`/enrollments/${id}/followup`, { method: 'POST', body: payload });
+    return data.enrollment;
+}
+
 export { AdminApiError };
