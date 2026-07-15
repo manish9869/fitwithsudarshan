@@ -25,12 +25,19 @@ const MESSAGES = {
     /** General coaching inquiry — hero, navbar, floating button */
     coaching: `Hi Sudarshan,
 
-I want to apply for a free RECODE™ Training consultation.
-
-My goal:
-My current weight:
-My main struggle:
-I prefer: Online / Personal Training / Video Call Training`,
+    I'd like to apply for a RECODE Comeback Consultation.
+    
+    My main goal:
+    My current weight:
+    My biggest struggle:
+    I prefer: Online Coaching / Personal Training / Video Call Training
+    I'm looking to begin: Immediately / Within 7 days / This month
+    
+    My status:
+    Ready to enrol if it's the right fit / Need clarity before deciding
+    
+    I understand that RECODE is a personalised paid coaching program, not a free diet or workout plan.
+    `,
 
     /** Pricing page — user has seen prices and wants to enroll */
     pricing: `Hi Sudarshan,
