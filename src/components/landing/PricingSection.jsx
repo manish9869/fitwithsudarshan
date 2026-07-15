@@ -86,9 +86,9 @@ function PricingCard({ coachingId, planType, duration, isPopular, index }) {
 // "One-time" only appears inside the description text now, not as a tab/badge,
 // so the plan-type row stays clean: Individual / Couple / Basic.
 function BasicCard({ variant, index }) {
-    // variant: 'individual' | 'couple'
     const isCouple = variant === 'couple';
     const price = isCouple ? basicConsultation.priceCouple : basicConsultation.priceIndividual;
+    const originalPrice = isCouple ? basicConsultation.originalPriceCouple : basicConsultation.originalPriceIndividual;
     const [hovered, setHovered] = useState(false);
 
     return (
@@ -100,18 +100,32 @@ function BasicCard({ variant, index }) {
             onHoverStart={() => setHovered(true)}
             onHoverEnd={() => setHovered(false)}
             className="relative rounded-2xl flex flex-col overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${hovered ? 'rgba(231,23,99,0.4)' : 'rgba(255,255,255,0.07)'}`, boxShadow: hovered ? '0 25px 60px rgba(0,0,0,0.5)' : 'none' }}
+            style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.14) 0%, rgba(231,23,99,0.04) 100%)', border: '1px solid rgba(231,23,99,0.5)', boxShadow: hovered ? '0 0 60px rgba(231,23,99,0.35)' : '0 0 30px rgba(231,23,99,0.18)' }}
         >
+            {/* HOT SALE ribbon */}
+            <div className="absolute -top-px left-1/2 -translate-x-1/2">
+                <div className="flex items-center gap-1.5 px-4 py-1 text-xs font-black text-white"
+                    style={{ background: '#e71763', borderRadius: '0 0 12px 12px' }}>
+                    <Flame className="w-3 h-3" /> Hot Sale
+                </div>
+            </div>
+
             <div className="p-6 flex flex-col flex-1 pt-8">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-1">{isCouple ? 'Couple' : 'Individual'}</p>
                 <p className="text-lg font-black text-white mb-4">Basic Consultation</p>
 
                 <div className="mb-5">
-                    <motion.p className="text-4xl font-black leading-none" style={{ color: 'white' }}
-                        animate={hovered ? { scale: 1.06 } : { scale: 1 }} transition={{ duration: 0.2 }}>
-                        {formatPrice(price)}
-                    </motion.p>
-                    {isCouple && <p className="text-[11px] text-white/35 mt-1.5">for 2 people · {formatPrice(Math.round(price / 2))}/person</p>}
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                        <motion.p className="text-4xl font-black leading-none" style={{ color: '#e71763' }}
+                            animate={hovered ? { scale: 1.06 } : { scale: 1 }} transition={{ duration: 0.2 }}>
+                            {formatPrice(price)}
+                        </motion.p>
+                        <span className="text-lg font-bold text-white/30 line-through">{formatPrice(originalPrice)}</span>
+                    </div>
+                    <p className="text-[11px] font-bold mt-1.5" style={{ color: '#34d399' }}>
+                        Save {formatPrice(originalPrice - price)} · Limited-time offer
+                    </p>
+                    {isCouple && <p className="text-[11px] text-white/35 mt-1">for 2 people · {formatPrice(Math.round(price / 2))}/person</p>}
                 </div>
 
                 <p className="text-xs text-white/45 mb-5 leading-relaxed flex-1">One-time session · {basicConsultation.description}</p>
@@ -131,7 +145,7 @@ function BasicCard({ variant, index }) {
                 <Link to="/enroll" state={{ coachingId: 'online', planType: isCouple ? 'basic_couple' : 'basic_individual', duration: '1' }}>
                     <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                         className="w-full py-3 rounded-xl font-black text-sm text-white"
-                        style={{ border: `1px solid ${hovered ? 'rgba(231,23,99,0.5)' : 'rgba(255,255,255,0.15)'}`, background: hovered ? 'rgba(231,23,99,0.08)' : 'transparent' }}>
+                        style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.45)' }}>
                         Book Consultation <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
                     </motion.button>
                 </Link>
