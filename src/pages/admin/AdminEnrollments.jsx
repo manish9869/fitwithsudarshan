@@ -29,6 +29,7 @@ import {
     Check,
     Download, Mail,
     UserPlus,
+    MessageCircle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -568,236 +569,217 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                 onClick={(e) => e.stopPropagation()}
             >
                 <div
-                    className="sticky top-0 z-10 flex items-center justify-between px-5 py-4"
+                    className="sticky top-0 z-10 px-5 py-4"
                     style={{
                         background: 'rgba(10,10,20,0.95)',
                         borderBottom: '1px solid rgba(255,255,255,0.06)',
                         backdropFilter: 'blur(20px)',
                     }}
                 >
-                    <div>
-                        <p className="font-black text-white text-sm">
-                            {enrollment?.customer_name || '…'}
-                        </p>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="font-black text-white text-sm truncate">
+                                {enrollment?.customer_name || '…'}
+                            </p>
 
-                        <p className="text-[10px] text-white/35 font-mono mt-0.5">
-                            {enrollment?.enrollment_id}
-                        </p>
+                            <p className="text-[10px] text-white/35 font-mono mt-0.5">
+                                {enrollment?.enrollment_id}
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={onClose}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 flex-shrink-0"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {enrollment && (
-                            <>
-                                <button
-                                    onClick={() => onNoteClick(enrollment)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                    style={{
-                                        background: 'rgba(231,23,99,0.1)',
-                                        border: '1px solid rgba(231,23,99,0.2)',
-                                        color: '#e71763',
-                                    }}
-                                >
-                                    <StickyNote className="w-3 h-3" />
-                                    {enrollment.note ? 'Edit Note' : 'Add Note'}
-                                </button>
-                                <button
-                                    onClick={async () => {
-                                        try { await sendEnrollmentEmail(enrollment.id, 'customer'); } catch { }
-                                    }}
-                                    disabled={!enrollment.customer_email}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-40"
+                    {enrollment && (
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                            <button
+                                onClick={() => onNoteClick(enrollment)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                                style={{
+                                    background: 'rgba(231,23,99,0.1)',
+                                    border: '1px solid rgba(231,23,99,0.2)',
+                                    color: '#e71763',
+                                }}
+                            >
+                                <StickyNote className="w-3.5 h-3.5" />
+                                {enrollment.note ? 'Edit Note' : 'Add Note'}
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    try { await sendEnrollmentEmail(enrollment.id, 'customer'); } catch { }
+                                }}
+                                disabled={!enrollment.customer_email}
+                                className="flex items-center justify-center w-9 h-9 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                style={{
+                                    background: 'rgba(37,211,102,0.1)',
+                                    border: '1px solid rgba(37,211,102,0.25)',
+                                    color: '#25D366',
+                                }}
+                                title={enrollment.customer_email ? 'Send enrollment email' : 'No email on file'}
+                            >
+                                <Mail className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                                onClick={() => exportSingleEnrollmentToExcel(enrollment)}
+                                className="flex items-center justify-center w-9 h-9 rounded-lg transition-all"
+                                style={{
+                                    background: 'rgba(96,165,250,0.1)',
+                                    border: '1px solid rgba(96,165,250,0.25)',
+                                    color: '#60a5fa',
+                                }}
+                                title="Export as Excel"
+                            >
+                                <Download className="w-3.5 h-3.5" />
+                            </button>
+
+                            {enrollment.customer_phone && (
+                                <a
+                                    href={`https://wa.me/${enrollment.customer_phone.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center w-9 h-9 rounded-lg transition-all"
                                     style={{
                                         background: 'rgba(37,211,102,0.1)',
                                         border: '1px solid rgba(37,211,102,0.25)',
                                         color: '#25D366',
                                     }}
+                                    title="Open WhatsApp"
                                 >
-                                    <Mail className="w-3 h-3" /> Send Email
-                                </button>
-                                <button
-                                    onClick={() => exportSingleEnrollmentToExcel(enrollment)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                    style={{
-                                        background: 'rgba(96,165,250,0.1)',
-                                        border: '1px solid rgba(96,165,250,0.25)',
-                                        color: '#60a5fa',
-                                    }}
-                                >
-                                    <Download className="w-3 h-3" />
-                                    Export
-                                </button>
-                            </>
-                        )}
-
-                        <button
-                            onClick={onClose}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                </a>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {loading || !enrollment ? (
-                    <div className="flex items-center justify-center py-24">
-                        <Loader2 className="w-5 h-5 animate-spin text-white/25" />
-                    </div>
-                ) : (
-                    <div className="p-5 space-y-6">
-                        {enrollment.note && (
-                            <div
-                                className="rounded-xl p-4"
-                                style={{
-                                    background: 'rgba(231,23,99,0.06)',
-                                    border: '1px solid rgba(231,23,99,0.15)',
-                                }}
-                            >
-                                <div className="flex items-center gap-2 mb-2">
-                                    <StickyNote
-                                        className="w-3.5 h-3.5"
-                                        style={{ color: '#e71763' }}
-                                    />
-
-                                    <p
-                                        className="text-[10px] font-bold uppercase tracking-widest"
-                                        style={{ color: '#e71763' }}
-                                    >
-                                        Note
-                                    </p>
-                                </div>
-
-                                <p className="text-xs text-white/60 leading-relaxed">
-                                    {enrollment.note.text}
-                                </p>
-
-                                <p className="text-[10px] text-white/25 mt-2">
-                                    Updated {fmtDate(enrollment.note.updatedAt, true)}
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="flex items-center gap-3">
-                            <div
-                                className="flex-1 rounded-xl p-4 text-center"
-                                style={{
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.07)',
-                                }}
-                            >
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">
-                                    Amount Paid
-                                </p>
-
-                                <p className="text-xl font-black" style={{ color: '#e71763' }}>
-                                    {fmtCurrency(enrollment.amount_paid)}
-                                </p>
-                            </div>
-
-                            <div
-                                className="flex-1 rounded-xl p-4 text-center"
-                                style={{
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.07)',
-                                }}
-                            >
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">
-                                    Status
-                                </p>
-
-                                <div className="flex justify-center">
-                                    <StatusSelect
-                                        value={enrollment.payment_status || 'paid'}
-                                        onChange={(newStatus) => {
-                                            onStatusChange(enrollment.id, newStatus);
-                                            setEnrollment((prev) => ({
-                                                ...prev,
-                                                payment_status: newStatus,
-                                            }));
-                                        }}
-                                    />
-                                </div>
-                            </div>
+                {
+                    loading || !enrollment ? (
+                        <div className="flex items-center justify-center py-24">
+                            <Loader2 className="w-5 h-5 animate-spin text-white/25" />
                         </div>
+                    ) : (
+                        <div className="p-5 space-y-6">
+                            {enrollment.note && (
+                                <div
+                                    className="rounded-xl p-4"
+                                    style={{
+                                        background: 'rgba(231,23,99,0.06)',
+                                        border: '1px solid rgba(231,23,99,0.15)',
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <StickyNote
+                                            className="w-3.5 h-3.5"
+                                            style={{ color: '#e71763' }}
+                                        />
 
-                        {enrollment.coupon_code && (
-                            <div
-                                className="rounded-xl p-4"
-                                style={{
-                                    background: 'rgba(52,211,153,0.06)',
-                                    border: '1px solid rgba(52,211,153,0.2)',
-                                }}
-                            >
-                                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">
-                                    Coupon Applied
-                                </p>
+                                        <p
+                                            className="text-[10px] font-bold uppercase tracking-widest"
+                                            style={{ color: '#e71763' }}
+                                        >
+                                            Note
+                                        </p>
+                                    </div>
 
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-black text-white font-mono">
-                                        {enrollment.coupon_code}
-                                    </span>
+                                    <p className="text-xs text-white/60 leading-relaxed">
+                                        {enrollment.note.text}
+                                    </p>
 
-                                    <span className="text-sm font-bold" style={{ color: '#34d399' }}>
-                                        -{fmtCurrency(enrollment.coupon_savings)}
-                                    </span>
+                                    <p className="text-[10px] text-white/25 mt-2">
+                                        Updated {fmtDate(enrollment.note.updatedAt, true)}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className="flex-1 rounded-xl p-4 text-center"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">
+                                        Amount Paid
+                                    </p>
+
+                                    <p className="text-xl font-black" style={{ color: '#e71763' }}>
+                                        {fmtCurrency(enrollment.amount_paid)}
+                                    </p>
                                 </div>
 
-                                {enrollment.original_amount > enrollment.amount_paid && (
-                                    <p className="text-[11px] text-white/30 mt-1">
-                                        Original:{' '}
-                                        <span className="line-through">
-                                            {fmtCurrency(enrollment.original_amount)}
-                                        </span>
+                                <div
+                                    className="flex-1 rounded-xl p-4 text-center"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">
+                                        Status
                                     </p>
-                                )}
+
+                                    <div className="flex justify-center">
+                                        <StatusSelect
+                                            value={enrollment.payment_status || 'paid'}
+                                            onChange={(newStatus) => {
+                                                onStatusChange(enrollment.id, newStatus);
+                                                setEnrollment((prev) => ({
+                                                    ...prev,
+                                                    payment_status: newStatus,
+                                                }));
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                        )}
 
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                Client Information
-                            </p>
+                            {enrollment.coupon_code && (
+                                <div
+                                    className="rounded-xl p-4"
+                                    style={{
+                                        background: 'rgba(52,211,153,0.06)',
+                                        border: '1px solid rgba(52,211,153,0.2)',
+                                    }}
+                                >
+                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">
+                                        Coupon Applied
+                                    </p>
 
-                            <div
-                                className="rounded-xl overflow-hidden"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                <div className="px-4">
-                                    {dl('Name', enrollment.customer_name)}
-                                    {dl('Email', enrollment.customer_email)}
-                                    {dl('Phone', enrollment.customer_phone)}
-                                    {dl('Age', enrollment.age ? `${enrollment.age} yrs` : null)}
-                                    {dl('City', enrollment.city)}
-                                    {dl('Weight', enrollment.weight ? `${enrollment.weight} kg` : null)}
-
-                                    <div className="flex items-start justify-between gap-4 py-3">
-                                        <span className="text-xs text-white/35 flex-shrink-0 w-32">
-                                            Goals
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-black text-white font-mono">
+                                            {enrollment.coupon_code}
                                         </span>
 
-                                        <span className="text-xs text-white text-right font-medium flex-1">
-                                            {fmtGoals(enrollment.goals)}
+                                        <span className="text-sm font-bold" style={{ color: '#34d399' }}>
+                                            -{fmtCurrency(enrollment.coupon_savings)}
                                         </span>
                                     </div>
 
-                                    {enrollment.medical_issue === 'yes' &&
-                                        dl('Medical', enrollment.medical_note || 'Yes')}
+                                    {enrollment.original_amount > enrollment.amount_paid && (
+                                        <p className="text-[11px] text-white/30 mt-1">
+                                            Original:{' '}
+                                            <span className="line-through">
+                                                {fmtCurrency(enrollment.original_amount)}
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
-                            </div>
-                        </section>
+                            )}
 
-                        {enrollment.partner_name && (
                             <section>
                                 <p
                                     className="text-[10px] font-black uppercase tracking-widest mb-3"
                                     style={{ color: '#e71763' }}
                                 >
-                                    Partner Details
+                                    Client Information
                                 </p>
 
                                 <div
@@ -808,19 +790,12 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                     }}
                                 >
                                     <div className="px-4">
-                                        {dl('Name', enrollment.partner_name)}
-                                        {dl(
-                                            'Age',
-                                            enrollment.partner_age
-                                                ? `${enrollment.partner_age} yrs`
-                                                : null
-                                        )}
-                                        {dl(
-                                            'Weight',
-                                            enrollment.partner_weight
-                                                ? `${enrollment.partner_weight} kg`
-                                                : null
-                                        )}
+                                        {dl('Name', enrollment.customer_name)}
+                                        {dl('Email', enrollment.customer_email)}
+                                        {dl('Phone', enrollment.customer_phone)}
+                                        {dl('Age', enrollment.age ? `${enrollment.age} yrs` : null)}
+                                        {dl('City', enrollment.city)}
+                                        {dl('Weight', enrollment.weight ? `${enrollment.weight} kg` : null)}
 
                                         <div className="flex items-start justify-between gap-4 py-3">
                                             <span className="text-xs text-white/35 flex-shrink-0 w-32">
@@ -828,104 +803,152 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                             </span>
 
                                             <span className="text-xs text-white text-right font-medium flex-1">
-                                                {fmtGoals(enrollment.partner_goals)}
+                                                {fmtGoals(enrollment.goals)}
                                             </span>
                                         </div>
+
+                                        {enrollment.medical_issue === 'yes' &&
+                                            dl('Medical', enrollment.medical_note || 'Yes')}
                                     </div>
                                 </div>
                             </section>
-                        )}
 
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                Enrollment Details
-                            </p>
+                            {enrollment.partner_name && (
+                                <section>
+                                    <p
+                                        className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                        style={{ color: '#e71763' }}
+                                    >
+                                        Partner Details
+                                    </p>
 
-                            <div
-                                className="rounded-xl overflow-hidden"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                <div className="px-4">
-                                    {dl('Program', enrollment.program_name)}
-                                    {dl('Coaching Type', enrollment.coaching_type)}
-                                    {dl('Plan Type', enrollment.plan_type)}
-                                    {dl(
-                                        'Duration',
-                                        enrollment.duration_months
-                                            ? `${enrollment.duration_months} Month${Number(enrollment.duration_months) > 1
-                                                ? 's'
-                                                : ''
-                                            }`
-                                            : null
-                                    )}
-                                    {dl('Payment Date', fmtDate(enrollment.payment_date))}
-                                    {dl('Created', fmtDate(enrollment.created_at))}
-                                </div>
-                            </div>
-                        </section>
-
-                        <section>
-                            <p
-                                className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                style={{ color: '#e71763' }}
-                            >
-                                Payment Reference
-                            </p>
-
-                            <div
-                                className="rounded-xl overflow-hidden"
-                                style={{
-                                    background: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                }}
-                            >
-                                {[
-                                    ['Enrollment ID', enrollment.enrollment_id],
-                                    ['Payment ID', enrollment.razorpay_payment_id],
-                                    ['Order ID', enrollment.razorpay_order_id],
-                                ].map(([label, value]) => (
                                     <div
-                                        key={label}
-                                        className="flex items-center justify-between px-4 py-3"
+                                        className="rounded-xl overflow-hidden"
                                         style={{
-                                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                            background: 'rgba(255,255,255,0.02)',
+                                            border: '1px solid rgba(255,255,255,0.06)',
                                         }}
                                     >
-                                        <span className="text-xs text-white/35">
-                                            {label}
-                                        </span>
+                                        <div className="px-4">
+                                            {dl('Name', enrollment.partner_name)}
+                                            {dl(
+                                                'Age',
+                                                enrollment.partner_age
+                                                    ? `${enrollment.partner_age} yrs`
+                                                    : null
+                                            )}
+                                            {dl(
+                                                'Weight',
+                                                enrollment.partner_weight
+                                                    ? `${enrollment.partner_weight} kg`
+                                                    : null
+                                            )}
 
-                                        <button
-                                            onClick={() => copy(value, label)}
-                                            className="flex items-center gap-1.5 text-xs font-mono text-white/55 hover:text-white transition-colors"
+                                            <div className="flex items-start justify-between gap-4 py-3">
+                                                <span className="text-xs text-white/35 flex-shrink-0 w-32">
+                                                    Goals
+                                                </span>
+
+                                                <span className="text-xs text-white text-right font-medium flex-1">
+                                                    {fmtGoals(enrollment.partner_goals)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
+
+                            <section>
+                                <p
+                                    className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: '#e71763' }}
+                                >
+                                    Enrollment Details
+                                </p>
+
+                                <div
+                                    className="rounded-xl overflow-hidden"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    <div className="px-4">
+                                        {dl('Program', enrollment.program_name)}
+                                        {dl('Coaching Type', enrollment.coaching_type)}
+                                        {dl('Plan Type', enrollment.plan_type)}
+                                        {dl(
+                                            'Duration',
+                                            enrollment.duration_months
+                                                ? `${enrollment.duration_months} Month${Number(enrollment.duration_months) > 1
+                                                    ? 's'
+                                                    : ''
+                                                }`
+                                                : null
+                                        )}
+                                        {dl('Payment Date', fmtDate(enrollment.payment_date))}
+                                        {dl('Created', fmtDate(enrollment.created_at))}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <p
+                                    className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                    style={{ color: '#e71763' }}
+                                >
+                                    Payment Reference
+                                </p>
+
+                                <div
+                                    className="rounded-xl overflow-hidden"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    {[
+                                        ['Enrollment ID', enrollment.enrollment_id],
+                                        ['Payment ID', enrollment.razorpay_payment_id],
+                                        ['Order ID', enrollment.razorpay_order_id],
+                                    ].map(([label, value]) => (
+                                        <div
+                                            key={label}
+                                            className="flex items-center justify-between px-4 py-3"
+                                            style={{
+                                                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                            }}
                                         >
-                                            <span className="truncate max-w-[140px]">
-                                                {value || '—'}
+                                            <span className="text-xs text-white/35">
+                                                {label}
                                             </span>
 
-                                            {value &&
-                                                (copied === label ? (
-                                                    <Check className="w-3 h-3 text-green-400" />
-                                                ) : (
-                                                    <Copy className="w-3 h-3" />
-                                                ))}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                                            <button
+                                                onClick={() => copy(value, label)}
+                                                className="flex items-center gap-1.5 text-xs font-mono text-white/55 hover:text-white transition-colors"
+                                            >
+                                                <span className="truncate max-w-[140px]">
+                                                    {value || '—'}
+                                                </span>
 
-                        <DownloadInvoiceButton enrollment={enrollment} />
-                    </div>
-                )}
-            </motion.div>
-        </div>
+                                                {value &&
+                                                    (copied === label ? (
+                                                        <Check className="w-3 h-3 text-green-400" />
+                                                    ) : (
+                                                        <Copy className="w-3 h-3" />
+                                                    ))}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <DownloadInvoiceButton enrollment={enrollment} />
+                        </div>
+                    )
+                }
+            </motion.div >
+        </div >
     );
 }
 
@@ -1560,30 +1583,33 @@ export default function AdminEnrollments() {
                                                     {row.customer_email}
                                                 </p>
 
-                                                {hasNote && (
-                                                    <span
-                                                        className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded mt-1"
-                                                        style={{
-                                                            background:
-                                                                'rgba(231,23,99,0.1)',
-                                                            color: '#e71763',
-                                                        }}
-                                                    >
-                                                        <StickyNote className="w-2.5 h-2.5" />
-                                                        NOTE
-                                                    </span>
-                                                )}
+                                                {(hasNote || row.source === 'manual') && (
+                                                    <div className="flex items-center gap-1 mt-1">
+                                                        {hasNote && (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                                                                style={{
+                                                                    background: 'rgba(231,23,99,0.1)',
+                                                                    color: '#e71763',
+                                                                }}
+                                                            >
+                                                                <StickyNote className="w-2.5 h-2.5" />
+                                                                NOTE
+                                                            </span>
+                                                        )}
 
-                                                {row.source === 'manual' && (
-                                                    <span
-                                                        className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 ml-1"
-                                                        style={{
-                                                            background: 'rgba(96,165,250,0.1)',
-                                                            color: '#60a5fa',
-                                                        }}
-                                                    >
-                                                        MANUAL
-                                                    </span>
+                                                        {row.source === 'manual' && (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                                                                style={{
+                                                                    background: 'rgba(96,165,250,0.1)',
+                                                                    color: '#60a5fa',
+                                                                }}
+                                                            >
+                                                                MANUAL
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </td>
 

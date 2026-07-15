@@ -20,7 +20,7 @@ import {
 import {
     IndianRupee, TrendingUp, Users, ClipboardList, Tag, Heart,
     RefreshCw, AlertCircle, ArrowUpRight, Calendar, Sparkles, Loader2,
-    Percent,
+    Percent, BellRing,
 } from 'lucide-react';
 import { fetchDashboard } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
@@ -477,7 +477,8 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* ── KPI Row 2 ── */}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                    {/* ── KPI Row 2 ── */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                         <KpiCard
                             icon={Percent}
                             label="Conversion Rate"
@@ -504,6 +505,17 @@ export default function AdminDashboard() {
                             sub="from assessments"
                             delay={0.3}
                         />
+
+                        <Link to="/admin/follow-ups" className="block">
+                            <KpiCard
+                                icon={BellRing}
+                                label="Follow-Ups Due"
+                                accent={k.followUpsDue > 0 ? '#f87171' : '#34d399'}
+                                value={k.followUpsDue ?? 0}
+                                sub={k.followUpsDue > 0 ? 'clients waiting — tap to review' : 'all caught up'}
+                                delay={0.35}
+                            />
+                        </Link>
                     </div>
 
                     {/* ── Lifetime Strip ── */}
