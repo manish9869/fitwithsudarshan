@@ -112,7 +112,7 @@ function BasicCard({ variant, index }) {
 
             <div className="p-6 flex flex-col flex-1 pt-8">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-1">{isCouple ? 'Couple' : 'Individual'}</p>
-                <p className="text-lg font-black text-white mb-4">Basic Consultation</p>
+                <p className="text-lg font-black text-white mb-4">RECODE Blueprint</p>
 
                 <div className="mb-5">
                     <div className="flex items-baseline gap-2 flex-wrap">
