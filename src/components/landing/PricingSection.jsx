@@ -146,7 +146,7 @@ function BasicCard({ variant, index }) {
                     <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                         className="w-full py-3 rounded-xl font-black text-sm text-white"
                         style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.45)' }}>
-                        Book Consultation <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
+                        RECODE Blueprint <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
                     </motion.button>
                 </Link>
             </div>
