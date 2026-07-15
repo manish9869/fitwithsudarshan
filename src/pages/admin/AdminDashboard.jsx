@@ -7,6 +7,7 @@
  * - Donut/ring chart tooltip now shows label + value + percentage.
  * - Bar charts improved with gradients, labels, cleaner tooltip, no grey hover cursor.
  * - Recent Activity now has max height + custom scroll so Assessment Pipeline stays clean.
+ * - NEW: "Today's To-Do" widget surfaces unreviewed assessments + due follow-ups.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -20,9 +21,9 @@ import {
 import {
     IndianRupee, TrendingUp, Users, ClipboardList, Tag, Heart,
     RefreshCw, AlertCircle, ArrowUpRight, Calendar, Sparkles, Loader2,
-    Percent, BellRing,
+    Percent, BellRing, ListChecks, ChevronRight,
 } from 'lucide-react';
-import { fetchDashboard } from './adminApi';
+import { fetchDashboard, fetchAssessments, fetchFollowUps } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
 import { Link } from 'react-router-dom';
 
@@ -317,6 +318,145 @@ function ActivityItem({ item }) {
     );
 }
 
+// ── Today's To-Do Item ────────────────────────────────────────────────────────
+function TodoItem({ icon: Icon, color, title, subtitle, to }) {
+    return (
+        <Link
+            to={to}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = `${color}35`;
+                e.currentTarget.style.background = `${color}0c`;
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+            }}
+        >
+            <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: `${color}18` }}
+            >
+                <Icon className="w-4 h-4" style={{ color }} />
+            </div>
+            <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-white truncate">{title}</p>
+                <p className="text-[11px] text-white/35 truncate">{subtitle}</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/20 flex-shrink-0" />
+        </Link>
+    );
+}
+
+// ── Today's To-Do List ─────────────────────────────────────────────────────────
+// Surfaces the two most actionable admin tasks: assessments still marked
+// "new" (not yet reviewed) and enrollments whose 7-day follow-up is due.
+function TodoList() {
+    const [newAssessments, setNewAssessments] = useState([]);
+    const [dueFollowUps, setDueFollowUps] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    const load = useCallback(() => {
+        setLoading(true);
+        setError(false);
+        Promise.all([
+            fetchAssessments({ status: 'new', pageSize: 5, sortField: 'created_at', sortDir: 'desc' }).catch(() => ({ rows: [] })),
+            fetchFollowUps({ due: 'true', pageSize: 5 }).catch(() => ({ rows: [] })),
+        ])
+            .then(([a, f]) => {
+                setNewAssessments(a.rows || []);
+                setDueFollowUps(f.rows || []);
+            })
+            .catch(() => setError(true))
+            .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => { load(); }, [load]);
+
+    const total = newAssessments.length + dueFollowUps.length;
+
+    return (
+        <div className="rounded-2xl overflow-hidden mb-6" style={cardBaseStyle}>
+            <div
+                className="flex items-center justify-between px-5 py-4"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+            >
+                <div className="flex items-center gap-2">
+                    <ListChecks className="w-3.5 h-3.5" style={{ color: '#e71763' }} />
+                    <span className="text-xs font-black uppercase tracking-widest text-white/60">
+                        Today's To-Do
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {!loading && (
+                        <span
+                            className="text-[10px] font-bold px-2 py-1 rounded-full"
+                            style={{
+                                background: total ? 'rgba(231,23,99,0.1)' : 'rgba(52,211,153,0.1)',
+                                color: total ? '#e71763' : '#34d399',
+                            }}
+                        >
+                            {total ? `${total} pending` : 'All clear'}
+                        </span>
+                    )}
+                    <button
+                        onClick={load}
+                        className="w-6 h-6 rounded-lg flex items-center justify-center text-white/30 hover:text-white transition-all"
+                        title="Refresh"
+                    >
+                        <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
+            </div>
+
+            <div className="p-4 space-y-2">
+                {loading ? (
+                    <div className="flex justify-center py-6">
+                        <Loader2 className="w-5 h-5 animate-spin text-white/25" />
+                    </div>
+                ) : error ? (
+                    <div className="flex items-center gap-2 px-3 py-3 rounded-xl text-xs"
+                        style={{ background: 'rgba(239,68,68,0.06)', color: '#f87171' }}>
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        Couldn't load to-dos. Try refreshing.
+                    </div>
+                ) : total === 0 ? (
+                    <div className="text-center py-6">
+                        <Sparkles className="w-5 h-5 mx-auto mb-2 text-white/15" />
+                        <p className="text-xs text-white/25">Nothing needs your attention right now.</p>
+                    </div>
+                ) : (
+                    <>
+                        {dueFollowUps.map((f) => (
+                            <TodoItem
+                                key={`f-${f.id}`}
+                                icon={BellRing}
+                                color="#f87171"
+                                title={`Follow up with ${f.customer_name}`}
+                                subtitle={f.program_name || 'Follow-up due'}
+                                to="/admin/follow-ups"
+                            />
+                        ))}
+                        {newAssessments.map((a) => (
+                            <TodoItem
+                                key={`a-${a.id}`}
+                                icon={ClipboardList}
+                                color="#60a5fa"
+                                title={`Review assessment — ${`${a.first_name || ''} ${a.last_name || ''}`.trim()}`}
+                                subtitle={a.plan || 'New submission, not yet reviewed'}
+                                to={`/admin/assessments?focus=${a.id}`}
+                            />
+                        ))}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
     const [range, setRange] = useState(90);
@@ -431,6 +571,9 @@ export default function AdminDashboard() {
                 </div>
             )}
 
+            {/* ── Today's To-Do (independent of range/loading state below) ── */}
+            <TodoList />
+
             {loading && !data ? (
                 <div className="flex items-center justify-center py-32">
                     <Loader2 className="w-6 h-6 animate-spin text-white/25" />
@@ -476,7 +619,6 @@ export default function AdminDashboard() {
                         />
                     </div>
 
-                    {/* ── KPI Row 2 ── */}
                     {/* ── KPI Row 2 ── */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                         <KpiCard

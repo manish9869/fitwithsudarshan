@@ -9,12 +9,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Loader2, AlertCircle, CheckCircle2, Plus, X, Mail, Edit2,
+    Loader2, AlertCircle, CheckCircle2, Plus, X, Edit2,
     Search, RefreshCw, MessageCircle, Users,
 } from 'lucide-react';
 import { coachingTypes, durations, pricingTable } from '@/data/SiteData';
 import { createManualEnrollment, updateManualEnrollment, sendEnrollmentEmail, fetchEnrollments } from './adminApi';
 import { fmtCurrency, fmtDate, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
+import EmailSendMenu from './EmailSendMenu';
 
 const PAYMENT_METHODS = [
     { value: 'razorpay', label: 'Razorpay Link' },
@@ -349,9 +350,6 @@ export default function AdminManualEnrollment() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingRow, setEditingRow] = useState(null); // null = creating new
 
-    const [emailSendingId, setEmailSendingId] = useState(null);
-    const [emailSentId, setEmailSentId] = useState(null);
-
     const load = useCallback(async () => {
         setLoading(true);
         setError('');
@@ -392,17 +390,11 @@ export default function AdminManualEnrollment() {
         setEditingRow(null);
     };
 
-    const handleSendEmail = async (row) => {
-        if (!row.customer_email) return;
-        setEmailSendingId(row.id);
+    const handleSendEmail = async (row, template) => {
         try {
-            await sendEnrollmentEmail(row.id, 'customer');
-            setEmailSentId(row.id);
-            setTimeout(() => setEmailSentId((id) => (id === row.id ? null : id)), 2200);
+            await sendEnrollmentEmail(row.id, template);
         } catch {
-            setError('Failed to send confirmation email.');
-        } finally {
-            setEmailSendingId(null);
+            setError('Failed to send email.');
         }
     };
 
@@ -509,17 +501,11 @@ export default function AdminManualEnrollment() {
                                                         <Edit2 className="w-3.5 h-3.5" />
                                                     </button>
 
-                                                    <button onClick={() => handleSendEmail(row)}
-                                                        disabled={!row.customer_email || emailSendingId === row.id}
-                                                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-                                                        style={{ color: emailSentId === row.id ? '#34d399' : '#25D366' }}
-                                                        title={row.customer_email ? 'Send confirmation email' : 'No email on file'}>
-                                                        {emailSendingId === row.id
-                                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                            : emailSentId === row.id
-                                                                ? <CheckCircle2 className="w-3.5 h-3.5" />
-                                                                : <Mail className="w-3.5 h-3.5" />}
-                                                    </button>
+                                                    <EmailSendMenu
+                                                        compact
+                                                        hasCustomerEmail={!!row.customer_email}
+                                                        onSend={(template) => handleSendEmail(row, template)}
+                                                    />
 
                                                     {row.customer_phone && (
                                                         <a href={`https://wa.me/${row.customer_phone.replace(/\D/g, '')}`}

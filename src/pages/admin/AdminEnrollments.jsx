@@ -7,6 +7,7 @@
  * - Module-level cache survives tab switching
  * - Status and note updates patch local state/cache
  * - Custom styled dropdowns for type, plan, and status filters
+ * - Multi-template email sending via EmailSendMenu
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -27,7 +28,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Check,
-    Download, Mail,
+    Download,
     UserPlus,
     MessageCircle,
 } from 'lucide-react';
@@ -55,6 +56,7 @@ import {
 
 import { useDebounce } from './useDebounce';
 import ExportMenu from './ExportMenu';
+import EmailSendMenu from './EmailSendMenu';
 
 const PAGE_SIZE = 20;
 const CACHE_TTL = 60_000;
@@ -610,21 +612,10 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                 {enrollment.note ? 'Edit Note' : 'Add Note'}
                             </button>
 
-                            <button
-                                onClick={async () => {
-                                    try { await sendEnrollmentEmail(enrollment.id, 'customer'); } catch { }
-                                }}
-                                disabled={!enrollment.customer_email}
-                                className="flex items-center justify-center w-9 h-9 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                style={{
-                                    background: 'rgba(37,211,102,0.1)',
-                                    border: '1px solid rgba(37,211,102,0.25)',
-                                    color: '#25D366',
-                                }}
-                                title={enrollment.customer_email ? 'Send enrollment email' : 'No email on file'}
-                            >
-                                <Mail className="w-3.5 h-3.5" />
-                            </button>
+                            <EmailSendMenu
+                                hasCustomerEmail={!!enrollment.customer_email}
+                                onSend={(template) => sendEnrollmentEmail(enrollment.id, template)}
+                            />
 
                             <button
                                 onClick={() => exportSingleEnrollmentToExcel(enrollment)}
@@ -655,6 +646,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                     <MessageCircle className="w-3.5 h-3.5" />
                                 </a>
                             )}
+
                         </div>
                     )}
                 </div>
@@ -1702,20 +1694,15 @@ export default function AdminEnrollments() {
                                                         <StickyNote className="w-3.5 h-3.5" />
                                                     </button>
 
-                                                    <button
-                                                        onClick={async () => {
-                                                            try {
-                                                                await sendEnrollmentEmail(row.id, 'customer');
-                                                            } catch {
-                                                                setError('Failed to send email.');
-                                                            }
-                                                        }}
-                                                        disabled={!row.customer_email}
-                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-                                                        title={row.customer_email ? 'Send enrollment email' : 'No email on file'}
-                                                    >
-                                                        <Mail className="w-3.5 h-3.5" />
-                                                    </button>
+                                                    <EmailSendMenu
+                                                        compact
+                                                        hasCustomerEmail={!!row.customer_email}
+                                                        onSend={(template) =>
+                                                            sendEnrollmentEmail(row.id, template).catch(() =>
+                                                                setError('Failed to send email.')
+                                                            )
+                                                        }
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>

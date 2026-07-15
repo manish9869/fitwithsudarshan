@@ -177,8 +177,11 @@ export async function createManualEnrollment(payload) {
     return data.enrollment;
 }
 
-export async function sendEnrollmentEmail(id, type = 'customer') {
-    return request(`/enrollments/${id}/send-email`, { method: 'POST', body: { type } });
+// `template` should be one of: enrollment_customer | welcome | payment_reminder
+// | payment_failed | enrollment_coach (see EmailSendMenu.jsx / backend
+// ENROLLMENT_EMAIL_TEMPLATES for the canonical list).
+export async function sendEnrollmentEmail(id, template = 'enrollment_customer') {
+    return request(`/enrollments/${id}/send-email`, { method: 'POST', body: { template } });
 }
 
 // ── Follow-ups ────────────────────────────────────────────────────────────────
