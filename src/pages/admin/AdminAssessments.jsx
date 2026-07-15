@@ -11,9 +11,11 @@
  *  - Custom StatusSelect for table + drawer status updates
  *  - Custom FilterDropdown for top Status and Plan filters
  *  - Header: Refresh + Export grouped, vertically centred
- *  - NEW: standalone "Reviewed" flag (separate from status pipeline) —
- *    drives the dashboard's "Today's To-Do" list
- *  - NEW: toast notifications on save/update/export actions
+ *  - Standalone "Reviewed" flag (separate from status pipeline) — drives
+ *    the dashboard's "Today's To-Do" list
+ *  - Toast notifications on save/update/export actions
+ *  - Reviewed/Pending badge now uses distinct icon + color per state so
+ *    "Pending" no longer reads as a false checkmark
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -32,6 +34,7 @@ import {
     Save,
     Loader2,
     Check,
+    Circle,
     AlertCircle,
     Copy,
     Dumbbell,
@@ -98,14 +101,19 @@ function ReviewedToggle({ reviewed, onChange, disabled }) {
             type="button"
             disabled={disabled}
             onClick={() => onChange(!reviewed)}
-            className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50 whitespace-nowrap"
             style={{
-                background: reviewed ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${reviewed ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.12)'}`,
-                color: reviewed ? '#34d399' : 'rgba(255,255,255,0.4)',
+                background: reviewed ? 'rgba(52,211,153,0.1)' : 'rgba(251,191,36,0.08)',
+                border: `1px solid ${reviewed ? 'rgba(52,211,153,0.3)' : 'rgba(251,191,36,0.25)'}`,
+                color: reviewed ? '#34d399' : '#fbbf24',
             }}
+            title={reviewed ? 'Marked as reviewed — click to undo' : 'Not reviewed yet — click to mark reviewed'}
         >
-            <Check className="w-3 h-3" />
+            {reviewed ? (
+                <Check className="w-3 h-3 flex-shrink-0" />
+            ) : (
+                <Circle className="w-2 h-2 flex-shrink-0" style={{ fill: '#fbbf24', stroke: 'none' }} />
+            )}
             {reviewed ? 'Reviewed' : 'Pending'}
         </button>
     );
@@ -699,6 +707,7 @@ function PhotoViewer({ url, label }) {
                             >
                                 <X className="w-4 h-4" />
                             </button>
+
 
 
                             <a
