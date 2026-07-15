@@ -345,7 +345,7 @@ export default function Enroll() {
     const finalPrice = appliedCoupon ? appliedCoupon.discountedPrice : originalPrice;
 
     const selectedDuration = basic
-        ? { months: '1', label: 'One-Time', sublabel: 'Basic Consultation', description: basicConsultation.description }
+        ? { months: '1', label: 'One-Time', sublabel: 'RECODE BLUEPRINT', description: basicConsultation.description }
         : durations.find((d) => d.months === durationMonths);
     const activeCoaching = coachingTypes.find((c) => c.id === coachingId);
 

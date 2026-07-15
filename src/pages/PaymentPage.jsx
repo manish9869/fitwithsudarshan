@@ -319,8 +319,8 @@ export default function PaymentPage() {
                             {coachingId === 'online' && (
                                 <div className="grid grid-cols-2 gap-3">
                                     {[
-                                        { id: 'basic_individual', label: 'Basic Consult (Individual)', price: basicConsultation.priceIndividual, original: basicConsultation.originalPriceIndividual },
-                                        { id: 'basic_couple', label: 'Basic Consult (Couple)', price: basicConsultation.priceCouple, original: basicConsultation.originalPriceCouple },
+                                        { id: 'basic_individual', label: 'RECODE Blueprint (Individual)', price: basicConsultation.priceIndividual, original: basicConsultation.originalPriceIndividual },
+                                        { id: 'basic_couple', label: 'RECODE Blueprint (Couple)', price: basicConsultation.priceCouple, original: basicConsultation.originalPriceCouple },
                                     ].map(({ id, label, price: p, original }) => (
                                         <button
                                             key={id}
