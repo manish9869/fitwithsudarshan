@@ -592,19 +592,26 @@ export default function Enroll() {
                                 {coachingId === 'online' && (
                                     <div className="grid grid-cols-2 gap-3 mb-6">
                                         {[
-                                            { id: 'basic_individual', label: 'Basic (Individual)', price: basicConsultation.priceIndividual },
-                                            { id: 'basic_couple', label: 'Basic (Couple)', price: basicConsultation.priceCouple },
-                                        ].map(({ id, label, price }) => (
+                                            { id: 'basic_individual', label: 'Basic (Individual)', price: basicConsultation.priceIndividual, original: basicConsultation.originalPriceIndividual },
+                                            { id: 'basic_couple', label: 'Basic (Couple)', price: basicConsultation.priceCouple, original: basicConsultation.originalPriceCouple },
+                                        ].map(({ id, label, price, original }) => (
                                             <button key={id} onClick={() => handlePlanTypeChange(id)}
-                                                className="rounded-2xl p-4 text-left transition-all"
+                                                className="relative rounded-2xl p-4 text-left transition-all"
                                                 style={planType === id
                                                     ? { background: 'rgba(231,23,99,0.08)', border: '2px solid #e71763' }
                                                     : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                                <span className="absolute -top-2 left-3 px-2 py-0.5 rounded-full text-[9px] font-black text-white"
+                                                    style={{ background: '#e71763' }}>
+                                                    HOT SALE
+                                                </span>
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <Zap className={`w-4 h-4 ${planType === id ? 'text-primary' : 'text-muted-foreground'}`} />
                                                     <p className={`font-bold text-sm ${planType === id ? 'text-white' : 'text-white/80'}`}>{label}</p>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">One-time · {formatPrice(price)}</p>
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <p className="text-xs font-bold text-primary">{formatPrice(price)}</p>
+                                                    <p className="text-[11px] text-white/30 line-through">{formatPrice(original)}</p>
+                                                </div>
                                             </button>
                                         ))}
                                     </div>

@@ -230,10 +230,10 @@ export const pricingTable = {
         },
         // NEW — one-time basic consultation, online only
         basic_individual: {
-            "1": 599,
+            "1": 59,
         },
         basic_couple: {
-            "1": 999,
+            "1": 199,
         },
     },
     video: {
@@ -268,13 +268,16 @@ export const pricingTable = {
 
 // ─── BASIC ONLINE CONSULTATION (one-time, online tab only) ───────────────────
 export const basicConsultation = {
-    coachingId: "basic", // used as a pseudo-coachingId for routing/labels only
+    coachingId: "basic",
     name: "Basic Online Consultation",
     tagline: "One-time basic guidance — nutrition & workout direction.",
     description:
         "A single one-time consultation with basic nutrition and workout guidance. Ideal if you just want a starting roadmap rather than full ongoing coaching.",
-    priceIndividual: 599,
-    priceCouple: 999,
+    priceIndividual: 99,
+    priceCouple: 199,
+    originalPriceIndividual: 599,
+    originalPriceCouple: 999,
+    saleLabel: "Hot Sale",
     features: [
         "One-time basic workout guidance",
         "One-time basic nutrition guidance",
