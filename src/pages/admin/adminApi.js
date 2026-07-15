@@ -195,5 +195,8 @@ export async function markFollowUp(id, payload) {
     const data = await request(`/enrollments/${id}/followup`, { method: 'POST', body: payload });
     return data.enrollment;
 }
-
+export async function updateManualEnrollment(id, payload) {
+    const data = await request(`/enrollments/manual/${id}`, { method: 'PATCH', body: payload });
+    return data.enrollment;
+}
 export { AdminApiError };
