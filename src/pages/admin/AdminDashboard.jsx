@@ -2,15 +2,15 @@
  * src/pages/admin/AdminDashboard.jsx
  *
  * Changes:
- * - Removed "Assessment Pipeline" chart. Replaced with "Today's To-Do",
- *   now driven by the assessment `reviewed` flag (not `status`), sitting
- *   next to Recent Activity.
- * - Added ambient background glow + gradient header icon + sliding pill
- *   range selector so the page reads less flat.
- * - Removed ugly white/grey hover backgrounds; hover elevates
- *   cards/rows using transform + shadow.
- * - Donut/ring chart tooltip shows label + value + percentage.
- * - Bar charts improved with gradients, labels, cleaner tooltip.
+ * - Removed "Assessment Pipeline" chart originally. Re-added it here in a
+ *   cleaner horizontal-bar layout (data was already computed server-side
+ *   but unused), plus a new Conversion Rate radial gauge.
+ * - "Today's To-Do" driven by the assessment `reviewed` flag.
+ * - Ambient background glow + gradient header icon + sliding pill range
+ *   selector.
+ * - Hover elevates cards/rows using transform + shadow instead of flat
+ *   backgrounds.
+ * - Donut/ring/gauge tooltips show label + value + percentage.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -20,11 +20,12 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell,
     BarChart, Bar, LabelList,
+    RadialBarChart, RadialBar, PolarAngleAxis,
 } from 'recharts';
 import {
     IndianRupee, TrendingUp, Users, ClipboardList, Tag, Heart,
     RefreshCw, AlertCircle, ArrowUpRight, Calendar, Sparkles, Loader2,
-    Percent, BellRing, ListChecks,
+    Percent, BellRing, ListChecks, ClipboardCheck,
 } from 'lucide-react';
 import { fetchDashboard, fetchAssessments, fetchFollowUps } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
@@ -39,6 +40,14 @@ const RANGE_OPTIONS = [
 
 const PIE_COLORS = ['#e71763', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f472b6'];
 
+const STATUS_COLORS = {
+    new: '#60a5fa',
+    reviewed: '#fbbf24',
+    plan_sent: '#a78bfa',
+    completed: '#34d399',
+    archived: 'rgba(255,255,255,0.3)',
+};
+
 const cardBaseStyle = {
     background: 'rgba(255,255,255,0.025)',
     border: '1px solid rgba(255,255,255,0.07)',
@@ -52,6 +61,13 @@ const tooltipWrapperStyle = {
     boxShadow: '0 18px 50px rgba(0,0,0,0.65)',
     padding: '10px 12px',
 };
+
+function formatStatusLabel(value) {
+    if (!value) return '—';
+    return String(value)
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 // ── Shared Tooltip ────────────────────────────────────────────────────────────
 function CustomTooltip({ active, payload, label, formatter, labelFormatter, valueLabel = 'Value' }) {
@@ -246,6 +262,24 @@ function BarValueLabel({ x, y, width, value, formatter }) {
             fontWeight={800}
         >
             {formatter ? formatter(value) : value}
+        </text>
+    );
+}
+
+// ── Horizontal Bar Value Label (for the Assessment Pipeline chart) ───────────
+function HBarValueLabel({ x, y, width, height, value }) {
+    if (value == null) return null;
+    return (
+        <text
+            x={x + width + 8}
+            y={y + height / 2}
+            fill="rgba(255,255,255,0.7)"
+            textAnchor="start"
+            dominantBaseline="middle"
+            fontSize={11}
+            fontWeight={800}
+        >
+            {value}
         </text>
     );
 }
@@ -460,6 +494,15 @@ export default function AdminDashboard() {
     const coachingTotal = c.coachingTypeSplit?.reduce((sum, item) => sum + Number(item.value || 0), 0) || 0;
     const planTypeTotal = c.planTypeSplit?.reduce((sum, item) => sum + Number(item.value || 0), 0) || 0;
 
+    const assessmentStatusData = (c.assessmentStatusSplit || []).map((item) => ({
+        ...item,
+        label: formatStatusLabel(item.name),
+        fill: STATUS_COLORS[item.name] || '#e71763',
+    }));
+
+    const conversionValue = k.conversionRate ?? 0;
+    const conversionGaugeData = [{ name: 'Conversion', value: conversionValue, fill: '#a78bfa' }];
+
     return (
         <div className="relative">
             {/* Ambient background glow — purely decorative */}
@@ -613,7 +656,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* ── KPI Row 2 ── */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
                         <KpiCard
                             icon={Percent}
                             label="Conversion Rate"
@@ -639,6 +682,15 @@ export default function AdminDashboard() {
                             value={k.avgCommitment ? `${k.avgCommitment.toFixed(1)}/10` : '—'}
                             sub="from assessments"
                             delay={0.3}
+                        />
+
+                        <KpiCard
+                            icon={ClipboardCheck}
+                            label="Pending Review"
+                            accent={k.pendingReviewCount > 0 ? '#fbbf24' : '#34d399'}
+                            value={k.pendingReviewCount ?? 0}
+                            sub={k.pendingReviewCount > 0 ? 'assessments awaiting review' : 'all reviewed'}
+                            delay={0.33}
                         />
 
                         <Link to="/admin/follow-ups" className="block">
@@ -980,6 +1032,101 @@ export default function AdminDashboard() {
                                     </BarChart>
                                 </ResponsiveContainer>
                             )}
+                        </ChartCard>
+                    </div>
+
+                    {/* ── NEW: Assessment Pipeline + Conversion Gauge ── */}
+                    <div className="grid lg:grid-cols-2 gap-5 mb-5">
+                        <ChartCard
+                            title="Assessment Pipeline"
+                            icon={ClipboardList}
+                            badge={`${k.assessmentsInRange ?? 0} total`}
+                        >
+                            {!assessmentStatusData.length ? (
+                                <EmptyState label="No assessments in this range yet" />
+                            ) : (
+                                <ResponsiveContainer width="100%" height={260}>
+                                    <BarChart
+                                        data={assessmentStatusData}
+                                        layout="vertical"
+                                        margin={{ top: 4, right: 36, left: 8, bottom: 4 }}
+                                        barCategoryGap="30%"
+                                    >
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            stroke="rgba(255,255,255,0.045)"
+                                            horizontal={false}
+                                        />
+
+                                        <XAxis
+                                            type="number"
+                                            tick={{ fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            allowDecimals={false}
+                                        />
+
+                                        <YAxis
+                                            type="category"
+                                            dataKey="label"
+                                            tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 700 }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            width={90}
+                                        />
+
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                                            content={<CustomTooltip valueLabel="Assessments" />}
+                                        />
+
+                                        <Bar
+                                            dataKey="value"
+                                            name="Assessments"
+                                            radius={[0, 8, 8, 0]}
+                                            maxBarSize={22}
+                                        >
+                                            {assessmentStatusData.map((entry, i) => (
+                                                <Cell key={i} fill={entry.fill} />
+                                            ))}
+                                            <LabelList
+                                                dataKey="value"
+                                                content={(props) => <HBarValueLabel {...props} />}
+                                            />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </ChartCard>
+
+                        <ChartCard title="Conversion Rate" icon={Percent} badge="assessments → paid">
+                            <div className="relative flex items-center justify-center" style={{ height: 260 }}>
+                                <ResponsiveContainer width="100%" height={260}>
+                                    <RadialBarChart
+                                        innerRadius="72%"
+                                        outerRadius="100%"
+                                        data={conversionGaugeData}
+                                        startAngle={90}
+                                        endAngle={-270}
+                                    >
+                                        <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                                        <RadialBar
+                                            dataKey="value"
+                                            cornerRadius={12}
+                                            background={{ fill: 'rgba(255,255,255,0.05)' }}
+                                        />
+                                    </RadialBarChart>
+                                </ResponsiveContainer>
+
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <p className="text-3xl font-black text-white">
+                                        {k.conversionRate != null ? `${k.conversionRate}%` : '—'}
+                                    </p>
+                                    <p className="text-[10px] text-white/30 mt-1.5 text-center px-10 leading-relaxed">
+                                        of assessments become paid clients
+                                    </p>
+                                </div>
+                            </div>
                         </ChartCard>
                     </div>
 
