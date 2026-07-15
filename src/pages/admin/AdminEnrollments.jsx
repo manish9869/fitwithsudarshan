@@ -27,15 +27,16 @@ import {
     ChevronLeft,
     ChevronRight,
     Check,
-    Download,
+    Download, Mail,
+    UserPlus,
 } from 'lucide-react';
-
+import { Link } from 'react-router-dom';
 import {
     fetchEnrollments,
     fetchEnrollment,
     setEnrollmentStatus,
     exportEnrollmentsAll,
-    saveNote,
+    saveNote, sendEnrollmentEmail,
 } from './adminApi';
 
 import {
@@ -112,10 +113,10 @@ function FilterDropdown({
     const activeBadge = getBadge
         ? getBadge(activeOption.value)
         : {
-              bg: 'rgba(255,255,255,0.05)',
-              border: 'rgba(255,255,255,0.1)',
-              color: '#ffffff',
-          };
+            bg: 'rgba(255,255,255,0.05)',
+            border: 'rgba(255,255,255,0.1)',
+            color: '#ffffff',
+        };
 
     useEffect(() => {
         if (!open) return;
@@ -195,11 +196,11 @@ function FilterDropdown({
                             const optionBadge = getBadge
                                 ? getBadge(option.value)
                                 : {
-                                      color:
-                                          option.value === 'all'
-                                              ? 'rgba(255,255,255,0.45)'
-                                              : '#e71763',
-                                  };
+                                    color:
+                                        option.value === 'all'
+                                            ? 'rgba(255,255,255,0.45)'
+                                            : '#e71763',
+                                };
 
                             return (
                                 <button
@@ -448,6 +449,7 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
                     <button onClick={onClose} className="text-white/30 hover:text-white">
                         <X className="w-4 h-4" />
                     </button>
+
                 </div>
 
                 <div className="p-5">
@@ -529,7 +531,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
     }, [enrollmentId]);
 
     const copy = (val, key) => {
-        navigator.clipboard.writeText(val).catch(() => {});
+        navigator.clipboard.writeText(val).catch(() => { });
         setCopied(key);
         setTimeout(() => setCopied(''), 1500);
     };
@@ -598,7 +600,20 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                     <StickyNote className="w-3 h-3" />
                                     {enrollment.note ? 'Edit Note' : 'Add Note'}
                                 </button>
-
+                                <button
+                                    onClick={async () => {
+                                        try { await sendEnrollmentEmail(enrollment.id, 'customer'); } catch { }
+                                    }}
+                                    disabled={!enrollment.customer_email}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-40"
+                                    style={{
+                                        background: 'rgba(37,211,102,0.1)',
+                                        border: '1px solid rgba(37,211,102,0.25)',
+                                        color: '#25D366',
+                                    }}
+                                >
+                                    <Mail className="w-3 h-3" /> Send Email
+                                </button>
                                 <button
                                     onClick={() => exportSingleEnrollmentToExcel(enrollment)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
@@ -843,11 +858,10 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                     {dl(
                                         'Duration',
                                         enrollment.duration_months
-                                            ? `${enrollment.duration_months} Month${
-                                                  Number(enrollment.duration_months) > 1
-                                                      ? 's'
-                                                      : ''
-                                              }`
+                                            ? `${enrollment.duration_months} Month${Number(enrollment.duration_months) > 1
+                                                ? 's'
+                                                : ''
+                                            }`
                                             : null
                                     )}
                                     {dl('Payment Date', fmtDate(enrollment.payment_date))}
@@ -1327,15 +1341,21 @@ export default function AdminEnrollments() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                        to="/admin/manual-enrollment"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white"
+                        style={{ background: '#e71763', boxShadow: '0 0 20px rgba(231,23,99,0.3)' }}
+                    >
+                        <UserPlus className="w-3.5 h-3.5" /> Manual Enrollment
+                    </Link>
                     <button
                         onClick={handleRefresh}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs text-white/50 hover:text-white transition-all"
                         style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                     >
                         <RefreshCw
-                            className={`w-3.5 h-3.5 ${
-                                loading ? 'animate-spin' : ''
-                            }`}
+                            className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''
+                                }`}
                         />
                         Refresh
                     </button>
@@ -1423,10 +1443,10 @@ export default function AdminEnrollments() {
                     getBadge={(value) =>
                         value === 'all'
                             ? {
-                                  bg: 'rgba(255,255,255,0.05)',
-                                  border: 'rgba(255,255,255,0.1)',
-                                  color: 'rgba(255,255,255,0.65)',
-                              }
+                                bg: 'rgba(255,255,255,0.05)',
+                                border: 'rgba(255,255,255,0.1)',
+                                color: 'rgba(255,255,255,0.65)',
+                            }
                             : statusBadge(value)
                     }
                 />
@@ -1524,8 +1544,8 @@ export default function AdminEnrollments() {
                                                     '1px solid rgba(255,255,255,0.04)',
                                             }}
                                             onMouseEnter={(e) =>
-                                                (e.currentTarget.style.background =
-                                                    'rgba(255,255,255,0.02)')
+                                            (e.currentTarget.style.background =
+                                                'rgba(255,255,255,0.02)')
                                             }
                                             onMouseLeave={(e) =>
                                                 (e.currentTarget.style.background = '')
@@ -1551,6 +1571,18 @@ export default function AdminEnrollments() {
                                                     >
                                                         <StickyNote className="w-2.5 h-2.5" />
                                                         NOTE
+                                                    </span>
+                                                )}
+
+                                                {row.source === 'manual' && (
+                                                    <span
+                                                        className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 ml-1"
+                                                        style={{
+                                                            background: 'rgba(96,165,250,0.1)',
+                                                            color: '#60a5fa',
+                                                        }}
+                                                    >
+                                                        MANUAL
                                                     </span>
                                                 )}
                                             </td>
@@ -1633,15 +1665,30 @@ export default function AdminEnrollments() {
                                                                 : 'Add note'
                                                         }
                                                         onMouseEnter={(e) =>
-                                                            (e.currentTarget.style.background =
-                                                                'rgba(255,255,255,0.08)')
+                                                        (e.currentTarget.style.background =
+                                                            'rgba(255,255,255,0.08)')
                                                         }
                                                         onMouseLeave={(e) =>
-                                                            (e.currentTarget.style.background =
-                                                                '')
+                                                        (e.currentTarget.style.background =
+                                                            '')
                                                         }
                                                     >
                                                         <StickyNote className="w-3.5 h-3.5" />
+                                                    </button>
+
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await sendEnrollmentEmail(row.id, 'customer');
+                                                            } catch {
+                                                                setError('Failed to send email.');
+                                                            }
+                                                        }}
+                                                        disabled={!row.customer_email}
+                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                                                        title={row.customer_email ? 'Send enrollment email' : 'No email on file'}
+                                                    >
+                                                        <Mail className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -1688,13 +1735,13 @@ export default function AdminEnrollments() {
                                             style={
                                                 page === p
                                                     ? {
-                                                          background: '#e71763',
-                                                          color: 'white',
-                                                      }
+                                                        background: '#e71763',
+                                                        color: 'white',
+                                                    }
                                                     : {
-                                                          color:
-                                                              'rgba(255,255,255,0.35)',
-                                                      }
+                                                        color:
+                                                            'rgba(255,255,255,0.35)',
+                                                    }
                                             }
                                         >
                                             {p}

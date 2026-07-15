@@ -128,6 +128,7 @@ export function buildEnrollment({
         partnerGoals: partnerGoals || [],
         partnerMedicalIssue,
         partnerMedicalNote,
+        nextFollowupAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     };
 }
 
@@ -173,6 +174,9 @@ export async function saveEnrollmentToSupabase(enrollment) {
             partner_goals: enrollment.partnerGoals?.length ? enrollment.partnerGoals : null,
             partner_medical_issue: enrollment.partnerMedicalIssue || null,
             partner_medical_note: enrollment.partnerMedicalNote || null,
+            source: 'website',
+            followup_status: 'active',
+            next_followup_at: enrollment.nextFollowupAt,
         };
 
         const { error } = await supabase

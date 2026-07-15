@@ -5,19 +5,17 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    LayoutDashboard, Users, ClipboardList, LogOut,
-    Menu, X, Tag
-} from 'lucide-react';
-import { logout, getStoredAdmin } from './adminApi';
+import { LayoutDashboard, Users, ClipboardList, LogOut, Menu, X, Tag, UserPlus, BellRing } from 'lucide-react';
 
+import { logout, getStoredAdmin } from './adminApi';
 const NAV = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
+    { to: '/admin/manual-enrollment', icon: UserPlus, label: 'Manual Entry' },
+    { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
     { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
-    { to: '/admin/coupons', icon: Tag, label: 'Coupons' }
+    { to: '/admin/coupons', icon: Tag, label: 'Coupons' },
 ];
-
 export default function AdminLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
