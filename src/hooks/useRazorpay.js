@@ -1,8 +1,6 @@
 import { useCallback } from 'react';
 import { buildEnrollment } from '../services/enrollmentService';
-import { sendEmail } from '../services/emailService';
 import { trackEvent } from '@/utils/analytics';
-import { redeemCouponRemote } from '@/services/couponService';
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
@@ -20,88 +18,53 @@ function loadRazorpayScript() {
 
 export function useRazorpay() {
     const initiatePayment = useCallback(async ({
-        // Payment
+        // NOTE: amountPaise is no longer sent to create-order — it's only
+        // used here for UI display. The server resolves the real price.
         amountPaise,
-        originalAmountPaise,   // before coupon; falls back to amountPaise
         couponCode,
         couponSavings,
-        // Buyer identity
-        name = '',
-        email = '',
-        contact = '',
-        // Plan meta
+        name = '', email = '', contact = '',
         description = 'RECODE™ Coaching Plan',
         programName = '',
         planType = 'individual',
         durationMonths = '3',
         coachingType = 'online',
-        // Person 1 details
-        age,
-        city,
-        weight,
-        goals,
-        medicalIssue,
-        medicalNote,
-        // Partner details
-        partnerName,
-        partnerAge,
-        partnerWeight,
-        partnerGoals,
-        partnerMedicalIssue,
-        partnerMedicalNote,
-        // Callbacks
-        onSuccess,
-        onError,
-        onDismiss,
+        age, city, weight, goals, medicalIssue, medicalNote,
+        partnerName, partnerAge, partnerWeight, partnerGoals, partnerMedicalIssue, partnerMedicalNote,
+        onSuccess, onError, onDismiss,
     }) => {
-        console.group('%c[Razorpay] initiatePayment', 'color:#e71763;font-weight:bold');
-        console.log('amountPaise:', amountPaise);
-        console.log('name:', name, '| email:', email, '| contact:', contact);
-        console.log('couponCode:', couponCode || 'none', '| savings:', couponSavings || 0);
-        console.log('VITE_RAZORPAY_KEY_ID:', RAZORPAY_KEY_ID ?? '❌ MISSING');
-        console.log('API_BASE:', API_BASE || '(relative — dev proxy)');
-
         if (!RAZORPAY_KEY_ID) {
-            console.error('[Razorpay] ❌ VITE_RAZORPAY_KEY_ID is undefined.');
-            console.groupEnd();
-            onError?.('Razorpay key is not configured. Check VITE_RAZORPAY_KEY_ID in your .env file.');
+            onError?.('Razorpay key is not configured.');
             return;
         }
 
-        console.log('[Razorpay] Loading checkout.js…');
         const loaded = await loadRazorpayScript();
         if (!loaded) {
-            console.groupEnd();
             onError?.('Failed to load payment gateway. Check your internet connection.');
             return;
         }
 
-        // ── 1. Create order ─────────────────────────────────────────────────────
+        // ── 1. Create order — server computes the real price ────────────────
         let order;
         try {
             const res = await fetch(`${API_BASE}/api/create-order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: amountPaise, currency: 'INR' }),
+                body: JSON.stringify({ coachingType, planType, durationMonths, couponCode }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Order creation failed');
             order = data;
         } catch (err) {
-            console.error('[Razorpay] ❌ create-order failed:', err.message);
-            console.groupEnd();
             onError?.(err.message || 'Could not create payment order. Please try again.');
             return;
         }
 
-        if (!order?.order_id || typeof order.order_id !== 'string') {
-            console.error('[Razorpay] ❌ order_id missing. Full response:', order);
-            console.groupEnd();
+        if (!order?.order_id) {
             onError?.('Invalid order response from server. Please try again.');
             return;
         }
 
-        // ── 2. Open modal ────────────────────────────────────────────────────────
         const options = {
             key: RAZORPAY_KEY_ID,
             amount: order.amount,
@@ -116,22 +79,11 @@ export function useRazorpay() {
                 backdropclose: false,
                 escape: false,
                 handleback: true,
-                ondismiss: () => {
-                    console.log('[Razorpay] Modal dismissed by user');
-                    onDismiss?.();
-                },
+                ondismiss: () => onDismiss?.(),
             },
             handler: async (response) => {
-                try {
-                    if (window.__rzpInstance) {
-                        window.__rzpInstance.close();
-                        window.__rzpInstance = null;
-                    }
-                } catch (_) { /* safe */ }
+                try { window.__rzpInstance?.close(); window.__rzpInstance = null; } catch (_) { }
 
-                console.log('[Razorpay] ✅ Payment captured:', response);
-
-                // ── 3. Verify signature ──────────────────────────────────────────────
                 try {
                     const verifyRes = await fetch(`${API_BASE}/api/verify-payment`, {
                         method: 'POST',
@@ -147,83 +99,63 @@ export function useRazorpay() {
                         throw new Error(verifyData.error || 'Payment verification failed');
                     }
 
-                    console.log('[Razorpay] ✅ Payment verified server-side.');
-
-                    // ── 4. Build enrollment ──────────────────────────────────────────────
                     const enrollment = buildEnrollment({
-                        customerName: name,
-                        customerEmail: email,
-                        customerPhone: contact,
-                        programName,
-                        planType,
-                        durationMonths,
-                        coachingType,
+                        customerName: name, customerEmail: email, customerPhone: contact,
+                        programName, planType, durationMonths, coachingType,
                         amountPaid: amountPaise / 100,
-                        originalAmount: (originalAmountPaise ?? amountPaise) / 100,
                         couponCode: couponCode || null,
                         couponSavings: couponSavings || 0,
                         razorpayOrderId: response.razorpay_order_id,
                         razorpayPaymentId: response.razorpay_payment_id,
-                        // Person 1
-                        age, city, weight,
-                        goals: goals || [],
-                        medicalIssue,
-                        medicalNote,
-                        // Partner
-                        partnerName,
-                        partnerAge,
-                        partnerWeight,
-                        partnerGoals: partnerGoals || [],
-                        partnerMedicalIssue,
-                        partnerMedicalNote,
+                        age, city, weight, goals: goals || [], medicalIssue, medicalNote,
+                        partnerName, partnerAge, partnerWeight, partnerGoals: partnerGoals || [],
+                        partnerMedicalIssue, partnerMedicalNote,
                     });
 
-                    console.log('[Razorpay] ✅ Enrollment built:', enrollment);
-
-                    // ── 5. Persist via backend (service-role key, RLS-safe) ──────────────
-                    // No longer writing to Supabase directly from the browser — that path
-                    // was blocked by RLS (42501) and would otherwise require opening an
-                    // unsafe anon INSERT policy. This goes through a signature-checked
-                    // server endpoint instead.
-                    console.log('[Razorpay] → calling /api/create-enrollment...');
-                    let enrollmentSaved = false;
-                    try {
-                        const createRes = await fetch(`${API_BASE}/api/create-enrollment`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature,
-                                enrollment,
-                            }),
-                        });
-                        const createData = await createRes.json();
-                        if (!createRes.ok || !createData.success) {
-                            console.error('[Razorpay] 🚨 ENROLLMENT SAVE FAILED (server-side):', createData);
-                        } else {
-                            enrollmentSaved = true;
-                            console.log('[Razorpay] ✅ Enrollment confirmed in DB:', createData);
+                    // ── Persist — server verifies amount/plan against Razorpay
+                    //    and sends emails itself. Retry a couple of times for
+                    //    transient failures before giving up.
+                    let saved = null;
+                    let lastErr = null;
+                    for (let attempt = 0; attempt < 3 && !saved; attempt++) {
+                        try {
+                            const createRes = await fetch(`${API_BASE}/api/create-enrollment`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    enrollment,
+                                }),
+                            });
+                            const createData = await createRes.json();
+                            if (createRes.ok && createData.success) {
+                                saved = createData;
+                            } else {
+                                lastErr = createData.error || `HTTP ${createRes.status}`;
+                                if (attempt < 2) await new Promise((r) => setTimeout(r, 1200));
+                            }
+                        } catch (e) {
+                            lastErr = e.message;
+                            if (attempt < 2) await new Promise((r) => setTimeout(r, 1200));
                         }
-                    } catch (saveErr) {
-                        console.error('[Razorpay] 🚨 /api/create-enrollment request THREW:', saveErr);
                     }
 
-                    if (!enrollmentSaved) {
-                        console.warn('[Razorpay] ⚠️ Continuing to onSuccess despite save failure — payment is captured, but flag this enrollmentId for manual reconciliation:', enrollment.enrollmentId);
+                    if (!saved) {
+                        // Payment WAS captured by Razorpay, but we could not
+                        // record it. Do NOT show a fake success screen.
+                        console.error('[Razorpay] 🚨 Enrollment save failed after retries:', lastErr, 'paymentId:', response.razorpay_payment_id);
+                        onError?.(
+                            `Your payment was received (ID: ${response.razorpay_payment_id}), but we couldn't finalize your enrollment automatically. ` +
+                            `Please contact support with this payment ID and we'll sort it out immediately.`
+                        );
+                        return;
                     }
 
-                    // ── 6. Send emails (fire-and-forget) ─────────────────────────────────
-                    console.log('[Razorpay] → calling sendEmail (enrollment_both)...');
-                    sendEmail({ type: 'enrollment_both', to: null, data: enrollment }).then((result) => {
-                        if (!result.success) {
-                            console.error('[Razorpay] 🚨 ENROLLMENT EMAILS FAILED to send for:', enrollment.enrollmentId);
-                        } else {
-                            console.log('[Razorpay] ✅ Enrollment emails queued:', enrollment.enrollmentId);
-                        }
-                    });
-
-                    if (couponCode) redeemCouponRemote(couponCode);
+                    if (couponCode) {
+                        // usage increment now happens server-side inside create-enrollment
+                    }
 
                     trackEvent('purchase', {
                         transaction_id: enrollment.razorpayPaymentId,
@@ -234,12 +166,8 @@ export function useRazorpay() {
                         coupon: enrollment.couponCode || undefined,
                     });
 
-                    console.log('[Razorpay] ✅ Calling onSuccess.');
-                    console.groupEnd();
-                    onSuccess?.(enrollment);
+                    onSuccess?.(saved.enrollment ?? enrollment);
                 } catch (err) {
-                    console.error('[Razorpay] ❌ Verification failed:', err.message);
-                    console.groupEnd();
                     onError?.(err.message || 'Payment verification failed. Contact support.');
                 }
             },
@@ -249,8 +177,6 @@ export function useRazorpay() {
         window.__rzpInstance = rzp;
 
         rzp.on('payment.failed', (response) => {
-            console.error('[Razorpay] ❌ payment.failed event:', response.error);
-            console.groupEnd();
             try { rzp.close(); window.__rzpInstance = null; } catch (_) { }
             onError?.(response.error?.description || 'Payment failed. Please try again.');
         });
