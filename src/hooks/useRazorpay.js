@@ -1,10 +1,8 @@
 import { useCallback } from 'react';
-import { buildEnrollment, saveEnrollmentToSupabase } from '../services/enrollmentService';
+import { buildEnrollment } from '../services/enrollmentService';
 import { sendEmail } from '../services/emailService';
 import { trackEvent } from '@/utils/analytics';
 import { redeemCouponRemote } from '@/services/couponService';
-
-
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
@@ -149,6 +147,8 @@ export function useRazorpay() {
                         throw new Error(verifyData.error || 'Payment verification failed');
                     }
 
+                    console.log('[Razorpay] ✅ Payment verified server-side.');
+
                     // ── 4. Build enrollment ──────────────────────────────────────────────
                     const enrollment = buildEnrollment({
                         customerName: name,
@@ -180,20 +180,39 @@ export function useRazorpay() {
 
                     console.log('[Razorpay] ✅ Enrollment built:', enrollment);
 
-                    // ── 5. Persist to Supabase (fire-and-forget) ─────────────────────────
-                    console.log('[Razorpay] → calling saveEnrollmentToSupabase...');
-                    saveEnrollmentToSupabase(enrollment).then((result) => {
-                        if (!result.success) {
-                            console.error('[Razorpay] 🚨 ENROLLMENT NOT SAVED — customer paid but has no DB record:', {
-                                enrollmentId: enrollment.enrollmentId,
-                                paymentId: enrollment.razorpayPaymentId,
-                                error: result.error,
-                                code: result.code,
-                            });
+                    // ── 5. Persist via backend (service-role key, RLS-safe) ──────────────
+                    // No longer writing to Supabase directly from the browser — that path
+                    // was blocked by RLS (42501) and would otherwise require opening an
+                    // unsafe anon INSERT policy. This goes through a signature-checked
+                    // server endpoint instead.
+                    console.log('[Razorpay] → calling /api/create-enrollment...');
+                    let enrollmentSaved = false;
+                    try {
+                        const createRes = await fetch(`${API_BASE}/api/create-enrollment`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                                enrollment,
+                            }),
+                        });
+                        const createData = await createRes.json();
+                        if (!createRes.ok || !createData.success) {
+                            console.error('[Razorpay] 🚨 ENROLLMENT SAVE FAILED (server-side):', createData);
                         } else {
-                            console.log('[Razorpay] ✅ Enrollment confirmed in Supabase:', result.enrollmentId);
+                            enrollmentSaved = true;
+                            console.log('[Razorpay] ✅ Enrollment confirmed in DB:', createData);
                         }
-                    });
+                    } catch (saveErr) {
+                        console.error('[Razorpay] 🚨 /api/create-enrollment request THREW:', saveErr);
+                    }
+
+                    if (!enrollmentSaved) {
+                        console.warn('[Razorpay] ⚠️ Continuing to onSuccess despite save failure — payment is captured, but flag this enrollmentId for manual reconciliation:', enrollment.enrollmentId);
+                    }
+
                     // ── 6. Send emails (fire-and-forget) ─────────────────────────────────
                     console.log('[Razorpay] → calling sendEmail (enrollment_both)...');
                     sendEmail({ type: 'enrollment_both', to: null, data: enrollment }).then((result) => {
@@ -203,7 +222,6 @@ export function useRazorpay() {
                             console.log('[Razorpay] ✅ Enrollment emails queued:', enrollment.enrollmentId);
                         }
                     });
-
 
                     if (couponCode) redeemCouponRemote(couponCode);
 
