@@ -15,7 +15,39 @@ function loadRazorpayScript() {
         document.body.appendChild(script);
     });
 }
-
+function mapEnrollmentRow(row) {
+    if (!row) return null;
+    return {
+        enrollmentId: row.enrollment_id,
+        customerName: row.customer_name,
+        customerEmail: row.customer_email,
+        customerPhone: row.customer_phone,
+        programName: row.program_name,
+        planType: row.plan_type,
+        coachingType: row.coaching_type,
+        durationMonths: row.duration_months,
+        amountPaid: row.amount_paid,
+        originalAmount: row.original_amount,
+        couponCode: row.coupon_code,
+        couponSavings: row.coupon_savings,
+        razorpayOrderId: row.razorpay_order_id,
+        razorpayPaymentId: row.razorpay_payment_id,
+        paymentDate: row.payment_date,
+        paymentStatus: row.payment_status,
+        age: row.age,
+        city: row.city,
+        weight: row.weight,
+        goals: row.goals,
+        medicalIssue: row.medical_issue,
+        medicalNote: row.medical_note,
+        partnerName: row.partner_name,
+        partnerAge: row.partner_age,
+        partnerWeight: row.partner_weight,
+        partnerGoals: row.partner_goals,
+        partnerMedicalIssue: row.partner_medical_issue,
+        partnerMedicalNote: row.partner_medical_note,
+    };
+}
 export function useRazorpay() {
     const initiatePayment = useCallback(async ({
         // NOTE: amountPaise is no longer sent to create-order — it's only
@@ -166,7 +198,7 @@ export function useRazorpay() {
                         coupon: enrollment.couponCode || undefined,
                     });
 
-                    onSuccess?.(saved.enrollment ?? enrollment);
+                    onSuccess?.(mapEnrollmentRow(saved.enrollment) ?? enrollment);
                 } catch (err) {
                     onError?.(err.message || 'Payment verification failed. Contact support.');
                 }
