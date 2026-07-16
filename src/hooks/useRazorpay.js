@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { buildEnrollment } from '../services/enrollmentService';
 import { trackEvent } from '@/utils/analytics';
+import { logEvent } from '@/utils/txnLog';
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
@@ -72,6 +73,7 @@ export function useRazorpay() {
 
         const loaded = await loadRazorpayScript();
         if (!loaded) {
+            logEvent({ step: 'razorpay_script_load', status: 'failed' });
             onError?.('Failed to load payment gateway. Check your internet connection.');
             return;
         }
@@ -79,6 +81,8 @@ export function useRazorpay() {
         // ── 1. Create order — server computes the real price ────────────────
         let order;
         try {
+            logEvent({ step: 'create_order_request', status: 'started', metadata: { coachingType, planType, durationMonths, couponCode: couponCode || null } });
+
             const res = await fetch(`${API_BASE}/api/create-order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -87,12 +91,16 @@ export function useRazorpay() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Order creation failed');
             order = data;
+
+            logEvent({ orderId: order.order_id, step: 'create_order_request', status: 'success', metadata: { amount: order.amount } });
         } catch (err) {
+            logEvent({ step: 'create_order_request', status: 'failed', message: err.message });
             onError?.(err.message || 'Could not create payment order. Please try again.');
             return;
         }
 
         if (!order?.order_id) {
+            logEvent({ step: 'create_order_request', status: 'failed', message: 'invalid order response (missing order_id)' });
             onError?.('Invalid order response from server. Please try again.');
             return;
         }
@@ -111,12 +119,29 @@ export function useRazorpay() {
                 backdropclose: false,
                 escape: false,
                 handleback: true,
-                ondismiss: () => onDismiss?.(),
+                ondismiss: () => {
+                    logEvent({ orderId: order.order_id, step: 'checkout_dismissed', status: 'warning' });
+                    onDismiss?.();
+                },
             },
             handler: async (response) => {
                 try { window.__rzpInstance?.close(); window.__rzpInstance = null; } catch (_) { }
 
+                logEvent({
+                    orderId: response.razorpay_order_id,
+                    paymentId: response.razorpay_payment_id,
+                    step: 'razorpay_handler_fired',
+                    status: 'success',
+                });
+
                 try {
+                    logEvent({
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        step: 'verify_payment_request',
+                        status: 'started',
+                    });
+
                     const verifyRes = await fetch(`${API_BASE}/api/verify-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -128,8 +153,22 @@ export function useRazorpay() {
                     });
                     const verifyData = await verifyRes.json();
                     if (!verifyRes.ok || !verifyData.success) {
+                        logEvent({
+                            orderId: response.razorpay_order_id,
+                            paymentId: response.razorpay_payment_id,
+                            step: 'verify_payment_request',
+                            status: 'failed',
+                            message: verifyData.error,
+                        });
                         throw new Error(verifyData.error || 'Payment verification failed');
                     }
+
+                    logEvent({
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        step: 'verify_payment_request',
+                        status: 'success',
+                    });
 
                     const enrollment = buildEnrollment({
                         customerName: name, customerEmail: email, customerPhone: contact,
@@ -146,11 +185,21 @@ export function useRazorpay() {
 
                     // ── Persist — server verifies amount/plan against Razorpay
                     //    and sends emails itself. Retry a couple of times for
-                    //    transient failures before giving up.
+                    //    transient failures before giving up. Non-retryable
+                    //    errors (400s — mismatch, validation, misconfig) break
+                    //    immediately instead of wasting 2 more attempts.
                     let saved = null;
                     let lastErr = null;
                     for (let attempt = 0; attempt < 3 && !saved; attempt++) {
                         try {
+                            logEvent({
+                                orderId: response.razorpay_order_id,
+                                paymentId: response.razorpay_payment_id,
+                                enrollmentId: enrollment.enrollmentId,
+                                step: `create_enrollment_attempt_${attempt + 1}`,
+                                status: 'started',
+                            });
+
                             const createRes = await fetch(`${API_BASE}/api/create-enrollment`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -162,14 +211,47 @@ export function useRazorpay() {
                                 }),
                             });
                             const createData = await createRes.json();
+
                             if (createRes.ok && createData.success) {
                                 saved = createData;
+                                logEvent({
+                                    orderId: response.razorpay_order_id,
+                                    paymentId: response.razorpay_payment_id,
+                                    enrollmentId: enrollment.enrollmentId,
+                                    step: `create_enrollment_attempt_${attempt + 1}`,
+                                    status: 'success',
+                                });
                             } else {
                                 lastErr = createData.error || `HTTP ${createRes.status}`;
+                                logEvent({
+                                    orderId: response.razorpay_order_id,
+                                    paymentId: response.razorpay_payment_id,
+                                    enrollmentId: enrollment.enrollmentId,
+                                    step: `create_enrollment_attempt_${attempt + 1}`,
+                                    status: 'failed',
+                                    message: lastErr,
+                                    metadata: { httpStatus: createRes.status },
+                                });
+
+                                // Client errors (4xx) are not transient — retrying
+                                // the exact same payload will fail identically.
+                                // Break immediately instead of burning 2 more
+                                // attempts + delays.
+                                if (createRes.status >= 400 && createRes.status < 500) {
+                                    break;
+                                }
                                 if (attempt < 2) await new Promise((r) => setTimeout(r, 1200));
                             }
                         } catch (e) {
                             lastErr = e.message;
+                            logEvent({
+                                orderId: response.razorpay_order_id,
+                                paymentId: response.razorpay_payment_id,
+                                enrollmentId: enrollment.enrollmentId,
+                                step: `create_enrollment_attempt_${attempt + 1}`,
+                                status: 'failed',
+                                message: e.message,
+                            });
                             if (attempt < 2) await new Promise((r) => setTimeout(r, 1200));
                         }
                     }
@@ -178,6 +260,14 @@ export function useRazorpay() {
                         // Payment WAS captured by Razorpay, but we could not
                         // record it. Do NOT show a fake success screen.
                         console.error('[Razorpay] 🚨 Enrollment save failed after retries:', lastErr, 'paymentId:', response.razorpay_payment_id);
+                        logEvent({
+                            orderId: response.razorpay_order_id,
+                            paymentId: response.razorpay_payment_id,
+                            enrollmentId: enrollment.enrollmentId,
+                            step: 'create_enrollment_all_attempts',
+                            status: 'failed',
+                            message: lastErr,
+                        });
                         onError?.(
                             `Your payment was received (ID: ${response.razorpay_payment_id}), but we couldn't finalize your enrollment automatically. ` +
                             `Please contact support with this payment ID and we'll sort it out immediately.`
@@ -198,8 +288,23 @@ export function useRazorpay() {
                         coupon: enrollment.couponCode || undefined,
                     });
 
+                    logEvent({
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        enrollmentId: enrollment.enrollmentId,
+                        step: 'client_flow_complete',
+                        status: 'success',
+                    });
+
                     onSuccess?.(mapEnrollmentRow(saved.enrollment) ?? enrollment);
                 } catch (err) {
+                    logEvent({
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        step: 'client_flow_complete',
+                        status: 'failed',
+                        message: err.message,
+                    });
                     onError?.(err.message || 'Payment verification failed. Contact support.');
                 }
             },
@@ -210,9 +315,17 @@ export function useRazorpay() {
 
         rzp.on('payment.failed', (response) => {
             try { rzp.close(); window.__rzpInstance = null; } catch (_) { }
+            logEvent({
+                orderId: order.order_id,
+                step: 'razorpay_payment_failed_event',
+                status: 'failed',
+                message: response.error?.description,
+                metadata: { code: response.error?.code, reason: response.error?.reason },
+            });
             onError?.(response.error?.description || 'Payment failed. Please try again.');
         });
 
+        logEvent({ orderId: order.order_id, step: 'checkout_opened', status: 'started' });
         rzp.open();
     }, []);
 
