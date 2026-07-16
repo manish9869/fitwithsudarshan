@@ -441,7 +441,7 @@ export default function Enroll() {
                 contact: form.whatsapp,
                 description: programName,
                 programName,
-                planType: isCouplePlan ? 'couple' : 'individual',
+                planType: planType,
                 durationMonths: basic ? '1' : durationMonths,
                 coachingType: basic ? 'online' : coachingId,
                 age: form.age,

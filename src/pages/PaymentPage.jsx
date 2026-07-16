@@ -181,7 +181,7 @@ export default function PaymentPage() {
             contact: buyerPhone,
             description: programLabel,
             programName: programLabel,
-            planType: isCouplePlan ? 'couple' : 'individual',
+            planType: planType,
             durationMonths: basic ? '1' : durationMonths,
             coachingType: basic ? 'online' : coachingId,
             onSuccess: (response) => {
