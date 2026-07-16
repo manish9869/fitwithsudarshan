@@ -269,7 +269,7 @@ export const pricingTable = {
 // ─── BASIC ONLINE CONSULTATION (one-time, online tab only) ───────────────────
 export const basicConsultation = {
     coachingId: "basic",
-    name: "Basic Online Consultation",
+    name: "RECODE Comeback Blueprint",
     tagline: "One-time basic guidance — nutrition & workout direction.",
     description:
         "A single one-time consultation with basic nutrition and workout guidance. Ideal if you just want a starting roadmap rather than full ongoing coaching.",
