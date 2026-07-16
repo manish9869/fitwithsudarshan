@@ -418,51 +418,70 @@ export default function Enroll() {
     // ── PAYMENT ────────────────────────────────────────────────────────────────
     const handlePay = async (e) => {
         e.preventDefault();
+        console.log('[Enroll] handlePay START', {
+            coachingId: basic ? 'online' : coachingId,
+            planType: isCouplePlan ? 'couple' : 'individual',
+            durationMonths: basic ? '1' : durationMonths,
+            finalPrice,
+            originalPrice,
+            couponCode: appliedCoupon?.code || null,
+            email: form.email,
+        });
+
         setModalStatus('loading');
 
-        await initiatePayment({
-            amountPaise: finalPrice * 100,
-            originalAmountPaise: originalPrice * 100,
-            couponCode: appliedCoupon?.code || null,
-            couponSavings: appliedCoupon?.savings || 0,
-            name: form.fullName,
-            email: form.email,
-            contact: form.whatsapp,
-            description: programName,
-            programName,
-            planType: isCouplePlan ? 'couple' : 'individual', // normalize for downstream consumers
-            durationMonths: basic ? '1' : durationMonths,
-            coachingType: basic ? 'online' : coachingId,
-            // Person 1
-            age: form.age,
-            city: form.city,
-            weight: form.weight,
-            goals: form.goal,
-            medicalIssue: form.medicalIssue,
-            medicalNote: form.medicalNote,
-            // Partner
-            partnerName: partner.fullName || null,
-            partnerAge: partner.age || null,
-            partnerWeight: partner.weight || null,
-            partnerGoals: partner.goal || [],
-            partnerMedicalIssue: partner.medicalIssue || null,
-            partnerMedicalNote: partner.medicalNote || null,
-            onSuccess: (enrollment) => {
-                clearDraft();
-                setModalStatus('idle');
-                navigate('/payment-success', { state: { enrollment } });
-            },
-            onError: (msg) => {
-                setModalStatus('idle');
-                navigate('/payment-failed', {
-                    state: {
-                        errorMessage: msg || 'Payment could not be completed.',
-                        partialEnrollment: { programName, planType, durationMonths, amountPaid: finalPrice },
-                    },
-                });
-            },
-            onDismiss: () => setModalStatus('dismissed'),
-        });
+        try {
+            await initiatePayment({
+                amountPaise: finalPrice * 100,
+                originalAmountPaise: originalPrice * 100,
+                couponCode: appliedCoupon?.code || null,
+                couponSavings: appliedCoupon?.savings || 0,
+                name: form.fullName,
+                email: form.email,
+                contact: form.whatsapp,
+                description: programName,
+                programName,
+                planType: isCouplePlan ? 'couple' : 'individual',
+                durationMonths: basic ? '1' : durationMonths,
+                coachingType: basic ? 'online' : coachingId,
+                age: form.age,
+                city: form.city,
+                weight: form.weight,
+                goals: form.goal,
+                medicalIssue: form.medicalIssue,
+                medicalNote: form.medicalNote,
+                partnerName: partner.fullName || null,
+                partnerAge: partner.age || null,
+                partnerWeight: partner.weight || null,
+                partnerGoals: partner.goal || [],
+                partnerMedicalIssue: partner.medicalIssue || null,
+                partnerMedicalNote: partner.medicalNote || null,
+                onSuccess: (enrollment) => {
+                    console.log('[Enroll] onSuccess FIRED — enrollment received:', enrollment);
+                    clearDraft();
+                    setModalStatus('idle');
+                    navigate('/payment-success', { state: { enrollment } });
+                },
+                onError: (msg) => {
+                    console.error('[Enroll] onError FIRED:', msg);
+                    setModalStatus('idle');
+                    navigate('/payment-failed', {
+                        state: {
+                            errorMessage: msg || 'Payment could not be completed.',
+                            partialEnrollment: { programName, planType, durationMonths, amountPaid: finalPrice },
+                        },
+                    });
+                },
+                onDismiss: () => {
+                    console.warn('[Enroll] onDismiss FIRED — user closed checkout modal');
+                    setModalStatus('dismissed');
+                },
+            });
+            console.log('[Enroll] initiatePayment() call returned (checkout should be open now)');
+        } catch (err) {
+            console.error('[Enroll] initiatePayment() THREW before checkout even opened:', err);
+            setModalStatus('error');
+        }
     };
 
     const inputCls = (f) =>

@@ -181,14 +181,28 @@ export function useRazorpay() {
                     console.log('[Razorpay] ✅ Enrollment built:', enrollment);
 
                     // ── 5. Persist to Supabase (fire-and-forget) ─────────────────────────
+                    console.log('[Razorpay] → calling saveEnrollmentToSupabase...');
                     saveEnrollmentToSupabase(enrollment).then((result) => {
                         if (!result.success) {
-                            console.warn('[Razorpay] ⚠️ Supabase save failed (non-blocking):', result.error);
+                            console.error('[Razorpay] 🚨 ENROLLMENT NOT SAVED — customer paid but has no DB record:', {
+                                enrollmentId: enrollment.enrollmentId,
+                                paymentId: enrollment.razorpayPaymentId,
+                                error: result.error,
+                                code: result.code,
+                            });
+                        } else {
+                            console.log('[Razorpay] ✅ Enrollment confirmed in Supabase:', result.enrollmentId);
                         }
                     });
-
                     // ── 6. Send emails (fire-and-forget) ─────────────────────────────────
-                    sendEmail({ type: 'enrollment_both', to: null, data: enrollment });
+                    console.log('[Razorpay] → calling sendEmail (enrollment_both)...');
+                    sendEmail({ type: 'enrollment_both', to: null, data: enrollment }).then((result) => {
+                        if (!result.success) {
+                            console.error('[Razorpay] 🚨 ENROLLMENT EMAILS FAILED to send for:', enrollment.enrollmentId);
+                        } else {
+                            console.log('[Razorpay] ✅ Enrollment emails queued:', enrollment.enrollmentId);
+                        }
+                    });
 
 
                     if (couponCode) redeemCouponRemote(couponCode);

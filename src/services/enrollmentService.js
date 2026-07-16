@@ -134,11 +134,19 @@ export function buildEnrollment({
 
 // ─── Persist to Supabase ──────────────────────────────────────────────────────
 export async function saveEnrollmentToSupabase(enrollment) {
+    const startTime = Date.now();
+    console.group(`%c[enrollmentService] saveEnrollmentToSupabase — ${enrollment.enrollmentId}`, 'color:#34d399;font-weight:bold');
+
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    console.log('VITE_SUPABASE_URL:', url ? `${url.slice(0, 30)}...` : '❌ MISSING');
+    console.log('VITE_SUPABASE_ANON_KEY:', key ? `${key.slice(0, 12)}...` : '❌ MISSING');
+
     const supabase = getSupabase();
 
-    console.log('[enrollmentService] Saving enrollment to Supabase:', supabase, enrollment);
     if (!supabase) {
-        console.warn('[enrollmentService] Skipping Supabase save — client not initialized.');
+        console.error('[enrollmentService] ❌ ABORTED — Supabase client not initialized (env vars missing at build time)');
+        console.groupEnd();
         return { success: false, error: 'Supabase not configured' };
     }
 
@@ -160,14 +168,12 @@ export async function saveEnrollmentToSupabase(enrollment) {
             razorpay_payment_id: enrollment.razorpayPaymentId,
             payment_date: enrollment.paymentDate,
             payment_status: enrollment.paymentStatus,
-            // Person 1
             age: enrollment.age,
             city: enrollment.city,
             weight: enrollment.weight,
             goals: enrollment.goals,
             medical_issue: enrollment.medicalIssue,
             medical_note: enrollment.medicalNote,
-            // Partner
             partner_name: enrollment.partnerName || null,
             partner_age: enrollment.partnerAge || null,
             partner_weight: enrollment.partnerWeight || null,
@@ -179,26 +185,43 @@ export async function saveEnrollmentToSupabase(enrollment) {
             next_followup_at: enrollment.nextFollowupAt,
         };
 
-        const { error } = await supabase
+        console.log('[enrollmentService] Row payload:', row);
+        console.log('[enrollmentService] Calling supabase.from("enrollments").insert()...');
+
+        const { data, error, status, statusText } = await supabase
             .from('enrollments')
-            .insert([row]);
+            .insert([row])
+            .select(); // ← added .select() so we get back what was actually inserted (or a clearer error)
+
+        const elapsed = Date.now() - startTime;
 
         if (error) {
-            console.error('[enrollmentService] Supabase insert error:', error);
-            return { success: false, error: error.message };
+            console.error('[enrollmentService] ❌ INSERT FAILED', {
+                elapsedMs: elapsed,
+                status,
+                statusText,
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+            });
+
+            // RLS violations show up as code 42501 or a message mentioning "row-level security"
+            if (error.code === '42501' || /row-level security/i.test(error.message || '')) {
+                console.error('[enrollmentService] 🚨 THIS LOOKS LIKE AN RLS POLICY BLOCK — check INSERT policy for the anon role on the enrollments table in Supabase.');
+            }
+
+            console.groupEnd();
+            return { success: false, error: error.message, code: error.code };
         }
 
-        console.log(
-            '[enrollmentService] ✅ Enrollment saved to Supabase:',
-            enrollment.enrollmentId
-        );
+        console.log(`[enrollmentService] ✅ INSERT CONFIRMED in ${elapsed}ms — row(s) returned:`, data);
+        console.groupEnd();
 
-        return {
-            success: true,
-            enrollmentId: enrollment.enrollmentId
-        };
+        return { success: true, enrollmentId: enrollment.enrollmentId, data };
     } catch (err) {
-        console.error('[enrollmentService] Unexpected error:', err);
+        console.error('[enrollmentService] ❌ UNEXPECTED THROW (network error / CORS / client crash):', err);
+        console.groupEnd();
         return { success: false, error: err.message };
     }
 }
