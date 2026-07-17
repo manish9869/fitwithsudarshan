@@ -561,6 +561,44 @@ export async function downloadInvoicePDF(enrollment) {
     return true;
 }
 
+
+// ── Date + Time (always shown, 12-hour format, IST) ──────────────────────────
+export function fmtDateTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    return new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true,
+        timeZone: 'Asia/Kolkata',
+    }).format(d);
+}
+
+// ── Convert an ISO timestamp to a value usable in <input type="datetime-local">,
+// expressed in IST wall-clock time (so what the admin sees/edits matches
+// what shows up everywhere else, since the whole app displays IST).
+export function toISTDatetimeLocal(iso) {
+    const d = iso ? new Date(iso) : new Date();
+    if (isNaN(d.getTime())) return '';
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(d);
+    const get = (t) => parts.find((p) => p.type === t)?.value;
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}
+
+// Turns a <input type="datetime-local"> value ("YYYY-MM-DDTHH:mm") into a
+// correct UTC ISO string, treating the input as IST (since that's what the
+// admin panel displays everywhere). Without this, the browser/server would
+// each guess the timezone differently and the saved time could drift.
+export function istDatetimeLocalToISO(value) {
+    if (!value) return null;
+    // value has no seconds/offset — append both, pinned to IST (+05:30)
+    return new Date(`${value}:00+05:30`).toISOString();
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function triggerDownload(blob, filename) {
     const url = URL.createObjectURL(blob);

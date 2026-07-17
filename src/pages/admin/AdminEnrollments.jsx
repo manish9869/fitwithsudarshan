@@ -10,7 +10,6 @@
  * - Multi-template email sending via EmailSendMenu
  * - NEW: toast notifications on status change, note save, export, email send
  */
-
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
@@ -45,6 +44,7 @@ import {
 import {
     fmtCurrency,
     fmtDate,
+    fmtDateTime,
     fmtGoals,
     exportToCSV,
     downloadInvoicePDF,
@@ -893,7 +893,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                                 }`
                                                 : null
                                         )}
-                                        {dl('Payment Date', fmtDate(enrollment.payment_date))}
+                                        {dl('Payment Date', fmtDateTime(enrollment.payment_date))}
                                         {dl('Created', fmtDate(enrollment.created_at))}
                                     </div>
                                 </div>
@@ -1676,7 +1676,7 @@ export default function AdminEnrollments() {
 
                                             <td className="px-4 py-3">
                                                 <p className="text-xs text-white/50">
-                                                    {fmtDate(row.payment_date, true)}
+                                                    {fmtDateTime(row.payment_date)}
                                                 </p>
                                             </td>
 
