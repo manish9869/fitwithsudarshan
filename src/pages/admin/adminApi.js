@@ -212,4 +212,8 @@ export async function updateManualEnrollment(id, payload) {
     const data = await request(`/enrollments/manual/${id}`, { method: 'PATCH', body: payload });
     return data.enrollment;
 }
+
+export async function fetchFunnelAudit(days = 30) {
+    return request('/funnel-audit', { params: { days } });
+}
 export { AdminApiError };

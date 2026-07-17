@@ -16,6 +16,26 @@ function loadRazorpayScript() {
     });
 }
 
+// ── GA4 purchase-event dedupe guard ──────────────────────────────────────────
+// Prevents firing a duplicate `purchase` event for the same Razorpay
+// payment ID if the handler ever runs twice (e.g. a re-render, a retried
+// callback, or a user re-triggering the flow before navigation completes).
+function alreadyTrackedPurchase(paymentId) {
+    if (!paymentId) return false;
+    try {
+        const key = 'ga_tracked_purchases';
+        const list = JSON.parse(sessionStorage.getItem(key) || '[]');
+        if (list.includes(paymentId)) return true;
+        list.push(paymentId);
+        // Keep the list bounded so it doesn't grow unbounded in a long session
+        if (list.length > 50) list.shift();
+        sessionStorage.setItem(key, JSON.stringify(list));
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 function mapEnrollmentRow(row) {
     if (!row) return null;
     return {
@@ -52,8 +72,6 @@ function mapEnrollmentRow(row) {
 
 export function useRazorpay() {
     const initiatePayment = useCallback(async ({
-        // amountPaise is only used for analytics/UI — the server resolves
-        // and persists the real price at create-order time.
         amountPaise,
         couponCode,
         couponSavings,
@@ -79,9 +97,6 @@ export function useRazorpay() {
             return;
         }
 
-        // ── 1. Create order — server resolves the real price AND writes the
-        //    pending enrollment row (all customer/enrollee data goes here now,
-        //    before payment even opens). Returns enrollmentId + order details.
         let order;
         try {
             logEvent({
@@ -155,9 +170,6 @@ export function useRazorpay() {
                         step: 'checkout_dismissed',
                         status: 'warning',
                     });
-                    // Payment abandoned — the pending row stays as 'pending'.
-                    // The payment-reminder email flow / follow-ups can target
-                    // these rows later without any extra work here.
                     onDismiss?.();
                 },
             },
@@ -173,15 +185,6 @@ export function useRazorpay() {
                 });
 
                 try {
-                    // ── 2. Confirm payment — single call that verifies the
-                    //    signature, confirms capture with Razorpay, and
-                    //    flips the pending row to paid. Replaces the old
-                    //    two-call verify-payment + create-enrollment sequence
-                    //    to cut a network round trip off the critical path.
-                    //    It's idempotent, and the Razorpay webhook races it
-                    //    independently as a second, server-side-only path
-                    //    to the same result — no client-side retry needed,
-                    //    the webhook is the safety net.
                     logEvent({
                         orderId: response.razorpay_order_id,
                         paymentId: response.razorpay_payment_id,
@@ -212,11 +215,6 @@ export function useRazorpay() {
                             metadata: { httpStatus: confirmRes.status },
                         });
 
-                        // Payment WAS captured by Razorpay. Even if this call
-                        // failed (timeout, transient error, etc), the webhook
-                        // will independently flip the pending row to paid —
-                        // so this is NOT data loss, just a slow confirmation.
-                        // Still tell the user honestly rather than faking success.
                         onError?.(
                             `Your payment was received (ID: ${response.razorpay_payment_id}). ` +
                             `We're finalizing your enrollment in the background — you'll get a confirmation email shortly. ` +
@@ -235,14 +233,17 @@ export function useRazorpay() {
 
                     const enrollment = mapEnrollmentRow(confirmData.enrollment);
 
-                    trackEvent('purchase', {
-                        transaction_id: response.razorpay_payment_id,
-                        value: enrollment?.amountPaid ?? amountPaise / 100,
-                        currency: 'INR',
-                        plan_type: planType,
-                        coaching_type: coachingType,
-                        coupon: couponCode || undefined,
-                    });
+                    // ── GA4 purchase event — deduped by payment ID ──
+                    if (!alreadyTrackedPurchase(response.razorpay_payment_id)) {
+                        trackEvent('purchase', {
+                            transaction_id: response.razorpay_payment_id,
+                            value: enrollment?.amountPaid ?? amountPaise / 100,
+                            currency: 'INR',
+                            plan_type: planType,
+                            coaching_type: coachingType,
+                            coupon: couponCode || undefined,
+                        });
+                    }
 
                     logEvent({
                         orderId: response.razorpay_order_id,
@@ -280,8 +281,6 @@ export function useRazorpay() {
                 message: response.error?.description,
                 metadata: { code: response.error?.code, reason: response.error?.reason },
             });
-            // Pending row stays 'pending' — nothing to clean up, follow-up
-            // / payment_failed email flow can pick this up as-is.
             onError?.(response.error?.description || 'Payment failed. Please try again.');
         });
 
