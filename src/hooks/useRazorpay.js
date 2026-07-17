@@ -173,16 +173,24 @@ export function useRazorpay() {
                 });
 
                 try {
-                    // ── 2. Verify signature ──────────────────────────────────
+                    // ── 2. Confirm payment — single call that verifies the
+                    //    signature, confirms capture with Razorpay, and
+                    //    flips the pending row to paid. Replaces the old
+                    //    two-call verify-payment + create-enrollment sequence
+                    //    to cut a network round trip off the critical path.
+                    //    It's idempotent, and the Razorpay webhook races it
+                    //    independently as a second, server-side-only path
+                    //    to the same result — no client-side retry needed,
+                    //    the webhook is the safety net.
                     logEvent({
                         orderId: response.razorpay_order_id,
                         paymentId: response.razorpay_payment_id,
                         enrollmentId: order.enrollmentId,
-                        step: 'verify_payment_request',
+                        step: 'confirm_payment_request',
                         status: 'started',
                     });
 
-                    const verifyRes = await fetch(`${API_BASE}/api/verify-payment`, {
+                    const confirmRes = await fetch(`${API_BASE}/api/confirm-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -191,61 +199,17 @@ export function useRazorpay() {
                             razorpay_signature: response.razorpay_signature,
                         }),
                     });
-                    const verifyData = await verifyRes.json();
-                    if (!verifyRes.ok || !verifyData.success) {
+                    const confirmData = await confirmRes.json();
+
+                    if (!confirmRes.ok || !confirmData.success) {
                         logEvent({
                             orderId: response.razorpay_order_id,
                             paymentId: response.razorpay_payment_id,
                             enrollmentId: order.enrollmentId,
-                            step: 'verify_payment_request',
+                            step: 'confirm_payment_request',
                             status: 'failed',
-                            message: verifyData.error,
-                        });
-                        throw new Error(verifyData.error || 'Payment verification failed');
-                    }
-
-                    logEvent({
-                        orderId: response.razorpay_order_id,
-                        paymentId: response.razorpay_payment_id,
-                        enrollmentId: order.enrollmentId,
-                        step: 'verify_payment_request',
-                        status: 'success',
-                    });
-
-                    // ── 3. Finalize — this is now just an UPDATE on the
-                    //    pending row (pending → paid). It's idempotent, and
-                    //    the Razorpay webhook races it independently as a
-                    //    second, server-side-only path to the same result.
-                    //    A single attempt is enough; no client-side retry
-                    //    loop needed since the webhook is the safety net.
-                    logEvent({
-                        orderId: response.razorpay_order_id,
-                        paymentId: response.razorpay_payment_id,
-                        enrollmentId: order.enrollmentId,
-                        step: 'create_enrollment_request',
-                        status: 'started',
-                    });
-
-                    const createRes = await fetch(`${API_BASE}/api/create-enrollment`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature,
-                        }),
-                    });
-                    const createData = await createRes.json();
-
-                    if (!createRes.ok || !createData.success) {
-                        logEvent({
-                            orderId: response.razorpay_order_id,
-                            paymentId: response.razorpay_payment_id,
-                            enrollmentId: order.enrollmentId,
-                            step: 'create_enrollment_request',
-                            status: 'failed',
-                            message: createData.error,
-                            metadata: { httpStatus: createRes.status },
+                            message: confirmData.error,
+                            metadata: { httpStatus: confirmRes.status },
                         });
 
                         // Payment WAS captured by Razorpay. Even if this call
@@ -265,11 +229,11 @@ export function useRazorpay() {
                         orderId: response.razorpay_order_id,
                         paymentId: response.razorpay_payment_id,
                         enrollmentId: order.enrollmentId,
-                        step: 'create_enrollment_request',
+                        step: 'confirm_payment_request',
                         status: 'success',
                     });
 
-                    const enrollment = mapEnrollmentRow(createData.enrollment);
+                    const enrollment = mapEnrollmentRow(confirmData.enrollment);
 
                     trackEvent('purchase', {
                         transaction_id: response.razorpay_payment_id,
