@@ -34,6 +34,8 @@ const AdminAssessments = lazy(() => lazyRetry(() => import('@/pages/admin/AdminA
 const AdminCoupons = lazy(() => lazyRetry(() => import('@/pages/admin/AdminCoupons')));
 const AdminManualEnrollment = lazy(() => lazyRetry(() => import('@/pages/admin/AdminManualEnrollment')));
 const AdminFollowUps = lazy(() => lazyRetry(() => import('@/pages/admin/AdminFollowUps')));
+const AdminFunnelAudit = lazy(() => lazyRetry(() => import('@/pages/admin/AdminFunnelAudit')));
+
 function PageFallback() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(0 0% 4%)' }}>
@@ -111,6 +113,7 @@ function App() {
             <Route path="coupons" element={<LazyRoute><AdminCoupons /></LazyRoute>} />
             <Route path="manual-enrollment" element={<LazyRoute><AdminManualEnrollment /></LazyRoute>} />
             <Route path="follow-ups" element={<LazyRoute><AdminFollowUps /></LazyRoute>} />
+            <Route path="funnel-audit" element={<LazyRoute><AdminFunnelAudit /></LazyRoute>} />
             <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
           </Route>
         </Routes>
