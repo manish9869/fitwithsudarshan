@@ -380,9 +380,21 @@ function TodoItem({ icon: Icon, color, title, subtitle, to }) {
 // Surfaces the two most actionable admin tasks: assessments NOT YET
 // REVIEWED (using the standalone `reviewed` flag, independent of the
 // status pipeline) and enrollments whose 7-day follow-up is due.
+// ── Today's To-Do List ─────────────────────────────────────────────────────
+// Surfaces the two most actionable admin tasks: assessments NOT YET
+// REVIEWED (using the standalone `reviewed` flag, independent of the
+// status pipeline) and enrollments whose 7-day follow-up is due.
+//
+// FIX: previously used items.length (capped at pageSize) as the badge count,
+// which silently under-reported when there were more pending records than
+// fit in one page. Now uses the `total` field the API already returns.
 function TodoList({ refreshKey }) {
+    const SHOW_LIMIT = 5; // how many rows to actually list per section
+
     const [newAssessments, setNewAssessments] = useState([]);
+    const [assessmentsTotal, setAssessmentsTotal] = useState(0);
     const [dueFollowUps, setDueFollowUps] = useState([]);
+    const [followUpsTotal, setFollowUpsTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -390,12 +402,14 @@ function TodoList({ refreshKey }) {
         setLoading(true);
         setError(false);
         Promise.all([
-            fetchAssessments({ reviewed: 'false', pageSize: 8, sortField: 'created_at', sortDir: 'desc' }).catch(() => ({ rows: [] })),
-            fetchFollowUps({ due: 'true', pageSize: 8 }).catch(() => ({ rows: [] })),
+            fetchAssessments({ reviewed: 'false', pageSize: SHOW_LIMIT, sortField: 'created_at', sortDir: 'desc' }).catch(() => ({ rows: [], total: 0 })),
+            fetchFollowUps({ due: 'true', pageSize: SHOW_LIMIT }).catch(() => ({ rows: [], total: 0 })),
         ])
             .then(([a, f]) => {
                 setNewAssessments(a.rows || []);
+                setAssessmentsTotal(a.total ?? (a.rows || []).length);
                 setDueFollowUps(f.rows || []);
+                setFollowUpsTotal(f.total ?? (f.rows || []).length);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -403,30 +417,15 @@ function TodoList({ refreshKey }) {
 
     useEffect(() => { load(); }, [load, refreshKey]);
 
-    const items = [
-        ...dueFollowUps.map((f) => ({
-            key: `f-${f.id}`,
-            icon: BellRing,
-            color: '#f87171',
-            title: `Follow up with ${f.customer_name}`,
-            subtitle: f.program_name || 'Follow-up due',
-            to: '/admin/follow-ups',
-        })),
-        ...newAssessments.map((a) => ({
-            key: `a-${a.id}`,
-            icon: ClipboardList,
-            color: '#60a5fa',
-            title: `Review assessment — ${`${a.first_name || ''} ${a.last_name || ''}`.trim()}`,
-            subtitle: a.plan || 'Not yet reviewed',
-            to: `/admin/assessments?focus=${a.id}`,
-        })),
-    ];
+    const totalPending = assessmentsTotal + followUpsTotal;
+    const shownCount = newAssessments.length + dueFollowUps.length;
+    const hiddenCount = Math.max(0, totalPending - shownCount);
 
     return (
         <ChartCard
             title="Today's To-Do"
             icon={ListChecks}
-            badge={!loading ? (items.length ? `${items.length} pending` : 'All clear') : undefined}
+            badge={!loading ? (totalPending ? `${totalPending} pending` : 'All clear') : undefined}
         >
             {loading ? (
                 <div className="flex justify-center py-8">
@@ -438,29 +437,105 @@ function TodoList({ refreshKey }) {
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                     Couldn't load to-dos. Try refreshing.
                 </div>
-            ) : items.length === 0 ? (
+            ) : totalPending === 0 ? (
                 <div className="text-center py-8">
                     <Sparkles className="w-5 h-5 mx-auto mb-2 text-white/15" />
                     <p className="text-xs text-white/25">Nothing needs your attention right now.</p>
                 </div>
             ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto dashboard-thin-scroll pr-1">
-                    {items.map((item) => (
-                        <TodoItem
-                            key={item.key}
-                            icon={item.icon}
-                            color={item.color}
-                            title={item.title}
-                            subtitle={item.subtitle}
-                            to={item.to}
-                        />
-                    ))}
+                <div className="space-y-4">
+                    {/* ── Follow-ups section ── */}
+                    {followUpsTotal > 0 && (
+                        <div>
+                            <div className="flex items-center justify-between px-1 mb-2">
+                                <div className="flex items-center gap-1.5">
+                                    <BellRing className="w-3 h-3" style={{ color: '#f87171' }} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#f87171' }}>
+                                        Follow-Ups Due
+                                    </span>
+                                </div>
+                                <span
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                    style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}
+                                >
+                                    {followUpsTotal}
+                                </span>
+                            </div>
+                            <div className="space-y-2">
+                                {dueFollowUps.map((f) => (
+                                    <TodoItem
+                                        key={`f-${f.id}`}
+                                        icon={BellRing}
+                                        color="#f87171"
+                                        title={`Follow up with ${f.customer_name}`}
+                                        subtitle={f.program_name || 'Follow-up due'}
+                                        to="/admin/follow-ups"
+                                    />
+                                ))}
+                            </div>
+                            {followUpsTotal > dueFollowUps.length && (
+                                <Link
+                                    to="/admin/follow-ups"
+                                    className="block text-center text-[11px] font-bold mt-2 py-1.5 rounded-lg transition-colors"
+                                    style={{ color: '#f87171' }}
+                                >
+                                    View all {followUpsTotal} follow-ups due →
+                                </Link>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Assessments section ── */}
+                    {assessmentsTotal > 0 && (
+                        <div>
+                            <div className="flex items-center justify-between px-1 mb-2">
+                                <div className="flex items-center gap-1.5">
+                                    <ClipboardList className="w-3 h-3" style={{ color: '#60a5fa' }} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#60a5fa' }}>
+                                        Unreviewed Assessments
+                                    </span>
+                                </div>
+                                <span
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                    style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa' }}
+                                >
+                                    {assessmentsTotal}
+                                </span>
+                            </div>
+                            <div className="space-y-2">
+                                {newAssessments.map((a) => (
+                                    <TodoItem
+                                        key={`a-${a.id}`}
+                                        icon={ClipboardList}
+                                        color="#60a5fa"
+                                        title={`Review assessment — ${`${a.first_name || ''} ${a.last_name || ''}`.trim()}`}
+                                        subtitle={a.plan || 'Not yet reviewed'}
+                                        to={`/admin/assessments?focus=${a.id}`}
+                                    />
+                                ))}
+                            </div>
+                            {assessmentsTotal > newAssessments.length && (
+                                <Link
+                                    to="/admin/assessments"
+                                    className="block text-center text-[11px] font-bold mt-2 py-1.5 rounded-lg transition-colors"
+                                    style={{ color: '#60a5fa' }}
+                                >
+                                    View all {assessmentsTotal} unreviewed assessments →
+                                </Link>
+                            )}
+                        </div>
+                    )}
+
+                    {hiddenCount > 0 && (
+                        <p className="text-[10px] text-white/20 text-center pt-1">
+                            Showing {shownCount} of {totalPending} pending items
+                        </p>
+                    )}
                 </div>
             )}
         </ChartCard>
     );
 }
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
     const [range, setRange] = useState(90);
