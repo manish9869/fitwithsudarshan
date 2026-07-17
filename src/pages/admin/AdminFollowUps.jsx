@@ -15,9 +15,8 @@ import {
     AlertCircle, Loader2, StickyNote, PauseCircle, Calendar,
 } from 'lucide-react';
 import { fetchFollowUps, markFollowUp } from './adminApi';
-import { fmtCurrency, fmtDate } from './adminUtils';
+import { fmtCurrency, fmtDate, fmtDateTime } from './adminUtils';
 import { useToast } from './ToastProvider';
-
 function daysAgo(iso) {
     if (!iso) return null;
     return Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
@@ -212,7 +211,7 @@ export default function AdminFollowUps() {
                                 </div>
                                 <p className="text-xs text-white/40 truncate">{row.program_name}</p>
                                 <div className="flex items-center gap-3 mt-1.5 text-[11px] text-white/30">
-                                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Paid {fmtDate(row.payment_date, true)}</span>
+                                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Paid {fmtDateTime(row.payment_date)}</span>
                                     <span>·</span>
                                     <span>{fmtCurrency(row.amount_paid)}</span>
                                     {row.last_followup_at && (

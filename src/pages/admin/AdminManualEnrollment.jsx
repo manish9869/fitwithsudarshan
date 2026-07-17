@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { coachingTypes, durations, pricingTable } from '@/data/SiteData';
 import { createManualEnrollment, updateManualEnrollment, sendEnrollmentEmail, fetchEnrollments } from './adminApi';
-import { fmtCurrency, fmtDate, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
+import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from './ToastProvider';
 
@@ -54,7 +54,7 @@ const EMPTY_FORM = {
     customerName: '', customerEmail: '', customerPhone: '',
     coachingType: 'online', planType: 'individual', durationMonths: '3',
     programName: '', amountPaid: '', originalAmount: '',
-    paymentMethod: 'razorpay', paymentReference: '', paymentDate: new Date().toISOString().slice(0, 10),
+    paymentMethod: 'razorpay', paymentReference: '', paymentDate: toISTDatetimeLocal(new Date().toISOString()),
     paymentStatus: 'paid',
     age: '', city: '', weight: '', goals: '',
     medicalIssue: 'no', medicalNote: '',
@@ -77,7 +77,7 @@ function rowToForm(row) {
         originalAmount: row.original_amount != null ? String(row.original_amount) : '',
         paymentMethod: row.payment_method || 'razorpay',
         paymentReference: row.razorpay_payment_id || '',
-        paymentDate: row.payment_date ? row.payment_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        paymentDate: toISTDatetimeLocal(row.payment_date),
         paymentStatus: row.payment_status || 'paid',
         age: row.age || '',
         city: row.city || '',
@@ -144,7 +144,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                 originalAmount: form.originalAmount ? Number(form.originalAmount) : Number(form.amountPaid),
                 paymentMethod: form.paymentMethod,
                 paymentReference: form.paymentReference.trim() || null,
-                paymentDate: form.paymentDate,
+                paymentDate: istDatetimeLocalToISO(form.paymentDate),
                 paymentStatus: form.paymentStatus,
                 age: form.age || null,
                 city: form.city || null,
@@ -305,7 +305,13 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                                     </select>
                                 </Field>
                                 <Field label="Payment Date">
-                                    <input type="date" className={inputCls} style={inputStyle} value={form.paymentDate} onChange={set('paymentDate')} />
+                                    <input
+                                        type="datetime-local"
+                                        className={inputCls}
+                                        style={inputStyle}
+                                        value={form.paymentDate}
+                                        onChange={set('paymentDate')}
+                                    />
                                 </Field>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -494,7 +500,7 @@ export default function AdminManualEnrollment() {
                                                 <span className="text-xs text-white/50 capitalize">{(row.payment_method || '—').replace('_', ' ')}</span>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className="text-xs text-white/50">{fmtDate(row.payment_date, true)}</span>
+                                                <span className="text-xs text-white/50">{fmtDateTime(row.payment_date)}</span>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"

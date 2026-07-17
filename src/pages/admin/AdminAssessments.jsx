@@ -17,7 +17,6 @@
  *  - Reviewed/Pending badge now uses distinct icon + color per state so
  *    "Pending" no longer reads as a false checkmark
  */
-
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
@@ -49,6 +48,7 @@ import {
 
 import {
     fmtDate,
+    fmtDateTime,
     fmtRelativeTime,
     statusBadge,
     ASSESSMENT_STATUSES,
@@ -540,7 +540,7 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
 
                     {currentNote && (
                         <p className="text-[10px] text-white/25 mt-2">
-                            Last updated {fmtDate(currentNote.updatedAt, true)} · visible
+                            Last updated {fmtDateTime(currentNote.updatedAt)} · visible
                             to all admins
                         </p>
                     )}
@@ -900,7 +900,7 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange, onRe
                                         </div>
 
                                         <p className="text-[10px] text-white/25">
-                                            {fmtDate(assessment.note.updatedAt, true)}
+                                            {fmtDateTime(assessment.note.updatedAt)}
                                         </p>
                                     </div>
 
@@ -1036,7 +1036,7 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange, onRe
                                         {dl('City', assessment.city)}
                                         {dl('Plan', assessment.plan)}
                                         {dl('Profession', assessment.profession)}
-                                        {dl('Submitted', fmtDate(assessment.created_at))}
+                                        {dl('Submitted', fmtDateTime(assessment.created_at))}
                                     </div>
                                 </div>
                             </section>
@@ -1816,7 +1816,7 @@ export default function AdminAssessments() {
 
                                             <td className="px-4 py-3">
                                                 <p className="text-xs text-white/50">
-                                                    {fmtDate(row.created_at, true)}
+                                                    {fmtDateTime(row.created_at)}
                                                 </p>
 
                                                 <p className="text-[10px] text-white/25">
