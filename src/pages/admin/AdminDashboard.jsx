@@ -171,9 +171,8 @@ function KpiCard({ icon: Icon, label, value, sub, accent, delay = 0 }) {
         </motion.div>
     );
 }
-
 // ── Chart Card ────────────────────────────────────────────────────────────────
-function ChartCard({ title, icon: Icon, children, className = '', badge }) {
+function ChartCard({ title, icon: Icon, children, className = '', bodyClassName = 'p-4', badge }) {
     return (
         <motion.div
             whileHover={{
@@ -182,11 +181,11 @@ function ChartCard({ title, icon: Icon, children, className = '', badge }) {
                 borderColor: 'rgba(231,23,99,0.22)',
             }}
             transition={{ duration: 0.22 }}
-            className={`rounded-2xl overflow-hidden will-change-transform ${className}`}
+            className={`rounded-2xl overflow-hidden will-change-transform flex flex-col h-full ${className}`}
             style={cardBaseStyle}
         >
             <div
-                className="flex items-center justify-between px-5 py-4"
+                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
             >
                 <div className="flex items-center gap-2">
@@ -210,11 +209,10 @@ function ChartCard({ title, icon: Icon, children, className = '', badge }) {
                 )}
             </div>
 
-            <div className="p-4">{children}</div>
+            <div className={`flex-1 min-h-0 ${bodyClassName}`}>{children}</div>
         </motion.div>
     );
 }
-
 function EmptyState({ label = 'No data in this range yet' }) {
     return (
         <div className="flex flex-col items-center justify-center py-14 text-center">
@@ -426,6 +424,8 @@ function TodoList({ refreshKey }) {
             title="Today's To-Do"
             icon={ListChecks}
             badge={!loading ? (totalPending ? `${totalPending} pending` : 'All clear') : undefined}
+            bodyClassName="p-4 overflow-y-auto dashboard-thin-scroll"
+            className=""
         >
             {loading ? (
                 <div className="flex justify-center py-8">
@@ -536,6 +536,7 @@ function TodoList({ refreshKey }) {
         </ChartCard>
     );
 }
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
     const [range, setRange] = useState(90);
@@ -1206,7 +1207,8 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* ── Today's To-Do + Recent Activity ── */}
-                    <div className="grid lg:grid-cols-3 gap-5 items-start">
+                    {/* ── Today's To-Do + Recent Activity ── */}
+                    <div className="grid lg:grid-cols-3 gap-5">
                         <TodoList refreshKey={refreshTick} />
 
                         <motion.div
@@ -1216,11 +1218,11 @@ export default function AdminDashboard() {
                                 borderColor: 'rgba(231,23,99,0.22)',
                             }}
                             transition={{ duration: 0.22 }}
-                            className="lg:col-span-2 rounded-2xl overflow-hidden will-change-transform"
+                            className="lg:col-span-2 rounded-2xl overflow-hidden will-change-transform flex flex-col h-full"
                             style={cardBaseStyle}
                         >
                             <div
-                                className="flex items-center justify-between px-5 py-4"
+                                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
                                 style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                             >
                                 <div className="flex items-center gap-2">
@@ -1235,7 +1237,7 @@ export default function AdminDashboard() {
                                 </span>
                             </div>
 
-                            <div className="max-h-[330px] overflow-y-auto dashboard-thin-scroll py-1 pr-1">
+                            <div className="h-[380px] overflow-y-auto dashboard-thin-scroll py-1 pr-1">
                                 {!data?.recentActivity?.length ? (
                                     <EmptyState label="Nothing yet in this range" />
                                 ) : (
