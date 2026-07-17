@@ -230,7 +230,7 @@ export const pricingTable = {
         },
         // NEW — one-time basic consultation, online only
         basic_individual: {
-            "1": 99,
+            "1": 1,
         },
         basic_couple: {
             "1": 199,
