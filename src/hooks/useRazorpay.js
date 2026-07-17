@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { buildEnrollment } from '../services/enrollmentService';
 import { trackEvent } from '@/utils/analytics';
 import { logEvent } from '@/utils/txnLog';
 
@@ -16,6 +15,7 @@ function loadRazorpayScript() {
         document.body.appendChild(script);
     });
 }
+
 function mapEnrollmentRow(row) {
     if (!row) return null;
     return {
@@ -49,10 +49,11 @@ function mapEnrollmentRow(row) {
         partnerMedicalNote: row.partner_medical_note,
     };
 }
+
 export function useRazorpay() {
     const initiatePayment = useCallback(async ({
-        // NOTE: amountPaise is no longer sent to create-order — it's only
-        // used here for UI display. The server resolves the real price.
+        // amountPaise is only used for analytics/UI — the server resolves
+        // and persists the real price at create-order time.
         amountPaise,
         couponCode,
         couponSavings,
@@ -78,29 +79,57 @@ export function useRazorpay() {
             return;
         }
 
-        // ── 1. Create order — server computes the real price ────────────────
+        // ── 1. Create order — server resolves the real price AND writes the
+        //    pending enrollment row (all customer/enrollee data goes here now,
+        //    before payment even opens). Returns enrollmentId + order details.
         let order;
         try {
-            logEvent({ step: 'create_order_request', status: 'started', metadata: { coachingType, planType, durationMonths, couponCode: couponCode || null } });
+            logEvent({
+                step: 'create_order_request',
+                status: 'started',
+                metadata: { coachingType, planType, durationMonths, couponCode: couponCode || null },
+            });
 
             const res = await fetch(`${API_BASE}/api/create-order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ coachingType, planType, durationMonths, couponCode }),
+                body: JSON.stringify({
+                    coachingType, planType, durationMonths, couponCode,
+                    customerName: name,
+                    customerEmail: email,
+                    customerPhone: contact,
+                    programName,
+                    age, city, weight,
+                    goals: goals || [],
+                    medicalIssue, medicalNote,
+                    partnerName, partnerAge, partnerWeight,
+                    partnerGoals: partnerGoals || [],
+                    partnerMedicalIssue, partnerMedicalNote,
+                }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Order creation failed');
             order = data;
 
-            logEvent({ orderId: order.order_id, step: 'create_order_request', status: 'success', metadata: { amount: order.amount } });
+            logEvent({
+                orderId: order.order_id,
+                enrollmentId: order.enrollmentId,
+                step: 'create_order_request',
+                status: 'success',
+                metadata: { amount: order.amount },
+            });
         } catch (err) {
             logEvent({ step: 'create_order_request', status: 'failed', message: err.message });
             onError?.(err.message || 'Could not create payment order. Please try again.');
             return;
         }
 
-        if (!order?.order_id) {
-            logEvent({ step: 'create_order_request', status: 'failed', message: 'invalid order response (missing order_id)' });
+        if (!order?.order_id || !order?.enrollmentId) {
+            logEvent({
+                step: 'create_order_request',
+                status: 'failed',
+                message: 'invalid order response (missing order_id or enrollmentId)',
+            });
             onError?.('Invalid order response from server. Please try again.');
             return;
         }
@@ -120,7 +149,15 @@ export function useRazorpay() {
                 escape: false,
                 handleback: true,
                 ondismiss: () => {
-                    logEvent({ orderId: order.order_id, step: 'checkout_dismissed', status: 'warning' });
+                    logEvent({
+                        orderId: order.order_id,
+                        enrollmentId: order.enrollmentId,
+                        step: 'checkout_dismissed',
+                        status: 'warning',
+                    });
+                    // Payment abandoned — the pending row stays as 'pending'.
+                    // The payment-reminder email flow / follow-ups can target
+                    // these rows later without any extra work here.
                     onDismiss?.();
                 },
             },
@@ -130,14 +167,17 @@ export function useRazorpay() {
                 logEvent({
                     orderId: response.razorpay_order_id,
                     paymentId: response.razorpay_payment_id,
+                    enrollmentId: order.enrollmentId,
                     step: 'razorpay_handler_fired',
                     status: 'success',
                 });
 
                 try {
+                    // ── 2. Verify signature ──────────────────────────────────
                     logEvent({
                         orderId: response.razorpay_order_id,
                         paymentId: response.razorpay_payment_id,
+                        enrollmentId: order.enrollmentId,
                         step: 'verify_payment_request',
                         status: 'started',
                     });
@@ -156,6 +196,7 @@ export function useRazorpay() {
                         logEvent({
                             orderId: response.razorpay_order_id,
                             paymentId: response.razorpay_payment_id,
+                            enrollmentId: order.enrollmentId,
                             step: 'verify_payment_request',
                             status: 'failed',
                             message: verifyData.error,
@@ -166,141 +207,93 @@ export function useRazorpay() {
                     logEvent({
                         orderId: response.razorpay_order_id,
                         paymentId: response.razorpay_payment_id,
+                        enrollmentId: order.enrollmentId,
                         step: 'verify_payment_request',
                         status: 'success',
                     });
 
-                    const enrollment = buildEnrollment({
-                        customerName: name, customerEmail: email, customerPhone: contact,
-                        programName, planType, durationMonths, coachingType,
-                        amountPaid: amountPaise / 100,
-                        couponCode: couponCode || null,
-                        couponSavings: couponSavings || 0,
-                        razorpayOrderId: response.razorpay_order_id,
-                        razorpayPaymentId: response.razorpay_payment_id,
-                        age, city, weight, goals: goals || [], medicalIssue, medicalNote,
-                        partnerName, partnerAge, partnerWeight, partnerGoals: partnerGoals || [],
-                        partnerMedicalIssue, partnerMedicalNote,
+                    // ── 3. Finalize — this is now just an UPDATE on the
+                    //    pending row (pending → paid). It's idempotent, and
+                    //    the Razorpay webhook races it independently as a
+                    //    second, server-side-only path to the same result.
+                    //    A single attempt is enough; no client-side retry
+                    //    loop needed since the webhook is the safety net.
+                    logEvent({
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        enrollmentId: order.enrollmentId,
+                        step: 'create_enrollment_request',
+                        status: 'started',
                     });
 
-                    // ── Persist — server verifies amount/plan against Razorpay
-                    //    and sends emails itself. Retry a couple of times for
-                    //    transient failures before giving up. Non-retryable
-                    //    errors (400s — mismatch, validation, misconfig) break
-                    //    immediately instead of wasting 2 more attempts.
-                    let saved = null;
-                    let lastErr = null;
-                    for (let attempt = 0; attempt < 3 && !saved; attempt++) {
-                        try {
-                            logEvent({
-                                orderId: response.razorpay_order_id,
-                                paymentId: response.razorpay_payment_id,
-                                enrollmentId: enrollment.enrollmentId,
-                                step: `create_enrollment_attempt_${attempt + 1}`,
-                                status: 'started',
-                            });
+                    const createRes = await fetch(`${API_BASE}/api/create-enrollment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                        }),
+                    });
+                    const createData = await createRes.json();
 
-                            const createRes = await fetch(`${API_BASE}/api/create-enrollment`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    razorpay_order_id: response.razorpay_order_id,
-                                    razorpay_payment_id: response.razorpay_payment_id,
-                                    razorpay_signature: response.razorpay_signature,
-                                    enrollment,
-                                }),
-                            });
-                            const createData = await createRes.json();
-
-                            if (createRes.ok && createData.success) {
-                                saved = createData;
-                                logEvent({
-                                    orderId: response.razorpay_order_id,
-                                    paymentId: response.razorpay_payment_id,
-                                    enrollmentId: enrollment.enrollmentId,
-                                    step: `create_enrollment_attempt_${attempt + 1}`,
-                                    status: 'success',
-                                });
-                            } else {
-                                lastErr = createData.error || `HTTP ${createRes.status}`;
-                                logEvent({
-                                    orderId: response.razorpay_order_id,
-                                    paymentId: response.razorpay_payment_id,
-                                    enrollmentId: enrollment.enrollmentId,
-                                    step: `create_enrollment_attempt_${attempt + 1}`,
-                                    status: 'failed',
-                                    message: lastErr,
-                                    metadata: { httpStatus: createRes.status },
-                                });
-
-                                // Client errors (4xx) are not transient — retrying
-                                // the exact same payload will fail identically.
-                                // Break immediately instead of burning 2 more
-                                // attempts + delays.
-                                if (createRes.status >= 400 && createRes.status < 500) {
-                                    break;
-                                }
-                                if (attempt < 2) await new Promise((r) => setTimeout(r, 1200));
-                            }
-                        } catch (e) {
-                            lastErr = e.message;
-                            logEvent({
-                                orderId: response.razorpay_order_id,
-                                paymentId: response.razorpay_payment_id,
-                                enrollmentId: enrollment.enrollmentId,
-                                step: `create_enrollment_attempt_${attempt + 1}`,
-                                status: 'failed',
-                                message: e.message,
-                            });
-                            if (attempt < 2) await new Promise((r) => setTimeout(r, 1200));
-                        }
-                    }
-
-                    if (!saved) {
-                        // Payment WAS captured by Razorpay, but we could not
-                        // record it. Do NOT show a fake success screen.
-                        console.error('[Razorpay] 🚨 Enrollment save failed after retries:', lastErr, 'paymentId:', response.razorpay_payment_id);
+                    if (!createRes.ok || !createData.success) {
                         logEvent({
                             orderId: response.razorpay_order_id,
                             paymentId: response.razorpay_payment_id,
-                            enrollmentId: enrollment.enrollmentId,
-                            step: 'create_enrollment_all_attempts',
+                            enrollmentId: order.enrollmentId,
+                            step: 'create_enrollment_request',
                             status: 'failed',
-                            message: lastErr,
+                            message: createData.error,
+                            metadata: { httpStatus: createRes.status },
                         });
+
+                        // Payment WAS captured by Razorpay. Even if this call
+                        // failed (timeout, transient error, etc), the webhook
+                        // will independently flip the pending row to paid —
+                        // so this is NOT data loss, just a slow confirmation.
+                        // Still tell the user honestly rather than faking success.
                         onError?.(
-                            `Your payment was received (ID: ${response.razorpay_payment_id}), but we couldn't finalize your enrollment automatically. ` +
-                            `Please contact support with this payment ID and we'll sort it out immediately.`
+                            `Your payment was received (ID: ${response.razorpay_payment_id}). ` +
+                            `We're finalizing your enrollment in the background — you'll get a confirmation email shortly. ` +
+                            `If you don't hear back within a few minutes, contact support with this payment ID.`
                         );
                         return;
                     }
 
-                    if (couponCode) {
-                        // usage increment now happens server-side inside create-enrollment
-                    }
+                    logEvent({
+                        orderId: response.razorpay_order_id,
+                        paymentId: response.razorpay_payment_id,
+                        enrollmentId: order.enrollmentId,
+                        step: 'create_enrollment_request',
+                        status: 'success',
+                    });
+
+                    const enrollment = mapEnrollmentRow(createData.enrollment);
 
                     trackEvent('purchase', {
-                        transaction_id: enrollment.razorpayPaymentId,
-                        value: enrollment.amountPaid,
+                        transaction_id: response.razorpay_payment_id,
+                        value: enrollment?.amountPaid ?? amountPaise / 100,
                         currency: 'INR',
-                        plan_type: enrollment.planType,
-                        coaching_type: enrollment.coachingType,
-                        coupon: enrollment.couponCode || undefined,
+                        plan_type: planType,
+                        coaching_type: coachingType,
+                        coupon: couponCode || undefined,
                     });
 
                     logEvent({
                         orderId: response.razorpay_order_id,
                         paymentId: response.razorpay_payment_id,
-                        enrollmentId: enrollment.enrollmentId,
+                        enrollmentId: order.enrollmentId,
                         step: 'client_flow_complete',
                         status: 'success',
                     });
 
-                    onSuccess?.(mapEnrollmentRow(saved.enrollment) ?? enrollment);
+                    onSuccess?.(enrollment);
                 } catch (err) {
                     logEvent({
                         orderId: response.razorpay_order_id,
                         paymentId: response.razorpay_payment_id,
+                        enrollmentId: order.enrollmentId,
                         step: 'client_flow_complete',
                         status: 'failed',
                         message: err.message,
@@ -317,15 +310,18 @@ export function useRazorpay() {
             try { rzp.close(); window.__rzpInstance = null; } catch (_) { }
             logEvent({
                 orderId: order.order_id,
+                enrollmentId: order.enrollmentId,
                 step: 'razorpay_payment_failed_event',
                 status: 'failed',
                 message: response.error?.description,
                 metadata: { code: response.error?.code, reason: response.error?.reason },
             });
+            // Pending row stays 'pending' — nothing to clean up, follow-up
+            // / payment_failed email flow can pick this up as-is.
             onError?.(response.error?.description || 'Payment failed. Please try again.');
         });
 
-        logEvent({ orderId: order.order_id, step: 'checkout_opened', status: 'started' });
+        logEvent({ orderId: order.order_id, enrollmentId: order.enrollmentId, step: 'checkout_opened', status: 'started' });
         rzp.open();
     }, []);
 
