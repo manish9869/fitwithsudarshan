@@ -148,8 +148,8 @@ function KpiCard({ icon: Icon, label, value, sub, accent, delay = 0 }) {
                 borderColor: `${accent}35`,
             }}
             transition={{ duration: 0.25, delay }}
-            className="rounded-2xl p-5 relative overflow-hidden will-change-transform"
-            style={cardBaseStyle}
+            className="rounded-2xl p-5 relative overflow-hidden will-change-transform flex flex-col"
+            style={{ ...cardBaseStyle, minHeight: 150 }}
         >
             <div
                 className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl"
@@ -692,101 +692,73 @@ export default function AdminDashboard() {
                 </div>
             ) : (
                 <>
-                    {/* ── KPI Row 1 ── */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    {/* ── KPIs — one consistent grid so every card aligns, no orphaned wraps ── */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
                         <KpiCard
-                            icon={IndianRupee}
-                            label="Revenue"
-                            accent="#e71763"
+                            icon={IndianRupee} label="Revenue" accent="#e71763"
                             value={fmtCompactCurrency(k.totalRevenue)}
                             sub={`avg. ${fmtCompactCurrency(k.avgOrderValue)} / order`}
                             delay={0}
                         />
-
                         <KpiCard
-                            icon={Users}
-                            label="Paid Enrollments"
-                            accent="#34d399"
+                            icon={Users} label="Paid Enrollments" accent="#34d399"
                             value={k.enrollmentsInRange ?? 0}
                             sub={`${k.totalEnrollmentsAllTime ?? 0} all-time`}
-                            delay={0.05}
+                            delay={0.03}
                         />
-
                         <KpiCard
-                            icon={ClipboardList}
-                            label="New Assessments"
-                            accent="#60a5fa"
+                            icon={ClipboardList} label="New Assessments" accent="#60a5fa"
                             value={k.assessmentsInRange ?? 0}
                             sub={`${k.totalAssessmentsAllTime ?? 0} all-time`}
-                            delay={0.1}
+                            delay={0.06}
                         />
-
                         <KpiCard
-                            icon={Tag}
-                            label="Savings Given"
-                            accent="#fbbf24"
+                            icon={Tag} label="Savings Given" accent="#fbbf24"
                             value={fmtCompactCurrency(k.totalSavings)}
                             sub={`${k.couponUsageCount ?? 0} coupon uses`}
-                            delay={0.15}
+                            delay={0.09}
                         />
-                    </div>
-
-                    {/* ── KPI Row 2 ── */}
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
                         <KpiCard
-                            icon={Percent}
-                            label="Conversion Rate"
-                            accent="#a78bfa"
+                            icon={Percent} label="Conversion Rate" accent="#a78bfa"
                             value={k.conversionRate != null ? `${k.conversionRate}%` : '—'}
                             sub="assessments → enrollments"
-                            delay={0.2}
+                            delay={0.12}
                         />
-
                         <KpiCard
-                            icon={Heart}
-                            label="Couple Plans"
-                            accent="#f472b6"
+                            icon={Heart} label="Couple Plans" accent="#f472b6"
                             value={k.coupleCount ?? 0}
                             sub="in selected range"
-                            delay={0.25}
+                            delay={0.15}
                         />
-
                         <KpiCard
-                            icon={Sparkles}
-                            label="Avg. Commitment"
-                            accent="#fb923c"
+                            icon={Sparkles} label="Avg. Commitment" accent="#fb923c"
                             value={k.avgCommitment ? `${k.avgCommitment.toFixed(1)}/10` : '—'}
                             sub="from assessments"
-                            delay={0.3}
+                            delay={0.18}
                         />
-
                         <KpiCard
-                            icon={ClipboardCheck}
-                            label="Pending Review"
+                            icon={ClipboardCheck} label="Pending Review"
                             accent={k.pendingReviewCount > 0 ? '#fbbf24' : '#34d399'}
                             value={k.pendingReviewCount ?? 0}
                             sub={k.pendingReviewCount > 0 ? 'assessments awaiting review' : 'all reviewed'}
-                            delay={0.33}
+                            delay={0.21}
                         />
-
                         <Link to="/admin/follow-ups" className="block">
                             <KpiCard
-                                icon={BellRing}
-                                label="Follow-Ups Due"
+                                icon={BellRing} label="Follow-Ups Due"
                                 accent={k.followUpsDue > 0 ? '#f87171' : '#34d399'}
                                 value={k.followUpsDue ?? 0}
                                 sub={k.followUpsDue > 0 ? 'clients waiting — tap to review' : 'all caught up'}
-                                delay={0.35}
+                                delay={0.24}
                             />
                         </Link>
                         <Link to="/admin/balance-due" className="block">
                             <KpiCard
-                                icon={IndianRupee}
-                                label="Outstanding Balance"
+                                icon={IndianRupee} label="Outstanding Balance"
                                 accent={k.totalOutstandingBalance > 0 ? '#fbbf24' : '#34d399'}
                                 value={fmtCompactCurrency(k.totalOutstandingBalance)}
                                 sub={`${k.clientsWithBalance ?? 0} clients — tap to collect`}
-                                delay={0.4}
+                                delay={0.27}
                             />
                         </Link>
                     </div>
