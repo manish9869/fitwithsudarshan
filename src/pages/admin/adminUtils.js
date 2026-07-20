@@ -560,7 +560,52 @@ export async function downloadInvoicePDF(enrollment) {
 
     return true;
 }
+// ── PDF Receipt for a single payment (partial/installment) — via backend ─────
+export async function downloadPaymentReceiptPDF({ enrollment, payment, paidToDate }) {
+    const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
+    if (!payment || payment.amount == null) {
+        throw new Error('Missing payment data.');
+    }
+
+    const res = await fetch(`${API_BASE}/api/payment-receipt`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/pdf',
+        },
+        body: JSON.stringify({ enrollment, payment, paidToDate }),
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+
+    if (!res.ok) {
+        let message = 'Receipt generation failed.';
+        try {
+            const data = await res.json();
+            message = data?.error || data?.message || message;
+        } catch {
+            // ignore
+        }
+        throw new Error(message);
+    }
+
+    if (!contentType.toLowerCase().includes('application/pdf')) {
+        throw new Error('Server did not return a valid PDF.');
+    }
+
+    const blob = await res.blob();
+    if (!blob || blob.size === 0) {
+        throw new Error('Generated receipt PDF is empty.');
+    }
+
+    const safeId = String(enrollment.enrollmentId || enrollment.enrollment_id || 'receipt')
+        .replace(/[^a-zA-Z0-9-_]/g, '');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+
+    triggerDownload(blob, `RECODE-Receipt-${safeId}-${timestamp}.pdf`);
+    return true;
+}
 
 // ── Date + Time (always shown, 12-hour format, IST) ──────────────────────────
 export function fmtDateTime(iso) {

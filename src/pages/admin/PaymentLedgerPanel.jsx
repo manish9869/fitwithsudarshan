@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
     IndianRupee, Loader2, Plus, Send, CreditCard, Smartphone, Landmark,
     Wallet, HelpCircle, Clock, AlertCircle, Copy, Check, Layers, CheckCircle2,
+    Download, Mail,
 } from 'lucide-react';
-import { fetchEnrollmentPayments, sendBalanceReminder } from './adminApi';
-import { fmtCurrency, fmtDateTime } from './adminUtils';
+import { fetchEnrollmentPayments, sendBalanceReminder, sendPaymentReceiptEmail } from './adminApi';
+import { fmtCurrency, fmtDateTime, downloadPaymentReceiptPDF } from './adminUtils';
 import RecordPaymentModal from './RecordPaymentModal';
 import { useToast } from './ToastProvider';
 
@@ -22,6 +23,24 @@ function methodMeta(m) {
     return METHOD_META[m] || METHOD_META.other;
 }
 
+// Maps the admin panel's snake_case enrollment row into the camelCase
+// shape the backend's stateless /api/payment-receipt endpoint expects
+// (same pattern as the existing full-invoice download).
+function mapEnrollmentForReceipt(enrollment) {
+    return {
+        enrollmentId: enrollment.enrollment_id,
+        customerName: enrollment.customer_name,
+        customerEmail: enrollment.customer_email,
+        customerPhone: enrollment.customer_phone,
+        programName: enrollment.program_name,
+        coachingType: enrollment.coaching_type,
+        durationMonths: enrollment.duration_months,
+        totalAmount: enrollment.total_amount ?? enrollment.amount_paid,
+        amountPaid: enrollment.amount_paid,
+        razorpayOrderId: enrollment.razorpay_order_id,
+    };
+}
+
 export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) {
     const toast = useToast();
     const [payments, setPayments] = useState([]);
@@ -30,6 +49,10 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
     const [showRecordModal, setShowRecordModal] = useState(false);
     const [sendingReminder, setSendingReminder] = useState(false);
     const [copiedId, setCopiedId] = useState('');
+
+    // Per-row receipt action state
+    const [downloadingReceiptId, setDownloadingReceiptId] = useState('');
+    const [emailingReceiptId, setEmailingReceiptId] = useState('');
 
     const load = useCallback(async () => {
         if (!enrollment?.id) return;
@@ -46,6 +69,17 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
     }, [enrollment?.id]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Chronological running total — payments come back ordered by paid_at
+    // ascending, so this is a simple cumulative sum. Used so each payment's
+    // receipt shows an accurate "paid to date" figure, not just its own amount.
+    const paymentsWithRunningTotal = useMemo(() => {
+        let running = 0;
+        return payments.map((p) => {
+            running += Number(p.amount || 0);
+            return { ...p, _paidToDate: running };
+        });
+    }, [payments]);
 
     if (!enrollment) return null;
 
@@ -84,6 +118,44 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
         toast.success('Payment recorded');
         onEnrollmentUpdated?.(updated);
         load();
+    };
+
+    const handleDownloadReceipt = async (payment) => {
+        setDownloadingReceiptId(payment.id);
+        try {
+            await downloadPaymentReceiptPDF({
+                enrollment: mapEnrollmentForReceipt(enrollment),
+                payment: {
+                    id: payment.id,
+                    amount: payment.amount,
+                    method: payment.method,
+                    reference: payment.reference,
+                    paid_at: payment.paid_at,
+                },
+                paidToDate: payment._paidToDate,
+            });
+            toast.success('Receipt downloaded');
+        } catch (e) {
+            toast.error(e.message || 'Failed to download receipt.');
+        } finally {
+            setDownloadingReceiptId('');
+        }
+    };
+
+    const handleEmailReceipt = async (payment) => {
+        if (!enrollment.customer_email) {
+            toast.error('This enrollment has no customer email on file.');
+            return;
+        }
+        setEmailingReceiptId(payment.id);
+        try {
+            await sendPaymentReceiptEmail(enrollment.id, payment.id);
+            toast.success('Receipt emailed to customer');
+        } catch (e) {
+            toast.error(e.message || 'Failed to email receipt.');
+        } finally {
+            setEmailingReceiptId('');
+        }
     };
 
     return (
@@ -212,14 +284,16 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
                     className="rounded-xl overflow-hidden"
                     style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
-                    {payments.map((p, i) => {
+                    {paymentsWithRunningTotal.map((p, i) => {
                         const meta = methodMeta(p.method);
                         const Icon = meta.icon;
+                        const downloading = downloadingReceiptId === p.id;
+                        const emailing = emailingReceiptId === p.id;
                         return (
                             <div
                                 key={p.id}
-                                className="flex items-center gap-3 px-4 py-3"
-                                style={i < payments.length - 1 ? { borderBottom: '1px solid rgba(255,255,255,0.05)' } : {}}
+                                className="flex items-center gap-3 px-4 py-3 flex-wrap sm:flex-nowrap"
+                                style={i < paymentsWithRunningTotal.length - 1 ? { borderBottom: '1px solid rgba(255,255,255,0.05)' } : {}}
                             >
                                 <div
                                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -254,6 +328,26 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
                                             : <Copy className="w-3 h-3" />}
                                     </button>
                                 )}
+
+                                {/* Per-payment receipt actions */}
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                    <button
+                                        onClick={() => handleDownloadReceipt(p)}
+                                        disabled={downloading}
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all disabled:opacity-40"
+                                        title="Download receipt PDF for this payment"
+                                    >
+                                        {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                    </button>
+                                    <button
+                                        onClick={() => handleEmailReceipt(p)}
+                                        disabled={emailing || !enrollment.customer_email}
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all disabled:opacity-40"
+                                        title={!enrollment.customer_email ? 'No email on file' : 'Email receipt for this payment'}
+                                    >
+                                        {emailing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}

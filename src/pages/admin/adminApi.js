@@ -237,5 +237,7 @@ export async function sendBalanceReminder(id) {
     return request(`/enrollments/${id}/send-balance-reminder`, { method: 'POST' });
 }
 
-
+export async function sendPaymentReceiptEmail(enrollmentId, paymentId) {
+    return request(`/enrollments/${enrollmentId}/payments/${paymentId}/send-receipt`, { method: 'POST' });
+}
 export { AdminApiError };
