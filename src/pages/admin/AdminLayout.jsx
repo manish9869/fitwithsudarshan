@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Users, ClipboardList, LogOut, Menu, X, Tag, UserPlus, BellRing, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, LogOut, Menu, X, Tag, UserPlus, BellRing, Activity, Wallet } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
 import { ToastProvider } from './ToastProvider';
@@ -14,6 +14,7 @@ const NAV = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
     { to: '/admin/manual-enrollment', icon: UserPlus, label: 'Manual Entry' },
+    { to: '/admin/balance-due', icon: Wallet, label: 'Balance Due' },
     { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
     { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
     { to: '/admin/coupons', icon: Tag, label: 'Coupons' },

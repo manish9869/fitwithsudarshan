@@ -216,4 +216,26 @@ export async function updateManualEnrollment(id, payload) {
 export async function fetchFunnelAudit(days = 30) {
     return request('/funnel-audit', { params: { days } });
 }
+
+
+export async function searchEnrollments(query) {
+    const data = await request('/enrollments/search', { params: { query } });
+    return data.rows;
+}
+export async function fetchEnrollmentPayments(id) {
+    const data = await request(`/enrollments/${id}/payments`);
+    return data.payments;
+}
+export async function recordEnrollmentPayment(id, payload) {
+    const data = await request(`/enrollments/${id}/payments`, { method: 'POST', body: payload });
+    return data.enrollment;
+}
+export async function fetchBalanceDue(filters) {
+    return request('/balance-due', { params: filters });
+}
+export async function sendBalanceReminder(id) {
+    return request(`/enrollments/${id}/send-balance-reminder`, { method: 'POST' });
+}
+
+
 export { AdminApiError };

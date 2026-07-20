@@ -12,10 +12,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Loader2, AlertCircle, CheckCircle2, Plus, X, Edit2,
-    Search, RefreshCw, MessageCircle, Users,
+    Search, RefreshCw, MessageCircle, Users, IndianRupee,
 } from 'lucide-react';
 import { coachingTypes, durations, pricingTable } from '@/data/SiteData';
-import { createManualEnrollment, updateManualEnrollment, sendEnrollmentEmail, fetchEnrollments } from './adminApi';
+import { createManualEnrollment, updateManualEnrollment, sendEnrollmentEmail, fetchEnrollments, searchEnrollments } from './adminApi';
+import RecordPaymentModal from './RecordPaymentModal';
 import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from './ToastProvider';
@@ -53,7 +54,8 @@ function StatCard({ label, value, color }) {
 const EMPTY_FORM = {
     customerName: '', customerEmail: '', customerPhone: '',
     coachingType: 'online', planType: 'individual', durationMonths: '3',
-    programName: '', amountPaid: '', originalAmount: '',
+    programName: '', totalAmount: '', originalAmount: '',
+    initialPaymentAmount: '',
     paymentMethod: 'razorpay', paymentReference: '', paymentDate: toISTDatetimeLocal(new Date().toISOString()),
     paymentStatus: 'paid',
     age: '', city: '', weight: '', goals: '',
@@ -73,8 +75,9 @@ function rowToForm(row) {
         planType: row.plan_type || 'individual',
         durationMonths: row.duration_months || '3',
         programName: row.program_name || '',
-        amountPaid: row.amount_paid != null ? String(row.amount_paid) : '',
+        totalAmount: row.total_amount != null ? String(row.total_amount) : (row.amount_paid != null ? String(row.amount_paid) : ''),
         originalAmount: row.original_amount != null ? String(row.original_amount) : '',
+        initialPaymentAmount: '',
         paymentMethod: row.payment_method || 'razorpay',
         paymentReference: row.razorpay_payment_id || '',
         paymentDate: toISTDatetimeLocal(row.payment_date),
@@ -125,8 +128,9 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
         e.preventDefault();
         setError('');
 
-        if (!form.customerName.trim() || !form.amountPaid) {
-            setError('Client name and amount paid are required.');
+
+        if (!form.customerName.trim() || !form.totalAmount) {
+            setError('Client name and total program price are required.');
             return;
         }
 
@@ -140,12 +144,12 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                 coachingType: form.coachingType,
                 planType: form.planType,
                 durationMonths: form.durationMonths,
-                amountPaid: Number(form.amountPaid),
-                originalAmount: form.originalAmount ? Number(form.originalAmount) : Number(form.amountPaid),
+                totalAmount: Number(form.totalAmount),
+                originalAmount: form.originalAmount ? Number(form.originalAmount) : Number(form.totalAmount),
+                initialPaymentAmount: isEdit ? undefined : (form.initialPaymentAmount === '' ? undefined : Number(form.initialPaymentAmount)),
                 paymentMethod: form.paymentMethod,
                 paymentReference: form.paymentReference.trim() || null,
                 paymentDate: istDatetimeLocalToISO(form.paymentDate),
-                paymentStatus: form.paymentStatus,
                 age: form.age || null,
                 city: form.city || null,
                 weight: form.weight || null,
@@ -291,13 +295,18 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                         <div className="rounded-2xl p-4 sm:p-5 space-y-4" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.18)' }}>
                             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#e71763' }}>Payment</p>
                             <div className="grid grid-cols-2 gap-3">
-                                <Field label="Amount Paid (₹)" required>
-                                    <input type="number" className={inputCls} style={inputStyle} value={form.amountPaid} onChange={set('amountPaid')} placeholder={suggestedAmount() ? String(suggestedAmount()) : '0'} />
+                                <Field label="Total Program Price (₹)" required>
+                                    <input type="number" className={inputCls} style={inputStyle} value={form.totalAmount} onChange={set('totalAmount')} placeholder={suggestedAmount() ? String(suggestedAmount()) : '0'} />
                                 </Field>
                                 <Field label="Original Amount (₹, optional)">
-                                    <input type="number" className={inputCls} style={inputStyle} value={form.originalAmount} onChange={set('originalAmount')} placeholder="Same as amount paid" />
+                                    <input type="number" className={inputCls} style={inputStyle} value={form.originalAmount} onChange={set('originalAmount')} placeholder="Same as total price" />
                                 </Field>
                             </div>
+                            {!isEdit && (
+                                <Field label="Amount Received Now (₹)">
+                                    <input type="number" className={inputCls} style={inputStyle} value={form.initialPaymentAmount} onChange={set('initialPaymentAmount')} placeholder={`Full amount (${form.totalAmount || 0}) if left blank`} />
+                                </Field>
+                            )}
                             <div className="grid grid-cols-2 gap-3">
                                 <Field label="Payment Method">
                                     <select className={inputCls} style={inputStyle} value={form.paymentMethod} onChange={set('paymentMethod')}>
@@ -360,6 +369,11 @@ export default function AdminManualEnrollment() {
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState(null);
+    const [searching, setSearching] = useState(false);
+    const [paymentTarget, setPaymentTarget] = useState(null);
+
     const [modalOpen, setModalOpen] = useState(false);
     const [editingRow, setEditingRow] = useState(null); // null = creating new
 
@@ -403,6 +417,29 @@ export default function AdminManualEnrollment() {
         setEditingRow(null);
     };
 
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) { setSearchResults(null); return; }
+        setSearching(true);
+        try {
+            const results = await searchEnrollments(searchQuery.trim());
+            setSearchResults(results);
+        } catch (e) {
+            toast.error(e.message || 'Search failed.');
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const handlePaymentSaved = (updated) => {
+        setRows((prev) => {
+            const exists = prev.some((r) => r.id === updated.id);
+            return exists ? prev.map((r) => (r.id === updated.id ? updated : r)) : prev;
+        });
+        setPaymentTarget(null);
+        toast.success('Payment recorded');
+        setSearchResults((prev) => prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : prev);
+    };
+
     const handleSendEmail = async (row, template) => {
         try {
             await sendEnrollmentEmail(row.id, template);
@@ -435,6 +472,56 @@ export default function AdminManualEnrollment() {
                         <Plus className="w-3.5 h-3.5" /> Add Enrollment
                     </button>
                 </div>
+            </div>
+
+            <div className="rounded-2xl p-4 sm:p-5 mb-6" style={{ background: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.18)' }}>
+                <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#60a5fa' }}>
+                    Check for an existing enrollment first
+                </p>
+                <p className="text-[11px] text-white/40 mb-3">
+                    Search by name, email, or phone before adding a new record — if the client already started
+                    checkout on the website (a pending row), record the payment against that instead of creating a duplicate.
+                </p>
+                <div className="flex gap-2">
+                    <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        placeholder="Search name, email, or phone…"
+                        className="flex-1 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 outline-none"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                    <button onClick={handleSearch} disabled={searching}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white disabled:opacity-60"
+                        style={{ background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.35)', color: '#60a5fa' }}>
+                        {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                        Search
+                    </button>
+                </div>
+
+                {searchResults && (
+                    searchResults.length === 0 ? (
+                        <p className="text-xs text-white/30 mt-3">No matching enrollment found — safe to create a new one.</p>
+                    ) : (
+                        <div className="mt-3 space-y-2">
+                            {searchResults.map((r) => (
+                                <div key={r.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl"
+                                    style={{ background: 'rgba(255,255,255,0.03)' }}>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-bold text-white truncate">{r.customer_name} <span className="text-white/30 font-normal">· {r.enrollment_id}</span></p>
+                                        <p className="text-[11px] text-white/35">
+                                            {r.program_name} · {fmtCurrency(r.amount_paid)} paid
+                                            {Number(r.balance_due) > 0 ? ` · ${fmtCurrency(r.balance_due)} due` : ''} · {r.payment_status}
+                                            {r.source ? ` · ${r.source}` : ''}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setPaymentTarget(r)}
+                                        className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white"
+                                        style={{ background: '#e71763' }}>
+                                        Record Payment
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                )}
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
@@ -494,7 +581,10 @@ export default function AdminManualEnrollment() {
                                                 <span className="text-xs text-white/60">{row.program_name}</span>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <p className="text-sm font-bold text-white">{fmtCurrency(row.amount_paid)}</p>
+                                                <p className="text-sm font-bold text-white">{fmtCurrency(row.amount_paid)} <span className="text-white/25 font-normal">/ {fmtCurrency(row.total_amount)}</span></p>
+                                                {Number(row.balance_due) > 0 && (
+                                                    <p className="text-[10px] font-bold" style={{ color: '#fbbf24' }}>{fmtCurrency(row.balance_due)} due</p>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className="text-xs text-white/50 capitalize">{(row.payment_method || '—').replace('_', ' ')}</span>
@@ -521,6 +611,14 @@ export default function AdminManualEnrollment() {
                                                         hasCustomerEmail={!!row.customer_email}
                                                         onSend={(template) => handleSendEmail(row, template)}
                                                     />
+
+                                                    {Number(row.balance_due) > 0 && (
+                                                        <button onClick={() => setPaymentTarget(row)}
+                                                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all"
+                                                            title="Record payment">
+                                                            <IndianRupee className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
 
                                                     {row.customer_phone && (
                                                         <a href={`https://wa.me/${row.customer_phone.replace(/\D/g, '')}`}
@@ -549,6 +647,12 @@ export default function AdminManualEnrollment() {
                         onClose={() => { setModalOpen(false); setEditingRow(null); }}
                         onSaved={handleSaved}
                     />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {paymentTarget && (
+                    <RecordPaymentModal enrollment={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={handlePaymentSaved} />
                 )}
             </AnimatePresence>
         </div>
