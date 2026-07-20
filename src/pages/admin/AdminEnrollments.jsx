@@ -929,47 +929,54 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                     Payment Reference
                                 </p>
 
-                                <div
-                                    className="rounded-xl overflow-hidden"
-                                    style={{
-                                        background: 'rgba(255,255,255,0.02)',
-                                        border: '1px solid rgba(255,255,255,0.06)',
-                                    }}
-                                >
-                                    {[
-                                        ['Enrollment ID', enrollment.enrollment_id],
-                                        ['Payment ID', enrollment.razorpay_payment_id],
-                                        ['Order ID', enrollment.razorpay_order_id],
-                                    ].map(([label, value]) => (
-                                        <div
-                                            key={label}
-                                            className="flex items-center justify-between px-4 py-3"
-                                            style={{
-                                                borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                            }}
-                                        >
-                                            <span className="text-xs text-white/35">
-                                                {label}
-                                            </span>
-
-                                            <button
-                                                onClick={() => copy(value, label)}
-                                                className="flex items-center gap-1.5 text-xs font-mono text-white/55 hover:text-white transition-colors"
+                                {enrollment.source === 'manual' ? (
+                                    <div
+                                        className="rounded-xl p-4 flex items-start gap-2.5"
+                                        style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.18)' }}
+                                    >
+                                        <MessageCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#60a5fa' }} />
+                                        <p className="text-xs text-white/50 leading-relaxed">
+                                            This is a manual entry — there's no single website Order ID / Payment ID. Each payment
+                                            recorded against this enrollment has its <strong className="text-white/70">own reference</strong>{' '}
+                                            (UTR / UPI ref / order+payment ID) — see the <strong className="text-white/70">Payment History</strong>{' '}
+                                            section above. A single enrollment can have multiple payments, each with a different reference.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="rounded-xl overflow-hidden"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.02)',
+                                            border: '1px solid rgba(255,255,255,0.06)',
+                                        }}
+                                    >
+                                        {[
+                                            ['Enrollment ID', enrollment.enrollment_id],
+                                            ['Payment ID', enrollment.razorpay_payment_id],
+                                            ['Order ID', enrollment.razorpay_order_id],
+                                        ].map(([label, value]) => (
+                                            <div
+                                                key={label}
+                                                className="flex items-center justify-between px-4 py-3"
+                                                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                                             >
-                                                <span className="truncate max-w-[140px]">
-                                                    {value || '—'}
-                                                </span>
-
-                                                {value &&
-                                                    (copied === label ? (
-                                                        <Check className="w-3 h-3 text-green-400" />
-                                                    ) : (
-                                                        <Copy className="w-3 h-3" />
-                                                    ))}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
+                                                <span className="text-xs text-white/35">{label}</span>
+                                                <button
+                                                    onClick={() => copy(value, label)}
+                                                    className="flex items-center gap-1.5 text-xs font-mono text-white/55 hover:text-white transition-colors"
+                                                >
+                                                    <span className="truncate max-w-[140px]">{value || '—'}</span>
+                                                    {value &&
+                                                        (copied === label ? (
+                                                            <Check className="w-3 h-3 text-green-400" />
+                                                        ) : (
+                                                            <Copy className="w-3 h-3" />
+                                                        ))}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </section>
 
                             <DownloadInvoiceButton enrollment={enrollment} />

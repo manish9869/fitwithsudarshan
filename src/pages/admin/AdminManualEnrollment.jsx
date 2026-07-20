@@ -663,11 +663,18 @@ export default function AdminManualEnrollment() {
                                             {r.source ? ` · ${r.source}` : ''}
                                         </p>
                                     </div>
-                                    <button onClick={() => setPaymentTarget(r)}
-                                        className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white"
-                                        style={{ background: '#e71763' }}>
-                                        Record Payment
-                                    </button>
+                                    {Number(r.balance_due) > 0 ? (
+                                        <button onClick={() => setPaymentTarget(r)}
+                                            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white"
+                                            style={{ background: '#e71763' }}>
+                                            Record Payment
+                                        </button>
+                                    ) : (
+                                        <span className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-full"
+                                            style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399' }}>
+                                            Fully Paid
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>
