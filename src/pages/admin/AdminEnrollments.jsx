@@ -8,7 +8,13 @@
  * - Status and note updates patch local state/cache
  * - Custom styled dropdowns for type, plan, and status filters
  * - Multi-template email sending via EmailSendMenu
- * - NEW: toast notifications on status change, note save, export, email send
+ * - Toast notifications on status change, note save, export, email send
+ * - NEW: Payment Ledger panel embedded in the detail drawer — every
+ *   payment recorded against an enrollment (website Razorpay, Razorpay
+ *   link, UPI, bank transfer, cash) is now visible in one place, with the
+ *   ability to record an additional payment and trigger a balance
+ *   reminder without leaving this page. Table rows also flag partial
+ *   payment plans so mismatches jump out immediately.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +65,7 @@ import { useDebounce } from './useDebounce';
 import ExportMenu from './ExportMenu';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from './ToastProvider';
+import PaymentLedgerPanel from './PaymentLedgerPanel';
 
 const PAGE_SIZE = 20;
 const CACHE_TTL = 60_000;
@@ -517,7 +524,7 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
     );
 }
 
-function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
+function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPaymentRecorded }) {
     const [enrollment, setEnrollment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState('');
@@ -544,6 +551,14 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
         setCopied(key);
         toast.success('Copied to clipboard');
         setTimeout(() => setCopied(''), 1500);
+    };
+
+    // Bubbles a freshly-recorded payment (or any updated fields) both into
+    // this drawer's own local state AND up to the parent table/cache, so
+    // the amount/balance shown in the list stays in sync without a refetch.
+    const handlePaymentRecorded = (updated) => {
+        setEnrollment((prev) => (prev ? { ...prev, ...updated } : updated));
+        onPaymentRecorded?.(updated);
     };
 
     const dl = (label, value) => (
@@ -748,6 +763,12 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                 </div>
                             </div>
 
+                            {/* ── NEW: Full payment ledger — every source, every partial ── */}
+                            <PaymentLedgerPanel
+                                enrollment={enrollment}
+                                onEnrollmentUpdated={handlePaymentRecorded}
+                            />
+
                             {enrollment.coupon_code && (
                                 <div
                                     className="rounded-xl p-4"
@@ -893,6 +914,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange }) {
                                                 }`
                                                 : null
                                         )}
+                                        {dl('Source', enrollment.source === 'manual' ? 'Manual Entry' : 'Website Checkout')}
                                         {dl('Payment Date', fmtDateTime(enrollment.payment_date))}
                                         {dl('Created', fmtDate(enrollment.created_at))}
                                     </div>
@@ -1271,6 +1293,24 @@ export default function AdminEnrollments() {
         }
     };
 
+    // NEW: patches the list/cache whenever a payment is recorded from
+    // inside the detail drawer's PaymentLedgerPanel, so amount_paid /
+    // balance_due / payment_plan_status stay correct without a full
+    // refetch. `updated` is the full enrollment row returned by the
+    // record-payment API.
+    const handlePaymentRecorded = useCallback((updatedEnrollment) => {
+        if (!updatedEnrollment?.id) return;
+        const patch = (rows) =>
+            rows.map((r) =>
+                r.id === updatedEnrollment.id ? { ...r, ...updatedEnrollment } : r
+            );
+
+        setAllData(patch);
+        if (_cache.allRows) {
+            _cache.allRows = patch(_cache.allRows);
+        }
+    }, []);
+
     const totalRevenue = pageData.reduce(
         (sum, r) => sum + (Number(r.amount_paid) || 0),
         0
@@ -1278,6 +1318,7 @@ export default function AdminEnrollments() {
 
     const couponCount = pageData.filter((r) => r.coupon_code).length;
     const coupleCount = pageData.filter((r) => r.plan_type === 'couple').length;
+    const partialCount = pageData.filter((r) => r.payment_plan_status === 'partial').length;
 
     const handleExport = async (format, range) => {
         try {
@@ -1312,10 +1353,14 @@ export default function AdminEnrollments() {
                     plan_type: r.plan_type || '',
                     duration_months: r.duration_months || '',
                     amount_paid: r.amount_paid || 0,
+                    total_amount: r.total_amount || r.amount_paid || 0,
+                    balance_due: r.balance_due || 0,
                     original_amount: r.original_amount || r.amount_paid || 0,
                     coupon_code: r.coupon_code || '',
                     coupon_savings: r.coupon_savings || 0,
                     payment_status: r.payment_status || '',
+                    payment_plan_status: r.payment_plan_status || '',
+                    source: r.source || 'website',
                     payment_date: r.payment_date || '',
                     age: r.age || '',
                     city: r.city || '',
@@ -1404,7 +1449,7 @@ export default function AdminEnrollments() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
                 <StatCard
                     label="Showing"
                     value={`${pageData.length} / ${filtered.length}`}
@@ -1431,6 +1476,13 @@ export default function AdminEnrollments() {
                     value={couponCount}
                     sub=""
                     color="#34d399"
+                />
+
+                <StatCard
+                    label="Partial Payments"
+                    value={partialCount}
+                    sub={partialCount ? 'balance still due' : 'none on this page'}
+                    color={partialCount ? '#fbbf24' : '#34d399'}
                 />
             </div>
 
@@ -1574,6 +1626,7 @@ export default function AdminEnrollments() {
                             ) : (
                                 pageData.map((row) => {
                                     const hasNote = !!row.note;
+                                    const isPartial = row.payment_plan_status === 'partial';
 
                                     return (
                                         <tr
@@ -1663,6 +1716,15 @@ export default function AdminEnrollments() {
                                                         -{fmtCurrency(row.coupon_savings)}
                                                     </p>
                                                 )}
+
+                                                {isPartial && (
+                                                    <p
+                                                        className="text-[10px] font-bold"
+                                                        style={{ color: '#fbbf24' }}
+                                                    >
+                                                        Partial · {fmtCurrency(row.balance_due)} due
+                                                    </p>
+                                                )}
                                             </td>
 
                                             <td className="px-4 py-3">
@@ -1687,7 +1749,7 @@ export default function AdminEnrollments() {
                                                             setSelectedId(row.id)
                                                         }
                                                         className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all"
-                                                        title="View details"
+                                                        title="View details & payment history"
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
                                                     </button>
@@ -1814,6 +1876,7 @@ export default function AdminEnrollments() {
                             setSelectedId(null);
                         }}
                         onStatusChange={handleStatusChange}
+                        onPaymentRecorded={handlePaymentRecorded}
                     />
                 )}
             </AnimatePresence>

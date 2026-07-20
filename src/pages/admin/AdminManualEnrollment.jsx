@@ -6,17 +6,24 @@
  * created enrollment in a table, with an "Add" button that opens a modal
  * form — the same modal is reused to edit any existing record.
  *
- * NEW: toast notifications on save/update + email send.
+ * NEW: a detail drawer (View button / Eye icon) that shows the client's
+ * full payment ledger via PaymentLedgerPanel — this page previously had
+ * NO way to see itemised payment history at all, only the single rolled-up
+ * amount_paid figure in the table. Now a manual entry that later gets a
+ * top-up payment (e.g. deposit via UPI, balance via bank transfer) is
+ * fully visible in one place, with "Record Payment" and "Remind" actions
+ * available without leaving the drawer.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Loader2, AlertCircle, CheckCircle2, Plus, X, Edit2,
-    Search, RefreshCw, MessageCircle, Users, IndianRupee,
+    Search, RefreshCw, MessageCircle, Users, IndianRupee, Eye,
 } from 'lucide-react';
 import { coachingTypes, durations, pricingTable } from '@/data/SiteData';
 import { createManualEnrollment, updateManualEnrollment, sendEnrollmentEmail, fetchEnrollments, searchEnrollments } from './adminApi';
 import RecordPaymentModal from './RecordPaymentModal';
+import PaymentLedgerPanel from './PaymentLedgerPanel';
 import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from './ToastProvider';
@@ -305,6 +312,12 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                             {!isEdit && (
                                 <Field label="Amount Received Now (₹)">
                                     <input type="number" className={inputCls} style={inputStyle} value={form.initialPaymentAmount} onChange={set('initialPaymentAmount')} placeholder={`Full amount (${form.totalAmount || 0}) if left blank`} />
+                                    <p className="text-[10px] text-white/25 mt-1.5">
+                                        Leave blank to mark it fully paid now. Enter a smaller amount to record a
+                                        deposit — the remaining balance will show up under Balance Due, and you'll
+                                        be able to add each further payment (UPI, bank transfer, cash…) from this
+                                        client's detail view as they come in.
+                                    </p>
                                 </Field>
                             )}
                             <div className="grid grid-cols-2 gap-3">
@@ -362,6 +375,132 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
     );
 }
 
+// ── NEW: Detail drawer — the piece that was completely missing. Shows the
+// client's info plus a full PaymentLedgerPanel (every payment recorded
+// against this enrollment, whichever method it came in through).
+function ManualEnrollmentDetailDrawer({ row, onClose, onEdit, onPaymentRecorded }) {
+    const [enrollment, setEnrollment] = useState(row);
+
+    useEffect(() => { setEnrollment(row); }, [row]);
+
+    if (!enrollment) return null;
+
+    const handleUpdated = (updated) => {
+        setEnrollment((prev) => ({ ...prev, ...updated }));
+        onPaymentRecorded?.(updated);
+    };
+
+    const dl = (label, value) => (
+        <div className="flex items-start justify-between gap-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <span className="text-xs text-white/35 flex-shrink-0 w-32">{label}</span>
+            <span className="text-xs text-white text-right font-medium flex-1">{value || '—'}</span>
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <motion.div
+                initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="relative w-full max-w-md h-full overflow-y-auto"
+                style={{ background: '#0a0a14', borderLeft: '1px solid rgba(255,255,255,0.08)' }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div
+                    className="sticky top-0 z-10 px-5 py-4"
+                    style={{ background: 'rgba(10,10,20,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="font-black text-white text-sm truncate">{enrollment.customer_name}</p>
+                            <p className="text-[10px] text-white/35 font-mono mt-0.5">{enrollment.enrollment_id}</p>
+                        </div>
+                        <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 flex-shrink-0">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa' }}
+                        >
+                            MANUAL ENTRY
+                        </span>
+                        <button
+                            onClick={() => onEdit(enrollment)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                            style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.2)', color: '#e71763' }}
+                        >
+                            <Edit2 className="w-3 h-3" /> Edit Enrollment
+                        </button>
+                        {enrollment.customer_phone && (
+                            <a
+                                href={`https://wa.me/${enrollment.customer_phone.replace(/\D/g, '')}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="flex items-center justify-center w-9 h-9 rounded-lg transition-all"
+                                style={{ background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.25)', color: '#25D366' }}
+                                title="Open WhatsApp"
+                            >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                            </a>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-5 space-y-6">
+                    <PaymentLedgerPanel enrollment={enrollment} onEnrollmentUpdated={handleUpdated} />
+
+                    <section>
+                        <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: '#e71763' }}>
+                            Client Information
+                        </p>
+                        <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div className="px-4">
+                                {dl('Email', enrollment.customer_email)}
+                                {dl('Phone', enrollment.customer_phone)}
+                                {dl('Age', enrollment.age ? `${enrollment.age} yrs` : null)}
+                                {dl('City', enrollment.city)}
+                                {dl('Weight', enrollment.weight ? `${enrollment.weight} kg` : null)}
+                                {dl('Goals', Array.isArray(enrollment.goals) ? enrollment.goals.join(', ') : enrollment.goals)}
+                                {enrollment.medical_issue === 'yes' && dl('Medical', enrollment.medical_note || 'Yes')}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: '#e71763' }}>
+                            Enrollment Details
+                        </p>
+                        <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div className="px-4">
+                                {dl('Program', enrollment.program_name)}
+                                {dl('Coaching Type', enrollment.coaching_type)}
+                                {dl('Plan Type', enrollment.plan_type)}
+                                {dl('Duration', enrollment.duration_months ? `${enrollment.duration_months} Month${Number(enrollment.duration_months) > 1 ? 's' : ''}` : null)}
+                                {dl('Payment Date', fmtDateTime(enrollment.payment_date))}
+                                {dl('Created', fmtDate(enrollment.created_at))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {enrollment.admin_note && (
+                        <section>
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: '#e71763' }}>
+                                Internal Note
+                            </p>
+                            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <p className="text-xs text-white/60 leading-relaxed">{enrollment.admin_note}</p>
+                            </div>
+                        </section>
+                    )}
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
 export default function AdminManualEnrollment() {
     const toast = useToast();
     const [rows, setRows] = useState([]);
@@ -376,6 +515,7 @@ export default function AdminManualEnrollment() {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingRow, setEditingRow] = useState(null); // null = creating new
+    const [viewTarget, setViewTarget] = useState(null); // row shown in detail drawer
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -404,9 +544,10 @@ export default function AdminManualEnrollment() {
 
     const totalRevenue = rows.reduce((s, r) => s + (Number(r.amount_paid) || 0), 0);
     const withEmailCount = rows.filter((r) => r.customer_email).length;
+    const partialCount = rows.filter((r) => r.payment_plan_status === 'partial').length;
 
     const openNew = () => { setEditingRow(null); setModalOpen(true); };
-    const openEdit = (row) => { setEditingRow(row); setModalOpen(true); };
+    const openEdit = (row) => { setViewTarget(null); setEditingRow(row); setModalOpen(true); };
 
     const handleSaved = (saved) => {
         setRows((prev) => {
@@ -439,6 +580,14 @@ export default function AdminManualEnrollment() {
         toast.success('Payment recorded');
         setSearchResults((prev) => prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : prev);
     };
+
+    // Patches this page's list whenever a payment is recorded from inside
+    // the detail drawer's ledger panel (as opposed to the standalone
+    // RecordPaymentModal flow above), so the table stays in sync.
+    const handleLedgerPaymentRecorded = useCallback((updated) => {
+        if (!updated?.id) return;
+        setRows((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
+    }, []);
 
     const handleSendEmail = async (row, template) => {
         try {
@@ -481,6 +630,8 @@ export default function AdminManualEnrollment() {
                 <p className="text-[11px] text-white/40 mb-3">
                     Search by name, email, or phone before adding a new record — if the client already started
                     checkout on the website (a pending row), record the payment against that instead of creating a duplicate.
+                    This also catches the "half-filled the form, then paid the owner directly" case — search
+                    first, then use <strong className="text-white/60">Record Payment</strong> on the existing row.
                 </p>
                 <div className="flex gap-2">
                     <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
@@ -524,10 +675,11 @@ export default function AdminManualEnrollment() {
                 )}
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                 <StatCard label="Manual Enrollments" value={rows.length} color="white" />
                 <StatCard label="Total Revenue" value={fmtCurrency(totalRevenue)} color="#e71763" />
                 <StatCard label="With Email On File" value={withEmailCount} color="#34d399" />
+                <StatCard label="Partial Payments" value={partialCount} color={partialCount ? '#fbbf24' : '#34d399'} />
             </div>
 
             <div className="relative mb-5 max-w-sm">
@@ -568,6 +720,7 @@ export default function AdminManualEnrollment() {
                             ) : (
                                 filtered.map((row) => {
                                     const badge = statusBadge(row.payment_status || 'paid');
+                                    const isPartial = row.payment_plan_status === 'partial';
                                     return (
                                         <tr key={row.id} className="transition-colors"
                                             style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
@@ -582,8 +735,10 @@ export default function AdminManualEnrollment() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <p className="text-sm font-bold text-white">{fmtCurrency(row.amount_paid)} <span className="text-white/25 font-normal">/ {fmtCurrency(row.total_amount)}</span></p>
-                                                {Number(row.balance_due) > 0 && (
-                                                    <p className="text-[10px] font-bold" style={{ color: '#fbbf24' }}>{fmtCurrency(row.balance_due)} due</p>
+                                                {isPartial && (
+                                                    <p className="text-[10px] font-bold" style={{ color: '#fbbf24' }}>
+                                                        Partial · {fmtCurrency(row.balance_due)} due
+                                                    </p>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
@@ -600,6 +755,12 @@ export default function AdminManualEnrollment() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-1.5">
+                                                    <button onClick={() => setViewTarget(row)}
+                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all"
+                                                        title="View details & payment history">
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                    </button>
+
                                                     <button onClick={() => openEdit(row)}
                                                         className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all"
                                                         title="Edit">
@@ -653,6 +814,17 @@ export default function AdminManualEnrollment() {
             <AnimatePresence>
                 {paymentTarget && (
                     <RecordPaymentModal enrollment={paymentTarget} onClose={() => setPaymentTarget(null)} onSaved={handlePaymentSaved} />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {viewTarget && (
+                    <ManualEnrollmentDetailDrawer
+                        row={viewTarget}
+                        onClose={() => setViewTarget(null)}
+                        onEdit={openEdit}
+                        onPaymentRecorded={handleLedgerPaymentRecorded}
+                    />
                 )}
             </AnimatePresence>
         </div>
