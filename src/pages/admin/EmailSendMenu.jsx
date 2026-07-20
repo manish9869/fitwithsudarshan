@@ -17,6 +17,7 @@ import { Mail, ChevronDown, Loader2, Check, Send } from 'lucide-react';
 export const ENROLLMENT_EMAIL_OPTIONS = [
     { value: 'enrollment_customer', label: 'Enrollment Confirmation', recipient: 'customer' },
     { value: 'welcome', label: 'Welcome / Onboarding', recipient: 'customer' },
+    { value: 'resource_vault', label: 'Comeback Blueprint Resources', recipient: 'customer' }, // ← new
     { value: 'payment_reminder', label: 'Payment Reminder', recipient: 'customer' },
     { value: 'balance_due_reminder', label: 'Balance Due Reminder', recipient: 'customer' },
     { value: 'payment_failed', label: 'Payment Failed Notice', recipient: 'customer' },

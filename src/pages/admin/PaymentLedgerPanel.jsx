@@ -1,28 +1,8 @@
-/**
- * src/pages/admin/PaymentLedgerPanel.jsx
- *
- * Shows the FULL payment history for a single enrollment — every payment
- * recorded against it, regardless of source (website Razorpay, Razorpay
- * link, UPI, bank transfer, cash). This is what was missing: the ledger
- * data already existed (enrollment_payments table + paymentLedgerService),
- * but nothing rendered it anywhere, so a partially-paid or multi-source
- * enrollment looked identical to a single clean payment in the UI.
- *
- * Drop this into any detail drawer that has an `enrollment` row (must
- * include at least: id, amount_paid, total_amount, balance_due,
- * payment_plan_status, customer_email, next_payment_reminder_at).
- *
- * Usage:
- *   <PaymentLedgerPanel
- *     enrollment={enrollment}
- *     onEnrollmentUpdated={(updated) => { ...patch local state... }}
- *   />
- */
 import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
     IndianRupee, Loader2, Plus, Send, CreditCard, Smartphone, Landmark,
-    Wallet, HelpCircle, Clock, AlertCircle, Copy, Check, Layers,
+    Wallet, HelpCircle, Clock, AlertCircle, Copy, Check, Layers, CheckCircle2,
 } from 'lucide-react';
 import { fetchEnrollmentPayments, sendBalanceReminder } from './adminApi';
 import { fmtCurrency, fmtDateTime } from './adminUtils';
@@ -74,6 +54,7 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
     const balanceDue = Number(
         enrollment.balance_due ?? Math.max(0, totalAmount - amountPaid)
     );
+    const isFullyPaid = balanceDue <= 0;
     const isSplit = payments.length > 1;
 
     const copy = (val, key) => {
@@ -122,13 +103,20 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
                         </span>
                     )}
                 </p>
-                <button
-                    onClick={() => setShowRecordModal(true)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white"
-                    style={{ background: '#e71763' }}
-                >
-                    <Plus className="w-3 h-3" /> Record Payment
-                </button>
+
+                {/* Record Payment — hidden entirely once fully paid. There's
+                    nothing to record against a 0 balance; if a genuinely new
+                    charge comes up later (add-on, correction) the total/plan
+                    should be edited first so a balance exists again. */}
+                {!isFullyPaid && (
+                    <button
+                        onClick={() => setShowRecordModal(true)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white"
+                        style={{ background: '#e71763' }}
+                    >
+                        <Plus className="w-3 h-3" /> Record Payment
+                    </button>
+                )}
             </div>
 
             {/* Summary strip */}
@@ -160,6 +148,18 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
                     </p>
                 </div>
             </div>
+
+            {/* Fully-paid confirmation strip — replaces the record-payment
+                action once there's nothing left to collect. */}
+            {isFullyPaid && (
+                <div
+                    className="flex items-center gap-2 mb-3 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}
+                >
+                    <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#34d399' }} />
+                    <p className="text-[11px] text-white/50">Fully paid — no balance due.</p>
+                </div>
+            )}
 
             {/* Reminder strip — only when money is still owed */}
             {balanceDue > 0 && (
