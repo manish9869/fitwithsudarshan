@@ -779,6 +779,16 @@ export default function AdminDashboard() {
                                 delay={0.35}
                             />
                         </Link>
+                        <Link to="/admin/balance-due" className="block">
+                            <KpiCard
+                                icon={IndianRupee}
+                                label="Outstanding Balance"
+                                accent={k.totalOutstandingBalance > 0 ? '#fbbf24' : '#34d399'}
+                                value={fmtCompactCurrency(k.totalOutstandingBalance)}
+                                sub={`${k.clientsWithBalance ?? 0} clients — tap to collect`}
+                                delay={0.4}
+                            />
+                        </Link>
                     </div>
 
                     {/* ── Lifetime Strip ── */}
