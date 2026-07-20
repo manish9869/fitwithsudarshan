@@ -669,10 +669,18 @@ export default function AdminManualEnrollment() {
                                             style={{ background: '#e71763' }}>
                                             Record Payment
                                         </button>
-                                    ) : (
+                                    ) : r.payment_status === 'paid' ? (
                                         <span className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-full"
                                             style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399' }}>
                                             Fully Paid
+                                        </span>
+                                    ) : (
+                                        // Website checkout started but never completed — balance_due is 0/null
+                                        // by default on a pending row, which used to render as "Fully Paid"
+                                        // and could get a genuinely unpaid customer skipped for follow-up.
+                                        <span className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-full"
+                                            style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa' }}>
+                                            Awaiting Payment
                                         </span>
                                     )}
                                 </div>
