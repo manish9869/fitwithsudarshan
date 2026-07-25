@@ -11,6 +11,12 @@
  * - Hover elevates cards/rows using transform + shadow instead of flat
  *   backgrounds.
  * - Donut/ring/gauge tooltips show label + value + percentage.
+ * - FIX: "Recent Activity" used a fixed h-[380px] scroll area while its
+ *   sibling "Today's To-Do" (via ChartCard) uses flex-1 min-h-0, so the
+ *   two panels didn't match heights and Recent Activity could get
+ *   visually cropped/mismatched depending on To-Do's content height.
+ *   Recent Activity now uses the same flex-1 min-h-0 pattern so it always
+ *   fills — and scrolls within — whatever height the grid row settles on.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -375,10 +381,6 @@ function TodoItem({ icon: Icon, color, title, subtitle, to }) {
 }
 
 // ── Today's To-Do List ─────────────────────────────────────────────────────────
-// Surfaces the two most actionable admin tasks: assessments NOT YET
-// REVIEWED (using the standalone `reviewed` flag, independent of the
-// status pipeline) and enrollments whose 7-day follow-up is due.
-// ── Today's To-Do List ─────────────────────────────────────────────────────
 // Surfaces the two most actionable admin tasks: assessments NOT YET
 // REVIEWED (using the standalone `reviewed` flag, independent of the
 // status pipeline) and enrollments whose 7-day follow-up is due.
@@ -1189,7 +1191,6 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* ── Today's To-Do + Recent Activity ── */}
-                    {/* ── Today's To-Do + Recent Activity ── */}
                     <div className="grid lg:grid-cols-3 gap-5">
                         <TodoList refreshKey={refreshTick} />
 
@@ -1219,7 +1220,15 @@ export default function AdminDashboard() {
                                 </span>
                             </div>
 
-                            <div className="h-[380px] overflow-y-auto dashboard-thin-scroll py-1 pr-1">
+                            {/*
+                                FIX: was `h-[380px]` (fixed) — didn't match the
+                                sibling ChartCard's `flex-1 min-h-0` behavior, so
+                                the two panels in this grid row could mismatch in
+                                height and this one would get visually cropped.
+                                Now it fills whatever height the row settles on
+                                and scrolls internally, exactly like ChartCard.
+                            */}
+                            <div className="flex-1 min-h-0 overflow-y-auto dashboard-thin-scroll py-1 pr-1">
                                 {!data?.recentActivity?.length ? (
                                     <EmptyState label="Nothing yet in this range" />
                                 ) : (

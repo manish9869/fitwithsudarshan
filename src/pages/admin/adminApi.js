@@ -218,7 +218,12 @@ export async function deleteManualEnrollment(id) {
 export async function fetchFunnelAudit(days = 30) {
     return request('/funnel-audit', { params: { days } });
 }
-
+export async function deleteEnrollmentAdmin(id) {
+    return request(`/enrollments/${id}`, { method: 'DELETE' });
+}
+export async function deleteAssessmentAdmin(id) {
+    return request(`/assessments/${id}`, { method: 'DELETE' });
+}
 
 export async function searchEnrollments(query) {
     const data = await request('/enrollments/search', { params: { query } });

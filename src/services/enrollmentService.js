@@ -153,7 +153,7 @@ export async function saveEnrollmentToSupabase(enrollment) {
     try {
         const row = {
             enrollment_id: enrollment.enrollmentId,
-            customer_name: enrollment.customerName,
+            customer_name: toTitleCase(enrollment.customerName),
             customer_email: enrollment.customerEmail,
             customer_phone: enrollment.customerPhone,
             program_name: enrollment.programName,
@@ -174,7 +174,7 @@ export async function saveEnrollmentToSupabase(enrollment) {
             goals: enrollment.goals,
             medical_issue: enrollment.medicalIssue,
             medical_note: enrollment.medicalNote,
-            partner_name: enrollment.partnerName || null,
+            partner_name: toTitleCase(enrollment.partnerName) || null,
             partner_age: enrollment.partnerAge || null,
             partner_weight: enrollment.partnerWeight || null,
             partner_goals: enrollment.partnerGoals?.length ? enrollment.partnerGoals : null,
