@@ -1,35 +1,25 @@
-/**
- * src/pages/admin/AdminManualEnrollment.jsx
- *
- * For clients who paid Sudarshan directly (Razorpay link, UPI, bank transfer,
- * cash) without going through the website checkout. Lists every manually
- * created enrollment in a table, with an "Add" button that opens a modal
- * form — the same modal is reused to edit any existing record.
- *
- * NEW: a detail drawer (View button / Eye icon) that shows the client's
- * full payment ledger via PaymentLedgerPanel — this page previously had
- * NO way to see itemised payment history at all, only the single rolled-up
- * amount_paid figure in the table. Now a manual entry that later gets a
- * top-up payment (e.g. deposit via UPI, balance via bank transfer) is
- * fully visible in one place, with "Record Payment" and "Remind" actions
- * available without leaving the drawer.
- */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Loader2, AlertCircle, CheckCircle2, Plus, X, Edit2,
+    Loader2, AlertCircle, AlertTriangle, CheckCircle2, Plus, X, Edit2, Trash2,
     Search, RefreshCw, MessageCircle, Users, IndianRupee, Eye,
 } from 'lucide-react';
 import { coachingTypes, durations, pricingTable } from '@/data/SiteData';
-import { createManualEnrollment, updateManualEnrollment, sendEnrollmentEmail, fetchEnrollments, searchEnrollments } from './adminApi';
+import {
+    createManualEnrollment, updateManualEnrollment, deleteManualEnrollment,
+    sendEnrollmentEmail, fetchEnrollments, searchEnrollments, fetchEnrollmentPayments,
+} from './adminApi';
 import RecordPaymentModal from './RecordPaymentModal';
 import PaymentLedgerPanel from './PaymentLedgerPanel';
+import PaginationBar from './PaginationBar';
 import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from './ToastProvider';
 
+// ── All 4 real-world payment modes, plus cash/other for edge cases ──────────
 const PAYMENT_METHODS = [
-    { value: 'razorpay', label: 'Razorpay Link' },
+    { value: 'razorpay_link', label: 'Razorpay Link' },
+    { value: 'razorpay', label: 'Website (Razorpay)' },
     { value: 'upi', label: 'UPI' },
     { value: 'bank_transfer', label: 'Bank Transfer' },
     { value: 'cash', label: 'Cash' },
@@ -63,7 +53,8 @@ const EMPTY_FORM = {
     coachingType: 'online', planType: 'individual', durationMonths: '3',
     programName: '', totalAmount: '', originalAmount: '',
     initialPaymentAmount: '',
-    paymentMethod: 'razorpay', paymentReference: '', paymentDate: toISTDatetimeLocal(new Date().toISOString()),
+    latestPaymentAmount: '', // ← edit-mode only: amount of the latest ledger payment
+    paymentMethod: 'razorpay_link', paymentReference: '', paymentDate: toISTDatetimeLocal(new Date().toISOString()),
     paymentStatus: 'paid',
     age: '', city: '', weight: '', goals: '',
     medicalIssue: 'no', medicalNote: '',
@@ -71,7 +62,6 @@ const EMPTY_FORM = {
     adminNote: '',
 };
 
-// Map a DB row (snake_case) → form state (camelCase) for editing
 function rowToForm(row) {
     if (!row) return EMPTY_FORM;
     return {
@@ -85,7 +75,8 @@ function rowToForm(row) {
         totalAmount: row.total_amount != null ? String(row.total_amount) : (row.amount_paid != null ? String(row.amount_paid) : ''),
         originalAmount: row.original_amount != null ? String(row.original_amount) : '',
         initialPaymentAmount: '',
-        paymentMethod: row.payment_method || 'razorpay',
+        latestPaymentAmount: '',
+        paymentMethod: row.payment_method || 'razorpay_link',
         paymentReference: row.razorpay_payment_id || '',
         paymentDate: toISTDatetimeLocal(row.payment_date),
         paymentStatus: row.payment_status || 'paid',
@@ -108,11 +99,38 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
     const [form, setForm] = useState(() => rowToForm(editingRow));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [loadingLedger, setLoadingLedger] = useState(false);
+    const [hasExistingPayment, setHasExistingPayment] = useState(false);
     const toast = useToast();
 
+    // Pull the latest real payment off the ledger so the edit form actually
+    // reflects what was paid — this is what fixes "payment id not
+    // auto-filling" and "payment date not visible on edit".
     useEffect(() => {
         setForm(rowToForm(editingRow));
         setError('');
+        setHasExistingPayment(false);
+
+        if (isEdit && editingRow?.id) {
+            setLoadingLedger(true);
+            fetchEnrollmentPayments(editingRow.id)
+                .then((payments) => {
+                    const latest = payments && payments.length ? payments[payments.length - 1] : null;
+                    setHasExistingPayment(!!latest);
+                    if (latest) {
+                        setForm((f) => ({
+                            ...f,
+                            latestPaymentAmount: latest.amount != null ? String(latest.amount) : '',
+                            paymentMethod: latest.method || f.paymentMethod,
+                            paymentReference: latest.reference || '',
+                            paymentDate: toISTDatetimeLocal(latest.paid_at),
+                        }));
+                    }
+                })
+                .catch(() => { /* non-fatal — form just won't prefill */ })
+                .finally(() => setLoadingLedger(false));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingRow]);
 
     const isCouple = form.planType === 'couple';
@@ -135,7 +153,6 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
         e.preventDefault();
         setError('');
 
-
         if (!form.customerName.trim() || !form.totalAmount) {
             setError('Client name and total program price are required.');
             return;
@@ -154,6 +171,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                 totalAmount: Number(form.totalAmount),
                 originalAmount: form.originalAmount ? Number(form.originalAmount) : Number(form.totalAmount),
                 initialPaymentAmount: isEdit ? undefined : (form.initialPaymentAmount === '' ? undefined : Number(form.initialPaymentAmount)),
+                paymentAmount: isEdit && form.latestPaymentAmount !== '' ? Number(form.latestPaymentAmount) : undefined,
                 paymentMethod: form.paymentMethod,
                 paymentReference: form.paymentReference.trim() || null,
                 paymentDate: istDatetimeLocalToISO(form.paymentDate),
@@ -309,6 +327,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                                     <input type="number" className={inputCls} style={inputStyle} value={form.originalAmount} onChange={set('originalAmount')} placeholder="Same as total price" />
                                 </Field>
                             </div>
+
                             {!isEdit && (
                                 <Field label="Amount Received Now (₹)">
                                     <input type="number" className={inputCls} style={inputStyle} value={form.initialPaymentAmount} onChange={set('initialPaymentAmount')} placeholder={`Full amount (${form.totalAmount || 0}) if left blank`} />
@@ -320,6 +339,28 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
                                     </p>
                                 </Field>
                             )}
+
+                            {isEdit && (
+                                <Field label={hasExistingPayment ? 'Latest Payment Amount (₹)' : 'Record First Payment (₹)'}>
+                                    <input
+                                        type="number"
+                                        className={inputCls}
+                                        style={inputStyle}
+                                        value={form.latestPaymentAmount}
+                                        onChange={set('latestPaymentAmount')}
+                                        placeholder={loadingLedger ? 'Loading…' : '0'}
+                                        disabled={loadingLedger}
+                                    />
+                                    <p className="text-[10px] text-white/25 mt-1.5">
+                                        {loadingLedger
+                                            ? 'Loading this client\'s payment history…'
+                                            : hasExistingPayment
+                                                ? 'This corrects the amount of the most recent payment on this client\'s ledger — the balance due recalculates automatically.'
+                                                : 'No payment has been recorded on this enrollment yet — enter an amount to record the first one.'}
+                                    </p>
+                                </Field>
+                            )}
+
                             <div className="grid grid-cols-2 gap-3">
                                 <Field label="Payment Method">
                                     <select className={inputCls} style={inputStyle} value={form.paymentMethod} onChange={set('paymentMethod')}>
@@ -375,9 +416,54 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
     );
 }
 
-// ── NEW: Detail drawer — the piece that was completely missing. Shows the
-// client's info plus a full PaymentLedgerPanel (every payment recorded
-// against this enrollment, whichever method it came in through).
+// ── Delete confirmation modal ─────────────────────────────────────────────
+function ConfirmDeleteModal({ row, deleting, onCancel, onConfirm }) {
+    return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={!deleting ? onCancel : undefined}>
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 4 }}
+                transition={{ duration: 0.16 }}
+                className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+                style={{ background: '#0e0e16', border: '1px solid rgba(239,68,68,0.25)', boxShadow: '0 30px 70px rgba(0,0,0,0.55)' }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-6 text-center">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                        style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                        <AlertTriangle className="w-5 h-5" style={{ color: '#f87171' }} />
+                    </div>
+
+                    <p className="font-bold text-white text-sm mb-1.5">Delete this enrollment?</p>
+                    <p className="text-xs text-white/40 leading-relaxed">
+                        <span className="font-mono font-bold text-white/70">{row?.enrollment_id}</span> —{' '}
+                        <span className="text-white/60">{row?.customer_name}</span> — will be permanently removed
+                        along with its full payment history. This can't be undone.
+                    </p>
+
+                    <div className="flex gap-3 mt-5">
+                        <button onClick={onCancel} disabled={deleting}
+                            className="flex-1 py-2.5 rounded-xl text-sm text-white/50 hover:text-white transition-all disabled:opacity-50"
+                            style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                            Cancel
+                        </button>
+                        <button onClick={onConfirm} disabled={deleting}
+                            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
+                            style={{ background: '#ef4444' }}>
+                            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            {deleting ? 'Deleting…' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+// ── Detail drawer (unchanged from original except for import path) ───────
+
 function ManualEnrollmentDetailDrawer({ row, onClose, onEdit, onPaymentRecorded }) {
     const [enrollment, setEnrollment] = useState(row);
 
@@ -500,7 +586,6 @@ function ManualEnrollmentDetailDrawer({ row, onClose, onEdit, onPaymentRecorded 
         </div>
     );
 }
-
 export default function AdminManualEnrollment() {
     const toast = useToast();
     const [rows, setRows] = useState([]);
@@ -514,8 +599,16 @@ export default function AdminManualEnrollment() {
     const [paymentTarget, setPaymentTarget] = useState(null);
 
     const [modalOpen, setModalOpen] = useState(false);
-    const [editingRow, setEditingRow] = useState(null); // null = creating new
-    const [viewTarget, setViewTarget] = useState(null); // row shown in detail drawer
+    const [editingRow, setEditingRow] = useState(null);
+    const [viewTarget, setViewTarget] = useState(null);
+
+    // ── Delete state ──
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
+    // ── Pagination state ──
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -541,6 +634,14 @@ export default function AdminManualEnrollment() {
             (r.customer_email || '').toLowerCase().includes(q) ||
             (r.enrollment_id || '').toLowerCase().includes(q));
     }, [rows, search]);
+
+    useEffect(() => { setPage(1); }, [search, pageSize]);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const pageData = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return filtered.slice(start, start + pageSize);
+    }, [filtered, page, pageSize]);
 
     const totalRevenue = rows.reduce((s, r) => s + (Number(r.amount_paid) || 0), 0);
     const withEmailCount = rows.filter((r) => r.customer_email).length;
@@ -581,9 +682,6 @@ export default function AdminManualEnrollment() {
         setSearchResults((prev) => prev ? prev.map((r) => (r.id === updated.id ? updated : r)) : prev);
     };
 
-    // Patches this page's list whenever a payment is recorded from inside
-    // the detail drawer's ledger panel (as opposed to the standalone
-    // RecordPaymentModal flow above), so the table stays in sync.
     const handleLedgerPaymentRecorded = useCallback((updated) => {
         if (!updated?.id) return;
         setRows((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
@@ -596,6 +694,23 @@ export default function AdminManualEnrollment() {
         } catch (e) {
             setError('Failed to send email.');
             toast.error(e.message || 'Failed to send email.');
+        }
+    };
+
+    const requestDelete = (row) => setDeleteTarget(row);
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            await deleteManualEnrollment(deleteTarget.id);
+            setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+            toast.success('Enrollment deleted');
+            setDeleteTarget(null);
+        } catch (e) {
+            toast.error(e.message || 'Failed to delete enrollment.');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -675,9 +790,6 @@ export default function AdminManualEnrollment() {
                                             Fully Paid
                                         </span>
                                     ) : (
-                                        // Website checkout started but never completed — balance_due is 0/null
-                                        // by default on a pending row, which used to render as "Fully Paid"
-                                        // and could get a genuinely unpaid customer skipped for follow-up.
                                         <span className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-full"
                                             style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa' }}>
                                             Awaiting Payment
@@ -730,12 +842,14 @@ export default function AdminManualEnrollment() {
                         <tbody>
                             {loading ? (
                                 <tr><td colSpan={7} className="px-4 py-16 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-white/25" /></td></tr>
-                            ) : filtered.length === 0 ? (
+                            ) : pageData.length === 0 ? (
                                 <tr><td colSpan={7} className="px-4 py-16 text-center"><p className="text-sm text-white/25">No manual enrollments yet</p></td></tr>
                             ) : (
-                                filtered.map((row) => {
+                                pageData.map((row) => {
                                     const badge = statusBadge(row.payment_status || 'paid');
                                     const isPartial = row.payment_plan_status === 'partial';
+                                    const methodLabel = PAYMENT_METHODS.find((m) => m.value === row.payment_method)?.label
+                                        || (row.payment_method || '—').replace('_', ' ');
                                     return (
                                         <tr key={row.id} className="transition-colors"
                                             style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
@@ -757,7 +871,7 @@ export default function AdminManualEnrollment() {
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className="text-xs text-white/50 capitalize">{(row.payment_method || '—').replace('_', ' ')}</span>
+                                                <span className="text-xs text-white/50 capitalize">{methodLabel}</span>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className="text-xs text-white/50">{fmtDateTime(row.payment_date)}</span>
@@ -805,6 +919,12 @@ export default function AdminManualEnrollment() {
                                                             <MessageCircle className="w-3.5 h-3.5" />
                                                         </a>
                                                     )}
+
+                                                    <button onClick={() => requestDelete(row)}
+                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-red-400 hover:bg-red-500/8 transition-all"
+                                                        title="Delete">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -814,6 +934,17 @@ export default function AdminManualEnrollment() {
                         </tbody>
                     </table>
                 </div>
+
+                {!loading && (
+                    <PaginationBar
+                        page={page}
+                        totalPages={totalPages}
+                        totalItems={filtered.length}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+                    />
+                )}
             </div>
 
             <AnimatePresence>
@@ -839,6 +970,17 @@ export default function AdminManualEnrollment() {
                         onClose={() => setViewTarget(null)}
                         onEdit={openEdit}
                         onPaymentRecorded={handleLedgerPaymentRecorded}
+                    />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {deleteTarget && (
+                    <ConfirmDeleteModal
+                        row={deleteTarget}
+                        deleting={deleting}
+                        onCancel={() => !deleting && setDeleteTarget(null)}
+                        onConfirm={confirmDelete}
                     />
                 )}
             </AnimatePresence>

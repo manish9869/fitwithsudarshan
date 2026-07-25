@@ -46,7 +46,7 @@ import {
     exportEnrollmentsAll,
     saveNote, sendEnrollmentEmail,
 } from './adminApi';
-
+import PaginationBar from './PaginationBar';
 import {
     fmtCurrency,
     fmtDate,
@@ -67,7 +67,7 @@ import EmailSendMenu from './EmailSendMenu';
 import { useToast } from './ToastProvider';
 import PaymentLedgerPanel from './PaymentLedgerPanel';
 
-const PAGE_SIZE = 20;
+
 const CACHE_TTL = 60_000;
 
 const COACHING_TYPES = ['all', 'online', 'video', 'personal'];
@@ -1102,8 +1102,8 @@ export default function AdminEnrollments() {
     const [statusFilter, setStatusFilter] = useState('all');
 
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
     const [sort, setSort] = useState({ field: 'created_at', dir: 'desc' });
-
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [noteTarget, setNoteTarget] = useState(null);
 
@@ -1261,14 +1261,20 @@ export default function AdminEnrollments() {
 
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch, coachingFilter, planFilter, statusFilter, sort]);
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    }, [
+        debouncedSearch,
+        coachingFilter,
+        planFilter,
+        statusFilter,
+        sort,
+        pageSize,
+    ]);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
     const pageData = useMemo(() => {
-        const start = (page - 1) * PAGE_SIZE;
-        return filtered.slice(start, start + PAGE_SIZE);
-    }, [filtered, page]);
+        const start = (page - 1) * pageSize;
+        return filtered.slice(start, start + pageSize);
+    }, [filtered, page, pageSize]);
 
     const toggleSort = (field) => {
         setSort((s) =>
@@ -1811,65 +1817,15 @@ export default function AdminEnrollments() {
                     </table>
                 </div>
 
-                {totalPages > 1 && (
-                    <div
-                        className="flex items-center justify-between px-4 py-3"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-                    >
-                        <p className="text-xs text-white/30">
-                            Page {page} of {totalPages} · {filtered.length} records
-                        </p>
-
-                        <div className="flex items-center gap-2">
-                            <button
-                                disabled={page <= 1}
-                                onClick={() => setPage((p) => p - 1)}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 disabled:opacity-25 transition-all"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </button>
-
-                            {Array.from(
-                                { length: Math.min(5, totalPages) },
-                                (_, i) => {
-                                    const p =
-                                        Math.max(
-                                            1,
-                                            Math.min(totalPages - 4, page - 2)
-                                        ) + i;
-
-                                    return (
-                                        <button
-                                            key={p}
-                                            onClick={() => setPage(p)}
-                                            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all"
-                                            style={
-                                                page === p
-                                                    ? {
-                                                        background: '#e71763',
-                                                        color: 'white',
-                                                    }
-                                                    : {
-                                                        color:
-                                                            'rgba(255,255,255,0.35)',
-                                                    }
-                                            }
-                                        >
-                                            {p}
-                                        </button>
-                                    );
-                                }
-                            )}
-
-                            <button
-                                disabled={page >= totalPages}
-                                onClick={() => setPage((p) => p + 1)}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 disabled:opacity-25 transition-all"
-                            >
-                                <ChevronRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
+                {!loading && (
+                    <PaginationBar
+                        page={page}
+                        totalPages={totalPages}
+                        totalItems={filtered.length}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+                    />
                 )}
             </div>
 

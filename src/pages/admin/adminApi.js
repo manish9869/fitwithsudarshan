@@ -212,7 +212,9 @@ export async function updateManualEnrollment(id, payload) {
     const data = await request(`/enrollments/manual/${id}`, { method: 'PATCH', body: payload });
     return data.enrollment;
 }
-
+export async function deleteManualEnrollment(id) {
+    return request(`/enrollments/manual/${id}`, { method: 'DELETE' });
+}
 export async function fetchFunnelAudit(days = 30) {
     return request('/funnel-audit', { params: { days } });
 }
