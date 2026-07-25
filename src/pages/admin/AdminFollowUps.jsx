@@ -6,17 +6,22 @@
  * due, lets the admin log a follow-up (resets the 7-day clock), snooze
  * with a custom gap, or stop reminders for a client entirely.
  *
- * NEW: toast notifications on log/snooze/stop.
+ * Now uses real server-side pagination (page/pageSize/search all sent to
+ * the API) instead of pulling up to 200 rows and relying on the browser
+ * to scroll through them.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     RefreshCw, Search, MessageCircle, CheckCircle2, Clock, X,
     AlertCircle, Loader2, StickyNote, PauseCircle, Calendar,
 } from 'lucide-react';
 import { fetchFollowUps, markFollowUp } from './adminApi';
-import { fmtCurrency, fmtDate, fmtDateTime } from './adminUtils';
+import { fmtCurrency, fmtDateTime } from './adminUtils';
 import { useToast } from './ToastProvider';
+import { useDebounce } from './useDebounce';
+import PaginationBar from './PaginationBar';
+
 function daysAgo(iso) {
     if (!iso) return null;
     return Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
@@ -63,9 +68,9 @@ function ActionModal({ row, action, onClose, onDone }) {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const updated = await markFollowUp(row.id, { action, note: note || undefined, days: action === 'snoozed' ? days : undefined });
-            onDone(updated);
+            await markFollowUp(row.id, { action, note: note || undefined, days: action === 'snoozed' ? days : undefined });
             toast.success(successMessages[action] || 'Updated');
+            onDone();
         } catch (e) {
             setSaving(false);
             toast.error(e.message || 'Failed to update follow-up.');
@@ -115,41 +120,48 @@ function ActionModal({ row, action, onClose, onDone }) {
 
 export default function AdminFollowUps() {
     const [rows, setRows] = useState([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
     const [showAll, setShowAll] = useState(false); // false = due only, true = all active
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 300);
+
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
+
     const [modal, setModal] = useState(null); // { row, action }
 
     const load = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
-            const res = await fetchFollowUps({ due: showAll ? undefined : 'true', pageSize: 200 });
+            const res = await fetchFollowUps({
+                due: showAll ? undefined : 'true',
+                search: debouncedSearch.trim() || undefined,
+                page,
+                pageSize,
+            });
             setRows(res.rows || []);
+            setTotal(res.total ?? (res.rows || []).length);
         } catch (e) {
             setError(e.message || 'Failed to load follow-ups.');
         } finally {
             setLoading(false);
         }
-    }, [showAll]);
+    }, [showAll, debouncedSearch, page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
 
-    const filtered = useMemo(() => {
-        if (!search.trim()) return rows;
-        const q = search.trim().toLowerCase();
-        return rows.filter((r) =>
-            (r.customer_name || '').toLowerCase().includes(q) ||
-            (r.customer_email || '').toLowerCase().includes(q) ||
-            (r.enrollment_id || '').toLowerCase().includes(q));
-    }, [rows, search]);
+    // Reset to page 1 whenever a filter changes (not when just paging).
+    useEffect(() => { setPage(1); }, [showAll, debouncedSearch, pageSize]);
 
-    const handleDone = (updated) => {
-        setRows((prev) => prev.filter((r) => r.id !== updated.id).concat(
-            updated.followup_status === 'active' && !showAll && new Date(updated.next_followup_at) > new Date() ? [] : [updated]
-        ).filter((r) => showAll || (r.followup_status === 'active' && new Date(r.next_followup_at) <= new Date())));
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    const handleDone = () => {
         setModal(null);
+        load();
     };
 
     return (
@@ -179,6 +191,11 @@ export default function AdminFollowUps() {
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search client…"
                     className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white">
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                )}
             </div>
 
             {error && (
@@ -188,69 +205,82 @@ export default function AdminFollowUps() {
                 </div>
             )}
 
-            {loading ? (
-                <div className="py-24 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/25" /></div>
-            ) : filtered.length === 0 ? (
-                <div className="py-20 text-center rounded-2xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <CheckCircle2 className="w-8 h-8 mx-auto mb-3" style={{ color: '#34d399' }} />
-                    <p className="text-sm text-white/40">{showAll ? 'No active follow-ups yet.' : "You're all caught up — nothing due right now."}</p>
-                </div>
-            ) : (
-                <div className="space-y-2.5">
-                    {filtered.map((row) => (
-                        <motion.div key={row.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                            className="rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap"
-                            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                    <p className="font-bold text-white text-sm">{row.customer_name}</p>
-                                    {row.source === 'manual' && (
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa' }}>MANUAL</span>
-                                    )}
-                                    <DueBadge nextFollowupAt={row.next_followup_at} />
+            <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                {loading ? (
+                    <div className="py-24 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/25" /></div>
+                ) : rows.length === 0 ? (
+                    <div className="py-20 text-center">
+                        <CheckCircle2 className="w-8 h-8 mx-auto mb-3" style={{ color: '#34d399' }} />
+                        <p className="text-sm text-white/40">{showAll ? 'No active follow-ups yet.' : "You're all caught up — nothing due right now."}</p>
+                    </div>
+                ) : (
+                    <div className="p-3 sm:p-4 space-y-2.5">
+                        {rows.map((row) => (
+                            <motion.div key={row.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                                className="rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap"
+                                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                        <p className="font-bold text-white text-sm">{row.customer_name}</p>
+                                        {row.source === 'manual' && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa' }}>MANUAL</span>
+                                        )}
+                                        <DueBadge nextFollowupAt={row.next_followup_at} />
+                                    </div>
+                                    <p className="text-xs text-white/40 truncate">{row.program_name}</p>
+                                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-white/30 flex-wrap">
+                                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Paid {fmtDateTime(row.payment_date)}</span>
+                                        <span>·</span>
+                                        <span>{fmtCurrency(row.amount_paid)}</span>
+                                        {row.last_followup_at && (
+                                            <>
+                                                <span>·</span>
+                                                <span>Last followed up {fmtDateTime(row.last_followup_at)}</span>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
-                                <p className="text-xs text-white/40 truncate">{row.program_name}</p>
-                                <div className="flex items-center gap-3 mt-1.5 text-[11px] text-white/30">
-                                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Paid {fmtDateTime(row.payment_date)}</span>
-                                    <span>·</span>
-                                    <span>{fmtCurrency(row.amount_paid)}</span>
-                                    {row.last_followup_at && (
-                                        <>
-                                            <span>·</span>
-                                            <span>Last followed up {fmtDate(row.last_followup_at, true)}</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
 
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                                {row.customer_phone && (
-                                    <a href={`https://wa.me/${row.customer_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                                        className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,211,102,0.12)', color: '#25D366' }}
-                                        title="WhatsApp client">
-                                        <MessageCircle className="w-3.5 h-3.5" />
-                                    </a>
-                                )}
-                                <button onClick={() => setModal({ row, action: 'completed' })}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white"
-                                    style={{ background: '#e71763' }}>
-                                    <CheckCircle2 className="w-3.5 h-3.5" /> Followed Up
-                                </button>
-                                <button onClick={() => setModal({ row, action: 'snoozed' })}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8"
-                                    title="Snooze">
-                                    <Clock className="w-3.5 h-3.5" />
-                                </button>
-                                <button onClick={() => setModal({ row, action: 'stopped' })}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/8"
-                                    title="Stop reminders">
-                                    <PauseCircle className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            )}
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    {row.customer_phone && (
+                                        <a href={`https://wa.me/${row.customer_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,211,102,0.12)', color: '#25D366' }}
+                                            title="WhatsApp client">
+                                            <MessageCircle className="w-3.5 h-3.5" />
+                                        </a>
+                                    )}
+                                    <button onClick={() => setModal({ row, action: 'completed' })}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white"
+                                        style={{ background: '#e71763' }}>
+                                        <CheckCircle2 className="w-3.5 h-3.5" /> Followed Up
+                                    </button>
+                                    <button onClick={() => setModal({ row, action: 'snoozed' })}
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8"
+                                        title="Snooze">
+                                        <Clock className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button onClick={() => setModal({ row, action: 'stopped' })}
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/8"
+                                        title="Stop reminders">
+                                        <PauseCircle className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+
+                {!loading && total > 0 && (
+                    <PaginationBar
+                        page={page}
+                        totalPages={totalPages}
+                        totalItems={total}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+                    />
+                )}
+            </div>
 
             <AnimatePresence>
                 {modal && (

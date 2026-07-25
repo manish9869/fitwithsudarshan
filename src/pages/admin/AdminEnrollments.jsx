@@ -31,12 +31,11 @@ import {
     Save,
     Loader2,
     AlertCircle,
-    ChevronLeft,
-    ChevronRight,
     Check,
     Download,
     UserPlus,
     MessageCircle,
+    Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -45,6 +44,7 @@ import {
     setEnrollmentStatus,
     exportEnrollmentsAll,
     saveNote, sendEnrollmentEmail,
+    deleteEnrollmentAdmin,
 } from './adminApi';
 import PaginationBar from './PaginationBar';
 import {
@@ -1073,6 +1073,89 @@ function DownloadInvoiceButton({ enrollment }) {
     );
 }
 
+
+function ConfirmDeleteEnrollmentModal({ row, deleting, onCancel, onConfirm }) {
+    return (
+        <div
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+            onClick={!deleting ? onCancel : undefined}
+        >
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+
+            <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+                style={{
+                    background: '#0e0e16',
+                    border: '1px solid rgba(239,68,68,0.25)',
+                    boxShadow: '0 30px 70px rgba(0,0,0,0.55)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-6 text-center">
+                    <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                        style={{
+                            background: 'rgba(239,68,68,0.1)',
+                            border: '1px solid rgba(239,68,68,0.25)',
+                        }}
+                    >
+                        <AlertCircle
+                            className="w-5 h-5"
+                            style={{ color: '#f87171' }}
+                        />
+                    </div>
+
+                    <p className="font-bold text-white text-sm mb-1.5">
+                        Delete this enrollment?
+                    </p>
+
+                    <p className="text-xs text-white/40 leading-relaxed">
+                        <span className="font-mono font-bold text-white/70">
+                            {row?.enrollment_id}
+                        </span>{' '}
+                        —{' '}
+                        <span className="text-white/60">
+                            {row?.customer_name}
+                        </span>{' '}
+                        will be hidden from this list. This is a soft delete —
+                        the record stays safely in the database and can be
+                        restored if needed.
+                    </p>
+
+                    <div className="flex gap-3 mt-5">
+                        <button
+                            onClick={onCancel}
+                            disabled={deleting}
+                            className="flex-1 py-2.5 rounded-xl text-sm text-white/50 hover:text-white transition-all disabled:opacity-50"
+                            style={{
+                                border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            onClick={onConfirm}
+                            disabled={deleting}
+                            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
+                            style={{ background: '#ef4444' }}
+                        >
+                            {deleting ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            {deleting ? 'Deleting…' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
 function SortIcon({ field, sort }) {
     if (sort.field !== field) {
         return <ChevronDown className="w-3 h-3 opacity-20" />;
@@ -1106,6 +1189,8 @@ export default function AdminEnrollments() {
     const [sort, setSort] = useState({ field: 'created_at', dir: 'desc' });
     const [selectedId, setSelectedId] = useState(focusId || null);
     const [noteTarget, setNoteTarget] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const coachingOptions = useMemo(
         () =>
@@ -1197,6 +1282,37 @@ export default function AdminEnrollments() {
         _cache.allRows = null;
         _cache.ts = 0;
         fetchData();
+    };
+
+
+    const requestDelete = (row) => setDeleteTarget(row);
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+
+        const deleteId = deleteTarget.id;
+        setDeleting(true);
+
+        try {
+            await deleteEnrollmentAdmin(deleteId);
+
+            const patch = (rows) =>
+                rows.filter((r) => r.id !== deleteId);
+
+            setAllData(patch);
+
+            if (_cache.allRows) {
+                _cache.allRows = patch(_cache.allRows);
+            }
+
+            setSelectedId((id) => (id === deleteId ? null : id));
+            setDeleteTarget(null);
+            toast.success('Enrollment deleted');
+        } catch (e) {
+            toast.error(e.message || 'Failed to delete enrollment.');
+        } finally {
+            setDeleting(false);
+        }
     };
 
     const filtered = useMemo(() => {
@@ -1807,6 +1923,14 @@ export default function AdminEnrollments() {
                                                             }
                                                         }}
                                                     />
+
+                                                    <button
+                                                        onClick={() => requestDelete(row)}
+                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-red-400 hover:bg-red-500/8 transition-all"
+                                                        title="Delete enrollment"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1865,6 +1989,17 @@ export default function AdminEnrollments() {
 
                             setNoteTarget(null);
                         }}
+                    />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {deleteTarget && (
+                    <ConfirmDeleteEnrollmentModal
+                        row={deleteTarget}
+                        deleting={deleting}
+                        onCancel={() => !deleting && setDeleteTarget(null)}
+                        onConfirm={confirmDelete}
                     />
                 )}
             </AnimatePresence>
