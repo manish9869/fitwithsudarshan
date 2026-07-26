@@ -12,6 +12,10 @@ const formatPrice = (p) =>
 function PricingCard({ pricingTable, coachingId, planType, duration, isPopular, index }) {
     const price = pricingTable[coachingId]?.[planType]?.[duration.months] || 0;
     const [hovered, setHovered] = useState(false);
+    // NEW: sale flag comes from the duration record (admin-toggleable, same
+    // pattern as `popular`). When true, this card shows a SALE ribbon
+    // regardless of which coaching type / plan it's rendered under.
+    const onSale = !!duration.onSale;
 
     return (
         <motion.div
@@ -24,7 +28,9 @@ function PricingCard({ pricingTable, coachingId, planType, duration, isPopular, 
             className="relative rounded-2xl flex flex-col overflow-hidden"
             style={isPopular
                 ? { background: 'linear-gradient(135deg, rgba(231,23,99,0.18) 0%, rgba(231,23,99,0.06) 100%)', border: '1px solid rgba(231,23,99,0.65)', boxShadow: hovered ? '0 0 70px rgba(231,23,99,0.4), 0 25px 60px rgba(0,0,0,0.6)' : '0 0 40px rgba(231,23,99,0.25), 0 10px 30px rgba(0,0,0,0.4)' }
-                : { background: 'rgba(255,255,255,0.03)', border: `1px solid ${hovered ? 'rgba(231,23,99,0.4)' : 'rgba(255,255,255,0.07)'}`, boxShadow: hovered ? '0 25px 60px rgba(0,0,0,0.5)' : 'none' }
+                : onSale
+                    ? { background: 'linear-gradient(135deg, rgba(245,158,11,0.14) 0%, rgba(255,255,255,0.03) 100%)', border: '1px solid rgba(245,158,11,0.5)', boxShadow: hovered ? '0 0 60px rgba(245,158,11,0.3)' : '0 0 30px rgba(245,158,11,0.15)' }
+                    : { background: 'rgba(255,255,255,0.03)', border: `1px solid ${hovered ? 'rgba(231,23,99,0.4)' : 'rgba(255,255,255,0.07)'}`, boxShadow: hovered ? '0 25px 60px rgba(0,0,0,0.5)' : 'none' }
             }
         >
             {isPopular && (
@@ -40,6 +46,20 @@ function PricingCard({ pricingTable, coachingId, planType, duration, isPopular, 
                     </div>
                 </div>
             )}
+            {/* NEW: sale ribbon — only shown when not already showing the
+                "Most Popular" ribbon, so they never collide on the same card */}
+            {!isPopular && onSale && (
+                <motion.div
+                    className="absolute -top-px left-1/2 -translate-x-1/2 z-10"
+                    animate={{ scale: [1, 1.06, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                    <div className="flex items-center gap-1.5 px-4 py-1 text-xs font-black text-white"
+                        style={{ background: '#f59e0b', borderRadius: '0 0 12px 12px', boxShadow: '0 0 14px rgba(245,158,11,0.6)' }}>
+                        <Zap className="w-3 h-3" /> Sale
+                    </div>
+                </motion.div>
+            )}
 
             <div className="p-6 flex flex-col flex-1 pt-8">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-1">{duration.sublabel}</p>
@@ -47,7 +67,7 @@ function PricingCard({ pricingTable, coachingId, planType, duration, isPopular, 
 
                 <div className="mb-5">
                     <motion.p className="text-4xl font-black leading-none"
-                        style={{ color: isPopular ? '#e71763' : 'white' }}
+                        style={{ color: isPopular ? '#e71763' : onSale ? '#fbbf24' : 'white' }}
                         animate={hovered ? { scale: 1.06 } : { scale: 1 }} transition={{ duration: 0.2 }}>
                         {formatPrice(price)}
                     </motion.p>
@@ -73,7 +93,9 @@ function PricingCard({ pricingTable, coachingId, planType, duration, isPopular, 
                         className="w-full py-3 rounded-xl font-black text-sm text-white"
                         style={isPopular
                             ? { background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.45)' }
-                            : { border: `1px solid ${hovered ? 'rgba(231,23,99,0.5)' : 'rgba(255,255,255,0.15)'}`, background: hovered ? 'rgba(231,23,99,0.08)' : 'transparent' }}>
+                            : onSale
+                                ? { background: '#f59e0b', boxShadow: '0 0 25px rgba(245,158,11,0.4)' }
+                                : { border: `1px solid ${hovered ? 'rgba(231,23,99,0.5)' : 'rgba(255,255,255,0.15)'}`, background: hovered ? 'rgba(231,23,99,0.08)' : 'transparent' }}>
                         Enroll Now <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
                     </motion.button>
                 </Link>
@@ -341,3 +363,8 @@ export function PricingSection() {
         </section>
     );
 }
+
+// NEW: default export so pages that do
+// `import ProgramsSection from '@/components/landing/ProgramsSection'`
+// (e.g. src/pages/Programs.jsx) don't render `undefined` and crash.
+export default PricingSection;
