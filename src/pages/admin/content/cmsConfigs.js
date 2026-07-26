@@ -104,25 +104,9 @@ export const CMS_CONFIGS = {
         ],
     },
 
-    coaching_types: {
-        title: 'Coaching Types',
-        idKey: 'id',
-        titleField: 'name',
-        subtitleField: 'tagline',
-        searchFields: ['name', 'short_name', 'tagline', 'description'],
-        fields: [
-            { key: 'id', label: 'ID (e.g. online)', type: 'text', required: true, lockOnEdit: true },
-            { key: 'name', label: 'Full Name', type: 'text', required: true },
-            { key: 'short_name', label: 'Short Name (tab label)', type: 'text', required: true },
-            { key: 'tagline', label: 'Tagline', type: 'text' },
-            { key: 'description', label: 'Description', type: 'textarea' },
-            { key: 'features', label: 'Features (comma separated)', type: 'list' },
-            { key: 'note', label: 'Note', type: 'textarea' },
-            { key: 'cta', label: 'CTA text', type: 'text' },
-            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
-            { key: 'active', label: 'Active', type: 'boolean', default: true },
-        ],
-    },
+    // coaching_types has its own dedicated editor — see AdminCoachingTypes.jsx —
+    // since it's a small, fixed set that drives core site behavior (pricing,
+    // routing), not a growing list that needs the generic table+modal CMS.
 
     durations: {
         title: 'Durations',

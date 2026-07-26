@@ -121,6 +121,10 @@ const AdminPricingMatrix = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminPricingMatrix'))
 );
 
+const AdminCoachingTypes = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/content/AdminCoachingTypes'))
+);
+
 
 const AdminLegalPages = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminLegalPages'))
@@ -430,13 +434,21 @@ function App() {
               />
               <Route path="content/legal-pages" element={<LazyRoute><AdminLegalPages /></LazyRoute>} />
               <Route path="site-settings" element={<LazyRoute><AdminSiteSettings /></LazyRoute>} />
+              {/* ── CMS: Coaching Types has its own simplified editor ── */}
+              <Route
+                path="content/coaching_types"
+                element={
+                  <LazyRoute>
+                    <AdminCoachingTypes />
+                  </LazyRoute>
+                }
+              />
               {/* ── Generic CMS editor ──
                   Handles:
                   /admin/content/testimonials
                   /admin/content/blog_posts
                   /admin/content/services
                   /admin/content/transformations
-                  /admin/content/coaching_types
                   /admin/content/durations
                   /admin/content/faqs
                   /admin/content/legal_pages
