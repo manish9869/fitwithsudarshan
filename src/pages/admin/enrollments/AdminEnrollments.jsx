@@ -1017,25 +1017,7 @@ function DownloadInvoiceButton({ enrollment }) {
         setErr('');
 
         try {
-            const mapped = {
-                enrollmentId: enrollment.enrollment_id,
-                customerName: enrollment.customer_name,
-                customerEmail: enrollment.customer_email,
-                customerPhone: enrollment.customer_phone,
-                programName: enrollment.program_name,
-                planType: enrollment.plan_type,
-                durationMonths: enrollment.duration_months,
-                coachingType: enrollment.coaching_type,
-                amountPaid: enrollment.amount_paid,
-                originalAmount: enrollment.original_amount,
-                couponCode: enrollment.coupon_code,
-                couponSavings: enrollment.coupon_savings,
-                razorpayOrderId: enrollment.razorpay_order_id,
-                razorpayPaymentId: enrollment.razorpay_payment_id,
-                paymentDate: enrollment.payment_date,
-            };
-
-            await downloadInvoicePDF(mapped);
+            await downloadInvoicePDF(enrollment);
             toast.success('Invoice downloaded');
         } catch (error) {
             setErr(error?.message || 'Invoice generation failed.');

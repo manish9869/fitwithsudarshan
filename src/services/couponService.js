@@ -13,13 +13,9 @@ export async function validateCouponRemote(code, coachingId, planType, durationM
     }
 }
 
-export async function redeemCouponRemote(code) {
-    if (!code) return;
-    try {
-        await fetch(`${API_BASE}/api/coupons/redeem`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code }),
-        });
-    } catch { /* non-blocking */ }
-}
+// NOTE: coupon redemption happens server-side (inside confirm-payment / the
+// Razorpay webhook) right after a real payment is verified — there's no
+// client-triggered redeem call anymore. A redeemCouponRemote() helper used
+// to live here calling a public POST /api/coupons/redeem, but nothing ever
+// called it and the backend route let anyone burn down a coupon's usage
+// limit without paying, so both were removed.
