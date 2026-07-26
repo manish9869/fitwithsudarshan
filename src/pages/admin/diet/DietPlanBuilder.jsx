@@ -9,13 +9,13 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Loader2, ChevronLeft, ChevronRight, Plus, Trash2, Search, X, Save,
-    User, Target, Sparkles, CalendarDays, FileDown, Check, Dumbbell, Salad,
+    User, Target, Sparkles, CalendarDays, FileDown, Check, Dumbbell, Salad, Edit2,
 } from 'lucide-react';
 import { listCmsRows } from '../content/cmsApi';
 import { TextInput, TextArea, ToggleField, SelectField } from '../content/SettingsFields';
 import { useToast } from '../ToastProvider';
 import {
-    getDietPlan, createDietPlan, updateDietPlan, searchEnrollments,
+    getDietPlan, createDietPlan, updateDietPlan, searchEnrollments, getDietPlanByEnrollment,
 } from './dietPlanApi';
 import { templates, workoutTemplates, generatePlanFromTemplate } from './dietTemplates';
 import { calcDayTotals, estimateCalorieTarget } from './dietCalc';
@@ -84,6 +84,11 @@ export default function DietPlanBuilder() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [step, setStep] = useState(1);
+    // Tracks how far the wizard has actually been validated through, so tab
+    // clicks can't skip ahead of data that was never filled in — only
+    // "Next" (which validates) can push this forward. Editing an existing
+    // plan starts with everything already filled, so all tabs are open.
+    const [maxStepReached, setMaxStepReached] = useState(1);
 
     const [foods, setFoods] = useState([]);
     const [exercises, setExercises] = useState([]);
@@ -113,6 +118,7 @@ export default function DietPlanBuilder() {
     const [enrollSearch, setEnrollSearch] = useState('');
     const [enrollResults, setEnrollResults] = useState([]);
     const [enrollSearching, setEnrollSearching] = useState(false);
+    const [linkedPlanWarning, setLinkedPlanWarning] = useState(null);
 
     // ── Load library + existing plan ──────────────────────────────────────
     useEffect(() => {
@@ -145,6 +151,7 @@ export default function DietPlanBuilder() {
                         })));
                         setUseTemplate(false);
                     }
+                    setMaxStepReached(5);
                 } else if (location.state?.prefill) {
                     // Arrived here via the "Diet Plan" action on an enrollment —
                     // carry over what we already know instead of retyping it.
@@ -192,7 +199,21 @@ export default function DietPlanBuilder() {
         finally { setEnrollSearching(false); }
     }, []);
 
-    const applyEnrollment = (enr) => {
+    const applyEnrollment = async (enr) => {
+        // A plan already linked to this enrollment (that isn't the one we're
+        // currently editing) means autofilling here would create a second,
+        // duplicate plan for the same client — block it and point at the
+        // existing one instead of silently letting it happen.
+        try {
+            const existing = await getDietPlanByEnrollment(enr.id);
+            if (existing && existing.id !== id) {
+                setLinkedPlanWarning({ clientName: enr.customer_name, plan: existing });
+                toast.error(`${enr.customer_name} already has a diet plan — edit that one instead of creating a duplicate.`);
+                return;
+            }
+        } catch { /* non-blocking — don't let a failed check block a legitimate autofill */ }
+
+        setLinkedPlanWarning(null);
         setEnrollmentId(enr.id);
         setClient((c) => ({
             ...c,
@@ -213,7 +234,7 @@ export default function DietPlanBuilder() {
             setDays(generated);
             setCurrentDay(0);
             toast.success(`Generated ${generated.length} days — customize in the next step`);
-            setStep(4);
+            advanceTo(4);
         }
     };
     const handleCustomPlan = () => {
@@ -221,7 +242,7 @@ export default function DietPlanBuilder() {
         for (let i = 0; i < planDuration; i++) fresh.push(emptyDay(i + 1));
         setDays(fresh);
         setCurrentDay(0);
-        setStep(4);
+        advanceTo(4);
     };
 
     // ── Food / exercise mutation ────────────────────────────────────────
@@ -235,6 +256,7 @@ export default function DietPlanBuilder() {
                 }],
             }),
         }));
+        toast.success(`Added ${food.name}`);
     };
     const removeFoodFromMeal = (mealType, idx) => {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : {
@@ -250,6 +272,7 @@ export default function DietPlanBuilder() {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : {
             ...d, exercises: [...d.exercises, { exerciseId: ex.id, name: ex.name, muscleGroup: ex.muscle_group, caloriesBurned: ex.calories_burned, sets: ex.sets, reps: ex.reps, duration: ex.duration }],
         }));
+        toast.success(`Added ${ex.name}`);
     };
     const removeExercise = (idx) => {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : { ...d, exercises: d.exercises.filter((_, ei) => ei !== idx) }));
@@ -305,11 +328,22 @@ export default function DietPlanBuilder() {
         generateDietPlanPDF(buildPayload(), { mode: exportMode, includeInstructions: exportInstructions });
     };
 
-    const goStep = (s) => { if (s >= 1 && s <= 5) setStep(s); };
+    // Tab clicks can only revisit steps already validated through — they
+    // can't skip ahead of data that was never filled in. Only advanceTo()
+    // (reached via the validated "Next" flow) opens up a new step.
+    const goStep = (s) => {
+        if (s < 1 || s > 5) return;
+        if (s > maxStepReached) { toast.error('Complete the current step first'); return; }
+        setStep(s);
+    };
+    const advanceTo = (s) => {
+        setMaxStepReached((m) => Math.max(m, s));
+        setStep(s);
+    };
     const nextStep = () => {
         if (step === 1 && !client.name.trim()) { toast.error('Enter client name'); return; }
         if (step === 3) { useTemplate === true ? handleApplyTemplate() : useTemplate === false ? handleCustomPlan() : toast.error('Choose an approach'); return; }
-        goStep(step + 1);
+        advanceTo(step + 1);
     };
 
     const calorieEstimate = useMemo(() => estimateCalorieTarget({
@@ -319,6 +353,24 @@ export default function DietPlanBuilder() {
 
     const activeDay = days[currentDay];
     const dayTotals = activeDay ? calcDayTotals(activeDay) : { calories: 0, protein: 0, carbs: 0, fats: 0, caloriesBurned: 0 };
+
+    // Clicking a food/exercise in the picker adds it in the background (the
+    // modal stays open so several can be added in a row) — these give the
+    // modal itself visible confirmation of what's already been added,
+    // instead of it looking like the click did nothing.
+    const mealFoodCounts = useMemo(() => {
+        const counts = new Map();
+        if (!foodPicker || !activeDay) return counts;
+        const meal = activeDay.meals.find((m) => m.type === foodPicker);
+        (meal?.foods || []).forEach((f) => counts.set(f.foodId, (counts.get(f.foodId) || 0) + 1));
+        return counts;
+    }, [foodPicker, activeDay]);
+
+    const dayExerciseCounts = useMemo(() => {
+        const counts = new Map();
+        (activeDay?.exercises || []).forEach((e) => counts.set(e.exerciseId, (counts.get(e.exerciseId) || 0) + 1));
+        return counts;
+    }, [activeDay]);
 
     const filteredFoods = useMemo(() => {
         let list = foods;
@@ -337,8 +389,14 @@ export default function DietPlanBuilder() {
 
     if (loading) return <div className="py-24 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/25" /></div>;
 
+    // The whole page — header, stepper, form, and the Previous/Next bar —
+    // shares one centered column so the buttons always land directly under
+    // the form instead of drifting off to the far edge of a wide page. Step
+    // 4 needs the extra room for its two-column meal/exercise layout.
+    const pageWidthClass = step === 4 ? 'max-w-4xl' : step === 3 ? 'max-w-3xl' : 'max-w-2xl';
+
     return (
-        <div className="space-y-6 pb-10">
+        <div className={`${pageWidthClass} mx-auto space-y-6 pb-10`}>
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h1 className="text-xl font-black text-white">{isNew ? 'New Diet Plan' : `Editing: ${client.name || 'Plan'}`}</h1>
@@ -382,7 +440,7 @@ export default function DietPlanBuilder() {
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
                                     <input value={enrollSearch}
-                                        onChange={(e) => { setEnrollSearch(e.target.value); runEnrollSearch(e.target.value); }}
+                                        onChange={(e) => { setEnrollSearch(e.target.value); runEnrollSearch(e.target.value); setLinkedPlanWarning(null); }}
                                         placeholder="Search by name, email, or phone…"
                                         className="w-full rounded-lg pl-9 pr-4 py-2.5 text-sm text-white bg-white/5 border border-white/10" />
                                 </div>
@@ -400,6 +458,21 @@ export default function DietPlanBuilder() {
                                     </div>
                                 )}
                                 {enrollmentId && <p className="text-[11px] font-bold mt-2" style={{ color: '#34d399' }}>Linked to enrollment ✓</p>}
+
+                                {linkedPlanWarning && (
+                                    <div className="mt-3 p-3 rounded-lg flex items-center justify-between gap-3 flex-wrap"
+                                        style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)' }}>
+                                        <p className="text-xs text-white/70">
+                                            <span className="font-bold text-red-400">{linkedPlanWarning.clientName}</span> already has a diet plan
+                                            ({linkedPlanWarning.plan.goal} · {linkedPlanWarning.plan.plan_duration} days).
+                                        </p>
+                                        <button onClick={() => navigate(`/admin/diet-plans/${linkedPlanWarning.plan.id}`)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black text-white flex-shrink-0"
+                                            style={{ background: '#e71763' }}>
+                                            <Edit2 className="w-3 h-3" /> Edit That Plan
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="rounded-2xl p-5 space-y-4" style={card}>
@@ -700,19 +773,30 @@ export default function DietPlanBuilder() {
                             placeholder="Search foods…" className="w-full rounded-lg pl-9 pr-4 py-2.5 text-sm text-white bg-white/5 border border-white/10" />
                     </div>
                     <div className="grid sm:grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto">
-                        {filteredFoods.map((food) => (
-                            <button key={food.id} onClick={() => addFoodToMeal(foodPicker, food)}
-                                className="flex items-center justify-between p-3 rounded-lg text-left hover:border-pink-500/40 transition-colors" style={inputCard}>
-                                <div className="min-w-0">
-                                    <p className="text-sm font-bold text-white truncate">{food.name}</p>
-                                    <p className="text-xs text-white/35">{food.serving_size}</p>
-                                </div>
-                                <div className="text-right flex-shrink-0 ml-2">
-                                    <p className="text-sm font-bold" style={{ color: '#e71763' }}>{food.calories}</p>
-                                    <p className="text-xs text-white/35">kcal</p>
-                                </div>
-                            </button>
-                        ))}
+                        {filteredFoods.map((food) => {
+                            const addedCount = mealFoodCounts.get(food.id) || 0;
+                            return (
+                                <button key={food.id} onClick={() => addFoodToMeal(foodPicker, food)}
+                                    className="flex items-center justify-between p-3 rounded-lg text-left hover:border-pink-500/40 transition-colors"
+                                    style={addedCount > 0 ? { background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.35)' } : inputCard}>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-white truncate flex items-center gap-1.5">
+                                            {food.name}
+                                            {addedCount > 0 && (
+                                                <span className="inline-flex items-center gap-0.5 text-[10px] font-black flex-shrink-0" style={{ color: '#34d399' }}>
+                                                    <Check className="w-3 h-3" /> {addedCount > 1 ? `×${addedCount}` : 'Added'}
+                                                </span>
+                                            )}
+                                        </p>
+                                        <p className="text-xs text-white/35">{food.serving_size}</p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0 ml-2">
+                                        <p className="text-sm font-bold" style={{ color: '#e71763' }}>{food.calories}</p>
+                                        <p className="text-xs text-white/35">kcal</p>
+                                    </div>
+                                </button>
+                            );
+                        })}
                         {filteredFoods.length === 0 && <p className="text-sm text-white/30 text-center py-8 col-span-2">No foods match.</p>}
                     </div>
                 </Modal>
@@ -727,19 +811,30 @@ export default function DietPlanBuilder() {
                             placeholder="Search exercises…" className="w-full rounded-lg pl-9 pr-4 py-2.5 text-sm text-white bg-white/5 border border-white/10" />
                     </div>
                     <div className="grid sm:grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto">
-                        {filteredExercises.map((ex) => (
-                            <button key={ex.id} onClick={() => addExercise(ex)}
-                                className="flex items-center justify-between p-3 rounded-lg text-left hover:border-pink-500/40 transition-colors" style={inputCard}>
-                                <div className="min-w-0">
-                                    <p className="text-sm font-bold text-white truncate">{ex.name}</p>
-                                    <p className="text-xs text-white/35">{ex.duration || `${ex.sets} x ${ex.reps}`}</p>
-                                </div>
-                                <div className="text-right flex-shrink-0 ml-2">
-                                    <p className="text-sm font-bold" style={{ color: '#e71763' }}>~{ex.calories_burned}</p>
-                                    <p className="text-xs text-white/35">kcal</p>
-                                </div>
-                            </button>
-                        ))}
+                        {filteredExercises.map((ex) => {
+                            const addedCount = dayExerciseCounts.get(ex.id) || 0;
+                            return (
+                                <button key={ex.id} onClick={() => addExercise(ex)}
+                                    className="flex items-center justify-between p-3 rounded-lg text-left hover:border-pink-500/40 transition-colors"
+                                    style={addedCount > 0 ? { background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.35)' } : inputCard}>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-white truncate flex items-center gap-1.5">
+                                            {ex.name}
+                                            {addedCount > 0 && (
+                                                <span className="inline-flex items-center gap-0.5 text-[10px] font-black flex-shrink-0" style={{ color: '#34d399' }}>
+                                                    <Check className="w-3 h-3" /> {addedCount > 1 ? `×${addedCount}` : 'Added'}
+                                                </span>
+                                            )}
+                                        </p>
+                                        <p className="text-xs text-white/35">{ex.duration || `${ex.sets} x ${ex.reps}`}</p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0 ml-2">
+                                        <p className="text-sm font-bold" style={{ color: '#e71763' }}>~{ex.calories_burned}</p>
+                                        <p className="text-xs text-white/35">kcal</p>
+                                    </div>
+                                </button>
+                            );
+                        })}
                         {filteredExercises.length === 0 && <p className="text-sm text-white/30 text-center py-8 col-span-2">No exercises match.</p>}
                     </div>
                 </Modal>
