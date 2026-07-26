@@ -42,6 +42,35 @@ function calcDayTotals(day) {
     return { calories: Math.round(calories), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats), caloriesBurned: Math.round(caloriesBurned) };
 }
 
+function calcPlanAverages(days) {
+    const activeDays = (days || []).filter((d) => !d.restDay);
+    if (!activeDays.length) return null;
+    const totals = activeDays.reduce((acc, d) => {
+        const t = calcDayTotals(d);
+        acc.calories += t.calories; acc.protein += t.protein; acc.carbs += t.carbs; acc.fats += t.fats; acc.caloriesBurned += t.caloriesBurned;
+        return acc;
+    }, { calories: 0, protein: 0, carbs: 0, fats: 0, caloriesBurned: 0 });
+    const n = activeDays.length;
+    return {
+        calories: Math.round(totals.calories / n), protein: Math.round(totals.protein / n),
+        carbs: Math.round(totals.carbs / n), fats: Math.round(totals.fats / n),
+        caloriesBurned: Math.round(totals.caloriesBurned / n),
+        activeDayCount: n, restDayCount: (days || []).length - n,
+    };
+}
+
+function calcBMI(heightCm, weightKg) {
+    if (!heightCm || !weightKg) return null;
+    const h = heightCm / 100;
+    const bmi = weightKg / (h * h);
+    let category, color;
+    if (bmi < 18.5) { category = 'Underweight'; color = [96, 165, 250]; }
+    else if (bmi < 25) { category = 'Normal'; color = [52, 211, 153]; }
+    else if (bmi < 30) { category = 'Overweight'; color = [251, 191, 36]; }
+    else { category = 'Obese'; color = [248, 113, 113]; }
+    return { value: Math.round(bmi * 10) / 10, category, color };
+}
+
 function ensureSpace(doc, y, needed) {
     if (y + needed > PH - FOOTER_H - 6) {
         doc.addPage();
@@ -301,6 +330,113 @@ function generateDietOnly(doc, plan) {
     });
 }
 
+// ── Cover page building blocks ──────────────────────────────────────────
+function statCard(doc, x, y, w, h, label, value) {
+    doc.setFillColor(248, 246, 247);
+    doc.roundedRect(x, y, w, h, 1.5, 1.5, 'F');
+    doc.setTextColor(...MID_GRAY);
+    doc.setFontSize(6.3);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(label).toUpperCase(), x + 3, y + 6.5);
+    doc.setTextColor(...DARK_GRAY);
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(value ?? '—'), x + 3, y + h - 4.5, { maxWidth: w - 6 });
+}
+
+function statRow(doc, y, items, h = 20) {
+    const gap = 4;
+    const n = items.length;
+    const w = (CW - gap * (n - 1)) / n;
+    items.forEach((it, i) => statCard(doc, ML + i * (w + gap), y, w, h, it.label, it.value));
+    return y + h;
+}
+
+function sectionLabel(doc, text, y) {
+    doc.setTextColor(...BRAND_PINK);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(text.toUpperCase(), ML, y);
+    return y + 7;
+}
+
+function bmiCard(doc, y, plan) {
+    const h = 22;
+    doc.setFillColor(248, 246, 247);
+    doc.roundedRect(ML, y, CW, h, 2, 2, 'F');
+
+    const bmi = calcBMI(plan.client_height, plan.client_weight);
+    if (!bmi) {
+        doc.setTextColor(...MID_GRAY);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.text('Add height and weight to calculate BMI.', ML + 5, y + h / 2 + 1.5);
+        return y + h;
+    }
+
+    doc.setTextColor(...MID_GRAY);
+    doc.setFontSize(6.3);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BODY MASS INDEX', ML + 5, y + 7.5);
+    doc.setTextColor(...DARK_GRAY);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(bmi.value), ML + 5, y + h - 5);
+
+    doc.setTextColor(...MID_GRAY);
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Healthy range: 18.5 - 24.9', ML + 32, y + h - 5);
+
+    const badgeW = 32, badgeH = 9;
+    doc.setFillColor(...bmi.color);
+    doc.roundedRect(ML + CW - badgeW - 5, y + h / 2 - badgeH / 2, badgeW, badgeH, 2, 2, 'F');
+    doc.setTextColor(...WHITE);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(bmi.category, ML + CW - badgeW / 2 - 5, y + h / 2 + 1.4, { align: 'center' });
+
+    return y + h;
+}
+
+function macroRatioBar(doc, y, avg) {
+    if (!avg) return y;
+    const pCal = avg.protein * 4, cCal = avg.carbs * 4, fCal = avg.fats * 9;
+    const total = pCal + cCal + fCal || 1;
+    const segs = [
+        { pct: pCal / total, grams: avg.protein, color: BRAND_PINK, label: 'Protein' },
+        { pct: cCal / total, grams: avg.carbs, color: [96, 165, 250], label: 'Carbs' },
+        { pct: fCal / total, grams: avg.fats, color: [251, 191, 36], label: 'Fats' },
+    ];
+
+    const barH = 8;
+    let x = ML;
+    segs.forEach((s) => {
+        const w = CW * s.pct;
+        doc.setFillColor(...s.color);
+        doc.rect(x, y, w, barH, 'F');
+        x += w;
+    });
+    doc.setDrawColor(...LIGHT_GRAY);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(ML, y, CW, barH, 1, 1, 'S');
+
+    let lx = ML;
+    const ly = y + barH + 8;
+    segs.forEach((s) => {
+        doc.setFillColor(...s.color);
+        doc.rect(lx, ly - 3, 3, 3, 'F');
+        doc.setTextColor(...DARK_GRAY);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        const label = `${s.label} ${Math.round(s.pct * 100)}% (${s.grams}g)`;
+        doc.text(label, lx + 5, ly);
+        lx += doc.getTextWidth(label) + 12;
+    });
+
+    return ly + 6;
+}
+
 const MODE_LABELS = {
     'full': 'Complete Diet & Exercise Plan',
     'macros-per-meal': 'Macros Per Meal Plan',
@@ -349,33 +485,89 @@ function addHeaderFooter(doc, plan, pageNum, totalPages) {
 export function generateDietPlanPDF(plan, { mode = 'full', includeInstructions = true } = {}) {
     const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-    // Cover block
+    // ── Dedicated cover page — client snapshot, BMI, plan averages, macro
+    // ratio. Real day-by-day content always starts fresh on page 2, so the
+    // cover reads like a proper report front page instead of a cramped
+    // banner squeezed above Day 1.
     let y = CONTENT_TOP;
-    doc.setFillColor(20, 20, 20);
-    doc.roundedRect(ML, y, CW, 34, 3, 3, 'F');
-    doc.setFillColor(...BRAND_PINK);
-    doc.roundedRect(ML, y, 4, 34, 1.5, 1.5, 'F');
 
     doc.setTextColor(...BRAND_PINK);
-    doc.setFontSize(15);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(MODE_LABELS[mode], ML + 9, y + 11);
+    doc.text(MODE_LABELS[mode].toUpperCase(), ML, y + 6);
 
-    doc.setTextColor(...LIGHT_GRAY);
+    doc.setTextColor(...DARK_GRAY);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(plan.client_name || 'Client', ML, y + 18);
+
+    doc.setTextColor(...MID_GRAY);
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
-    const trainerLine = `Prepared by: ${plan.trainer_name || 'RECODE Coach'}${plan.trainer_qualification ? ' — ' + plan.trainer_qualification : ''}`;
-    doc.text(trainerLine, ML + 9, y + 19);
+    const trainerLine = `Prepared by ${plan.trainer_name || 'your RECODE Coach'}${plan.trainer_qualification ? ' — ' + plan.trainer_qualification : ''}`;
+    doc.text(trainerLine, ML, y + 25);
 
-    const details = [
-        plan.client_name, plan.client_age ? `Age: ${plan.client_age}` : null, plan.client_gender,
-        plan.client_height ? `${plan.client_height} cm` : null,
-        plan.client_weight ? `${plan.client_weight} kg → ${plan.target_weight || '—'} kg` : null,
-        plan.goal, plan.diet_preference, `${plan.plan_duration} Days`,
-    ].filter(Boolean);
-    doc.setFontSize(7.5);
-    doc.text(details.join('   ·   '), ML + 9, y + 27, { maxWidth: CW - 18 });
-    y += 42;
+    doc.setDrawColor(...BRAND_PINK);
+    doc.setLineWidth(0.6);
+    doc.line(ML, y + 30, ML + CW, y + 30);
+    y += 38;
+
+    y = sectionLabel(doc, 'Client Overview', y);
+    y = statRow(doc, y, [
+        { label: 'Age', value: plan.client_age ? `${plan.client_age} yrs` : '—' },
+        { label: 'Gender', value: plan.client_gender || '—' },
+        { label: 'Height', value: plan.client_height ? `${plan.client_height} cm` : '—' },
+    ]);
+    y += 4;
+    y = statRow(doc, y, [
+        { label: 'Current Weight', value: plan.client_weight ? `${plan.client_weight} kg` : '—' },
+        { label: 'Target Weight', value: plan.target_weight ? `${plan.target_weight} kg` : '—' },
+        { label: 'Goal', value: plan.goal || '—' },
+    ]);
+    y += 4;
+    y = statRow(doc, y, [
+        { label: 'Diet Preference', value: plan.diet_preference || '—' },
+        { label: 'Duration', value: `${plan.plan_duration} Days` },
+        { label: 'Activity Level', value: plan.activity_level || '—' },
+    ]);
+    y += 10;
+
+    y = sectionLabel(doc, 'Health Snapshot', y);
+    y = bmiCard(doc, y, plan);
+    y += 12;
+
+    const avg = calcPlanAverages(plan.days);
+    if (avg) {
+        y = sectionLabel(doc, `Daily Average · ${avg.activeDayCount} Active Day${avg.activeDayCount === 1 ? '' : 's'}${avg.restDayCount ? `, ${avg.restDayCount} Rest` : ''}`, y);
+        const avgItems = [
+            { label: 'Calories', value: `${avg.calories} kcal` },
+            { label: 'Protein', value: `${avg.protein} g` },
+            { label: 'Carbs', value: `${avg.carbs} g` },
+            { label: 'Fats', value: `${avg.fats} g` },
+        ];
+        if (plan.include_exercise) avgItems.push({ label: 'Burn', value: `~${avg.caloriesBurned} kcal` });
+        y = statRow(doc, y, avgItems);
+        y += 12;
+
+        y = sectionLabel(doc, 'Macro Ratio', y);
+        y = macroRatioBar(doc, y, avg);
+    }
+
+    if (plan.allergies) {
+        y += 6;
+        doc.setFillColor(255, 247, 250);
+        doc.roundedRect(ML, y, CW, 14, 2, 2, 'F');
+        doc.setFillColor(...BRAND_PINK);
+        doc.roundedRect(ML, y, 3, 14, 1, 1, 'F');
+        doc.setTextColor(...DARK_GRAY);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Allergies / Restrictions:', ML + 7, y + 6);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(plan.allergies), ML + 7, y + 11, { maxWidth: CW - 14 });
+    }
+
+    doc.addPage();
 
     switch (mode) {
         case 'full': generateFull(doc, plan, plan.include_exercise); break;

@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
     Search,
     ChevronDown,
@@ -36,8 +36,12 @@ import {
     UserPlus,
     MessageCircle,
     Trash2,
+    Salad,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import EnrollmentDietPlanCard from '../diet/EnrollmentDietPlanCard';
+import { getDietPlanByEnrollment } from '../diet/dietPlanApi';
+import { buildDietPrefillFromEnrollment } from '../diet/dietPrefill';
 import {
     fetchEnrollments,
     fetchEnrollment,
@@ -841,6 +845,8 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                 </div>
                             </section>
 
+                            <EnrollmentDietPlanCard enrollment={enrollment} />
+
                             {enrollment.partner_name && (
                                 <section>
                                     <p
@@ -1170,8 +1176,10 @@ function SortIcon({ field, sort }) {
 
 export default function AdminEnrollments() {
     const toast = useToast();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const focusId = searchParams.get('focus');
+    const [dietCheckingId, setDietCheckingId] = useState(null);
 
     const [allData, setAllData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -1286,6 +1294,22 @@ export default function AdminEnrollments() {
 
 
     const requestDelete = (row) => setDeleteTarget(row);
+
+    // Resolve on click rather than prefetching for every visible row — jumps
+    // straight to the existing plan if one's already linked to this
+    // enrollment, otherwise opens the wizard pre-filled with this client.
+    const handleDietPlanClick = async (row) => {
+        setDietCheckingId(row.id);
+        try {
+            const existing = await getDietPlanByEnrollment(row.id);
+            if (existing) navigate(`/admin/diet-plans/${existing.id}`);
+            else navigate('/admin/diet-plans/new', { state: buildDietPrefillFromEnrollment(row) });
+        } catch (e) {
+            toast.error(e.message || 'Failed to check diet plan.');
+        } finally {
+            setDietCheckingId(null);
+        }
+    };
 
     const confirmDelete = async () => {
         if (!deleteTarget) return;
@@ -1881,6 +1905,17 @@ export default function AdminEnrollments() {
                                                         title="View details & payment history"
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => handleDietPlanClick(row)}
+                                                        disabled={dietCheckingId === row.id}
+                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/35 hover:text-white hover:bg-white/8 transition-all disabled:opacity-50"
+                                                        title="Diet plan"
+                                                    >
+                                                        {dietCheckingId === row.id
+                                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                            : <Salad className="w-3.5 h-3.5" />}
                                                     </button>
 
                                                     <button
