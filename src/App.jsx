@@ -125,6 +125,14 @@ const AdminCoachingTypes = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminCoachingTypes'))
 );
 
+const AdminServices = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/content/AdminServices'))
+);
+
+const AdminRecodeMethod = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/content/AdminRecodeMethod'))
+);
+
 
 const AdminLegalPages = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminLegalPages'))
@@ -434,7 +442,7 @@ function App() {
               />
               <Route path="content/legal-pages" element={<LazyRoute><AdminLegalPages /></LazyRoute>} />
               <Route path="site-settings" element={<LazyRoute><AdminSiteSettings /></LazyRoute>} />
-              {/* ── CMS: Coaching Types has its own simplified editor ── */}
+              {/* ── CMS: these have their own simplified editors ── */}
               <Route
                 path="content/coaching_types"
                 element={
@@ -443,11 +451,26 @@ function App() {
                   </LazyRoute>
                 }
               />
+              <Route
+                path="content/services"
+                element={
+                  <LazyRoute>
+                    <AdminServices />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="content/recode_method"
+                element={
+                  <LazyRoute>
+                    <AdminRecodeMethod />
+                  </LazyRoute>
+                }
+              />
               {/* ── Generic CMS editor ──
                   Handles:
                   /admin/content/testimonials
                   /admin/content/blog_posts
-                  /admin/content/services
                   /admin/content/transformations
                   /admin/content/durations
                   /admin/content/faqs
