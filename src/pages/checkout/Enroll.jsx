@@ -283,7 +283,7 @@ function CouponInput({ coachingId, planType, durationMonths, originalPrice, onAp
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function Enroll() {
-    const { coachingTypes, pricingTable, durations, basicConsultation, loading } = useSiteData();
+    const { coachingTypes, pricingTable, durations, basicConsultation, popularFlags, loading } = useSiteData();
 
     usePageMeta({
         title: 'Enroll Now',
@@ -656,6 +656,7 @@ export default function Enroll() {
                                             {durations.map((dur) => {
                                                 const p = pricingTable[coachingId]?.[planType]?.[dur.months] || 0;
                                                 const selected = durationMonths === dur.months;
+                                                const isPopular = !!popularFlags[`${coachingId}:${planType}:${dur.months}`];
                                                 return (
                                                     <button key={dur.months} onClick={() => handleDurationChange(dur.months)}
                                                         className="w-full text-left rounded-xl p-4 transition-all"
@@ -666,7 +667,7 @@ export default function Enroll() {
                                                             <div>
                                                                 <span className={`font-bold text-sm ${selected ? 'text-white' : 'text-white/80'}`}>{dur.label}</span>
                                                                 <span className="text-xs ml-2 px-1.5 py-0.5 rounded-full font-semibold"
-                                                                    style={{ background: dur.popular ? 'rgba(231,23,99,0.2)' : 'rgba(255,255,255,0.07)', color: dur.popular ? '#e71763' : 'rgba(255,255,255,0.5)' }}>
+                                                                    style={{ background: isPopular ? 'rgba(231,23,99,0.2)' : 'rgba(255,255,255,0.07)', color: isPopular ? '#e71763' : 'rgba(255,255,255,0.5)' }}>
                                                                     {dur.sublabel}
                                                                 </span>
                                                             </div>
