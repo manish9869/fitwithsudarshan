@@ -273,7 +273,7 @@ export default function FeaturesSection() {
                             </motion.span>
                         </motion.div>
 
-                        <div className="grid lg:grid-cols-[420px_1fr] gap-10 sm:gap-14 items-start">
+                        <div className="grid lg:grid-cols-[460px_1fr] gap-10 sm:gap-14 items-start">
 
                             {/* Photo */}
                             <motion.div
@@ -301,7 +301,7 @@ export default function FeaturesSection() {
                                     className="relative rounded-3xl overflow-hidden cursor-default"
                                     style={{
                                         aspectRatio: '3/4',
-                                        maxHeight: '420px',
+                                        maxHeight: '620px',
                                         border: '1px solid rgba(231,23,99,0.3)',
                                         boxShadow:
                                             '0 0 60px rgba(231,23,99,0.15), 0 40px 80px rgba(0,0,0,0.6)'
