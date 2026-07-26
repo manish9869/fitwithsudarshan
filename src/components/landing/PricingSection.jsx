@@ -20,17 +20,18 @@ function isCellPopular(popularFlags, coachingId, planType, months) {
     return !!popularFlags[`${coachingId}:${planType}:${months}`];
 }
 
-// Small pulsing badge for tab/toggle buttons — flags "there's an offer in
-// here" before the user even clicks in, independent of the card-level badge.
+// Small pulsing "Hot Sale" ribbon for the Individual/Couple/Basic tab
+// buttons — flags "there's an offer in here" before the user even clicks
+// in, independent of the card-level badge.
 function TabSaleDot() {
     return (
         <motion.span
-            className="absolute -top-1.5 -right-1.5 z-10 flex items-center justify-center w-4 h-4 rounded-full"
+            className="absolute -top-2.5 -right-2 z-10 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black text-white whitespace-nowrap"
             style={{ background: '#e71763', boxShadow: '0 0 10px rgba(231,23,99,0.85)' }}
-            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+            animate={{ scale: [1, 1.12, 1], opacity: [1, 0.75, 1] }}
             transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
         >
-            <Flame className="w-2.5 h-2.5 text-white" />
+            <Flame className="w-2 h-2" /> Hot Sale
         </motion.span>
     );
 }
@@ -57,7 +58,7 @@ function PricingCard({ pricingTable, saleFlags, popularFlags, coachingId, planTy
             whileHover={{ y: -10, scale: isPopular ? 1.07 : 1.04 }}
             onHoverStart={() => setHovered(true)}
             onHoverEnd={() => setHovered(false)}
-            className="relative rounded-2xl flex flex-col overflow-hidden"
+            className="relative rounded-2xl flex flex-col"
             style={isPopular
                 ? { background: 'linear-gradient(135deg, rgba(231,23,99,0.18) 0%, rgba(231,23,99,0.06) 100%)', border: '1px solid rgba(231,23,99,0.65)', boxShadow: hovered ? '0 0 70px rgba(231,23,99,0.4), 0 25px 60px rgba(0,0,0,0.6)' : '0 0 40px rgba(231,23,99,0.25), 0 10px 30px rgba(0,0,0,0.4)' }
                 : isOnSale
@@ -78,17 +79,9 @@ function PricingCard({ pricingTable, saleFlags, popularFlags, coachingId, planTy
                     </div>
                 </div>
             )}
-            {isOnSale && !isPopular && (
-                <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                    <div className="flex items-center gap-1.5 px-4 py-1 text-xs font-black text-white"
-                        style={{ background: '#e71763', borderRadius: '0 0 12px 12px' }}>
-                        <Flame className="w-3 h-3" /> Hot Sale
-                    </div>
-                </div>
-            )}
-
-            {/* Flashing SALE badge on every on-sale card, popular or not — this is
-                the "eye catchy" pulsing badge, always independent of the ribbon above. */}
+            {/* Single flashing SALE badge on every on-sale card, popular or not —
+                the one "eye catchy" indicator. No separate static ribbon, so a
+                sale never shows two competing badges at once. */}
             {isOnSale && (
                 <motion.span
                     className="absolute -top-3 -right-3 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black text-white whitespace-nowrap"
@@ -170,17 +163,6 @@ export function PricingSection() {
     const basicAvailable = activeTab === "online" && !!basicConsultation;
     const effectivePlanType = planType === "basic" && !basicAvailable ? "individual" : planType;
 
-    const coachingHasSale = (ct) => {
-        const any = ["individual", "couple"].some((pt) =>
-            durations.some((d) => isCellOnSale(pricingTable, saleFlags, ct.id, pt, d.months))
-        );
-        const basicAny = ct.id === "online" && (
-            isCellOnSale(pricingTable, saleFlags, "online", "basic_individual", "1") ||
-            isCellOnSale(pricingTable, saleFlags, "online", "basic_couple", "1")
-        );
-        return any || basicAny;
-    };
-
     const planTabHasSale = (pt) => {
         if (pt === "basic") {
             return isCellOnSale(pricingTable, saleFlags, "online", "basic_individual", "1") ||
@@ -259,13 +241,12 @@ export function PricingSection() {
                                     if (ct.id !== "online" && planType === "basic") setPlanType("individual");
                                 }}
                                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                                className="relative flex items-center gap-2 px-6 py-3 rounded-full font-black text-sm transition-all"
+                                className="flex items-center gap-2 px-6 py-3 rounded-full font-black text-sm transition-all"
                                 style={active
                                     ? { background: '#e71763', color: 'white', boxShadow: '0 0 30px rgba(231,23,99,0.55)' }
                                     : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)' }}>
                                 <TabIcon className="w-4 h-4" />
                                 {ct.shortName}
-                                {coachingHasSale(ct) && <TabSaleDot />}
                             </motion.button>
                         );
                     })}
