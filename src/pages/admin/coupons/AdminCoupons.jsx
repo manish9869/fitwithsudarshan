@@ -6,9 +6,9 @@ import {
     XCircle, Copy, Check, AlertCircle, AlertTriangle, TrendingUp, Sparkles,
     ChevronDown,
 } from 'lucide-react';
-import { coachingTypes, durations } from '@/data/SiteData';
-import { fetchCoupons, createCouponAdmin, updateCouponAdmin, deleteCouponAdmin } from './adminApi';
-import { useToast } from './ToastProvider';
+import { fetchCoupons, createCouponAdmin, updateCouponAdmin, deleteCouponAdmin } from '../adminApi';
+import { useToast } from '../ToastProvider';
+import { useSiteData } from '@/contexts/SiteDataContext';
 const PLAN_TYPES = [
     { id: 'individual', label: 'Individual' },
     { id: 'couple', label: 'Couple' },
@@ -275,7 +275,7 @@ function ConfirmDeleteModal({ coupon, onCancel, onConfirm, deleting }) {
 }
 
 // ── View drawer (read-only) ──────────────────────────────────────────────────
-function ViewDrawer({ coupon, onClose, onEdit, onDeleteRequest }) {
+function ViewDrawer({ coupon, onClose, onEdit, onDeleteRequest, coachingTypes }) {
     const status = statusOf(coupon);
     const usagePct = coupon.max_uses ? Math.min(100, Math.round((coupon.used_count / coupon.max_uses) * 100)) : null;
     const allApplicable = appliesToEverything(coupon);
@@ -458,7 +458,7 @@ function ViewDrawer({ coupon, onClose, onEdit, onDeleteRequest }) {
 }
 
 // ── Edit / create modal ───────────────────────────────────────────────────────
-function EditModal({ editing, setEditing, onSave, saving, error }) {
+function EditModal({ editing, setEditing, onSave, saving, error, coachingTypes, durations }) {
     const toggleArr = (field, val) => setEditing((f) => ({
         ...f,
         [field]: f[field].includes(val) ? f[field].filter((v) => v !== val) : [...f[field], val],
@@ -627,6 +627,7 @@ function EditModal({ editing, setEditing, onSave, saving, error }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function AdminCoupons() {
+    const { coachingTypes, durations } = useSiteData();
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -856,12 +857,13 @@ export default function AdminCoupons() {
                         onClose={() => setViewing(null)}
                         onEdit={openEdit}
                         onDeleteRequest={requestDelete}
+                        coachingTypes={coachingTypes}
                     />
                 )}
             </AnimatePresence>
 
             <AnimatePresence>
-                {editing && <EditModal editing={editing} setEditing={setEditing} onSave={handleSave} saving={saving} error={saveError} />}
+                {editing && <EditModal editing={editing} setEditing={setEditing} onSave={handleSave} saving={saving} error={saveError} coachingTypes={coachingTypes} durations={durations} />}
             </AnimatePresence>
 
             <AnimatePresence>

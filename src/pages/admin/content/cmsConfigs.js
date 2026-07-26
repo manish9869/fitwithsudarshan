@@ -1,9 +1,19 @@
 // src/pages/admin/cmsConfigs.js
+//
+// `titleField`/`subtitleField`/`imageField` drive how each table renders in
+// the admin list view (AdminCMSList) — which column shows as the row's main
+// label, its secondary line, and its thumbnail. Without these, the list
+// falls back to showing the raw database id, which means nothing to a
+// non-technical user (this is why FAQ rows used to show a UUID).
 
 export const CMS_CONFIGS = {
     testimonials: {
         title: 'Testimonials',
         idKey: 'id',
+        titleField: 'name',
+        subtitleField: 'role',
+        imageField: 'avatar',
+        searchFields: ['name', 'role', 'quote', 'transformation'],
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true },
             { key: 'role', label: 'Role', type: 'text' },
@@ -11,6 +21,7 @@ export const CMS_CONFIGS = {
             { key: 'weight_lost', label: 'Weight Lost Label', type: 'text' },
             { key: 'quote', label: 'Quote', type: 'textarea' },
             { key: 'rating', label: 'Rating (1-5)', type: 'number', default: 5 },
+            { key: 'avatar', label: 'Avatar Photo', type: 'image', folder: 'testimonials' },
             { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
             { key: 'active', label: 'Active', type: 'boolean', default: true },
         ],
@@ -19,6 +30,10 @@ export const CMS_CONFIGS = {
     blog_posts: {
         title: 'Blog Posts',
         idKey: 'id',
+        titleField: 'title',
+        subtitleField: 'category',
+        imageField: 'image',
+        searchFields: ['title', 'excerpt', 'category', 'slug'],
         fields: [
             { key: 'slug', label: 'Slug', type: 'text', required: true },
             { key: 'title', label: 'Title', type: 'text', required: true },
@@ -26,7 +41,7 @@ export const CMS_CONFIGS = {
             { key: 'category', label: 'Category', type: 'text' },
             { key: 'read_time', label: 'Read Time', type: 'text' },
             { key: 'post_date', label: 'Date', type: 'text' },
-            { key: 'image', label: 'Image URL', type: 'text' },
+            { key: 'image', label: 'Cover Photo', type: 'image', folder: 'blog' },
             { key: 'content', label: 'Content (markdown-ish)', type: 'textarea', big: true },
             { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
             { key: 'active', label: 'Active', type: 'boolean', default: true },
@@ -36,6 +51,9 @@ export const CMS_CONFIGS = {
     services: {
         title: 'Services',
         idKey: 'id',
+        titleField: 'title',
+        subtitleField: 'subtitle',
+        searchFields: ['title', 'subtitle', 'badge'],
         fields: [
             { key: 'id', label: 'ID (e.g. online)', type: 'text', required: true, lockOnEdit: true },
             { key: 'title', label: 'Title', type: 'text', required: true },
@@ -52,6 +70,9 @@ export const CMS_CONFIGS = {
     recode_method: {
         title: 'RECODE Method Steps',
         idKey: 'id',
+        titleField: 'title',
+        subtitleField: 'step',
+        searchFields: ['title', 'description', 'step'],
         fields: [
             { key: 'step', label: 'Step (e.g. 01)', type: 'text' },
             { key: 'title', label: 'Title', type: 'text', required: true },
@@ -65,6 +86,10 @@ export const CMS_CONFIGS = {
     transformations: {
         title: 'Transformations',
         idKey: 'id',
+        titleField: 'name',
+        subtitleField: 'category',
+        imageField: 'photo_after',
+        searchFields: ['name', 'role', 'category', 'quote'],
         fields: [
             { key: 'name', label: 'Name', type: 'text', required: true },
             { key: 'role', label: 'Role', type: 'text' },
@@ -72,8 +97,8 @@ export const CMS_CONFIGS = {
             { key: 'weight_lost', label: 'Weight Lost Label', type: 'text' },
             { key: 'category', label: 'Category', type: 'text' },
             { key: 'quote', label: 'Quote', type: 'textarea' },
-            { key: 'photo_before', label: 'Before Photo URL', type: 'text' },
-            { key: 'photo_after', label: 'After Photo URL', type: 'text' },
+            { key: 'photo_before', label: 'Before Photo', type: 'image', folder: 'transformations' },
+            { key: 'photo_after', label: 'After Photo', type: 'image', folder: 'transformations' },
             { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
             { key: 'active', label: 'Active', type: 'boolean', default: true },
         ],
@@ -82,6 +107,9 @@ export const CMS_CONFIGS = {
     coaching_types: {
         title: 'Coaching Types',
         idKey: 'id',
+        titleField: 'name',
+        subtitleField: 'tagline',
+        searchFields: ['name', 'short_name', 'tagline', 'description'],
         fields: [
             { key: 'id', label: 'ID (e.g. online)', type: 'text', required: true, lockOnEdit: true },
             { key: 'name', label: 'Full Name', type: 'text', required: true },
@@ -99,12 +127,15 @@ export const CMS_CONFIGS = {
     durations: {
         title: 'Durations',
         idKey: 'months',
+        titleField: 'label',
+        subtitleField: 'sublabel',
+        searchFields: ['label', 'sublabel', 'description'],
         fields: [
             { key: 'months', label: 'Months (e.g. 3)', type: 'text', required: true, lockOnEdit: true },
             { key: 'label', label: 'Label (e.g. 3 Months)', type: 'text', required: true },
             { key: 'sublabel', label: 'Sublabel (e.g. Foundation)', type: 'text' },
             { key: 'description', label: 'Description', type: 'textarea' },
-            { key: 'popular', label: 'Popular', type: 'boolean', default: false },
+            { key: 'popular', label: 'Popular (Most Popular ribbon)', type: 'boolean', default: false },
             { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
         ],
     },
@@ -113,38 +144,15 @@ export const CMS_CONFIGS = {
     faqs: {
         title: 'FAQ',
         idKey: 'id',
+        titleField: 'question',
+        subtitleField: 'category',
+        searchFields: ['question', 'answer', 'category'],
         fields: [
-            {
-                key: 'category',
-                label: 'Category',
-                type: 'text',
-                required: true,
-            },
-            {
-                key: 'question',
-                label: 'Question',
-                type: 'text',
-                required: true,
-            },
-            {
-                key: 'answer',
-                label: 'Answer',
-                type: 'textarea',
-                required: true,
-                big: true,
-            },
-            {
-                key: 'sort_order',
-                label: 'Sort Order',
-                type: 'number',
-                default: 0,
-            },
-            {
-                key: 'active',
-                label: 'Active',
-                type: 'boolean',
-                default: true,
-            },
+            { key: 'category', label: 'Category', type: 'text', required: true },
+            { key: 'question', label: 'Question', type: 'text', required: true },
+            { key: 'answer', label: 'Answer', type: 'textarea', required: true, big: true },
+            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
+            { key: 'active', label: 'Active', type: 'boolean', default: true },
         ],
     },
 
@@ -152,38 +160,15 @@ export const CMS_CONFIGS = {
     legal_pages: {
         title: 'Legal Pages',
         idKey: 'slug',
+        titleField: 'title',
+        subtitleField: 'slug',
+        searchFields: ['title', 'slug'],
         fields: [
-            {
-                key: 'slug',
-                label: 'Slug',
-                type: 'text',
-                required: true,
-                lockOnEdit: true,
-            },
-            {
-                key: 'title',
-                label: 'Page Title',
-                type: 'text',
-                required: true,
-            },
-            {
-                key: 'last_updated',
-                label: 'Last Updated',
-                type: 'text',
-            },
-            {
-                key: 'intro',
-                label: 'Introduction',
-                type: 'textarea',
-                big: true,
-            },
-            {
-                key: 'sections',
-                label: 'Sections (JSON)',
-                type: 'json',
-                required: true,
-                big: true,
-            },
+            { key: 'slug', label: 'Slug', type: 'text', required: true, lockOnEdit: true },
+            { key: 'title', label: 'Page Title', type: 'text', required: true },
+            { key: 'last_updated', label: 'Last Updated', type: 'text' },
+            { key: 'intro', label: 'Introduction', type: 'textarea', big: true },
+            { key: 'sections', label: 'Sections (JSON)', type: 'json', required: true, big: true },
         ],
     },
 };

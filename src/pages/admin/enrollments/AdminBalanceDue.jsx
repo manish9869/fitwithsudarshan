@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Search, MessageCircle, AlertCircle, Loader2, IndianRupee, Send, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { fetchBalanceDue, sendBalanceReminder as sendBalanceReminderApi } from './adminApi';
-import { fmtCurrency } from './adminUtils';
-import { useToast } from './ToastProvider';
+import { fetchBalanceDue, sendBalanceReminder as sendBalanceReminderApi } from '../adminApi';
+import { fmtCurrency } from '../adminUtils';
+import { useToast } from '../ToastProvider';
 import RecordPaymentModal from './RecordPaymentModal';
 
 export default function AdminBalanceDue() {

@@ -19,34 +19,52 @@ import {
     Wallet,
     HelpCircle,
     FileText,
+    Settings,
 } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
 import { ToastProvider } from './ToastProvider';
 
-const NAV = [
-    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
-    { to: '/admin/manual-enrollment', icon: UserPlus, label: 'Manual Entry' },
-    { to: '/admin/balance-due', icon: Wallet, label: 'Balance Due' },
-    { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
-    { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
-    { to: '/admin/coupons', icon: Tag, label: 'Coupons' },
-
-    { to: '/admin/content/pricing', icon: Wallet, label: 'Pricing' },
-    { to: '/admin/content/testimonials', icon: Users, label: 'Testimonials' },
-    { to: '/admin/content/blog_posts', icon: ClipboardList, label: 'Blog Posts' },
-    { to: '/admin/content/services', icon: Tag, label: 'Services' },
-    { to: '/admin/content/transformations', icon: Activity, label: 'Transformations' },
-    { to: '/admin/content/coaching_types', icon: Users, label: 'Coaching Types' },
-    { to: '/admin/content/durations', icon: BellRing, label: 'Durations' },
-
-    // ── New CMS pages ─────────────────────────────────────────────────────
-    { to: '/admin/faqs', icon: HelpCircle, label: 'FAQs' },
-    { to: '/admin/content/faqs', icon: HelpCircle, label: 'FAQs' },
-    { to: '/admin/content/legal-pages', icon: FileText, label: 'Legal Pages' },
-
-    { to: '/admin/funnel-audit', icon: Activity, label: 'Funnel Audit' },
+const NAV_GROUPS = [
+    {
+        title: 'Overview',
+        items: [
+            { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { to: '/admin/funnel-audit', icon: Activity, label: 'Funnel Audit' },
+        ],
+    },
+    {
+        title: 'Clients',
+        items: [
+            { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
+            { to: '/admin/manual-enrollment', icon: UserPlus, label: 'Manual Entry' },
+            { to: '/admin/balance-due', icon: Wallet, label: 'Balance Due' },
+            { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
+            { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
+        ],
+    },
+    {
+        title: 'Sales',
+        items: [
+            { to: '/admin/coupons', icon: Tag, label: 'Coupons' },
+            { to: '/admin/content/pricing', icon: Wallet, label: 'Pricing' },
+        ],
+    },
+    {
+        title: 'Website Content',
+        items: [
+            { to: '/admin/site-settings', icon: Settings, label: 'Site Settings' },
+            { to: '/admin/content/testimonials', icon: Users, label: 'Testimonials' },
+            { to: '/admin/content/blog_posts', icon: ClipboardList, label: 'Blog Posts' },
+            { to: '/admin/content/services', icon: Tag, label: 'Services' },
+            { to: '/admin/content/transformations', icon: Activity, label: 'Transformations' },
+            { to: '/admin/content/coaching_types', icon: Users, label: 'Coaching Types' },
+            { to: '/admin/content/durations', icon: BellRing, label: 'Durations' },
+            { to: '/admin/content/recode_method', icon: Activity, label: 'RECODE Method' },
+            { to: '/admin/content/faqs', icon: HelpCircle, label: 'FAQs' },
+            { to: '/admin/content/legal-pages', icon: FileText, label: 'Legal Pages' },
+        ],
+    },
 ];
 
 export default function AdminLayout() {
@@ -102,30 +120,39 @@ export default function AdminLayout() {
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-                {NAV.map(({ to, icon: Icon, label }) => (
-                    <NavLink
-                        key={to}
-                        to={to}
-                        onClick={() => setSidebarOpen(false)}
-                        className={({ isActive }) =>
-                            `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive
-                                ? 'text-white'
-                                : 'text-white/40 hover:text-white hover:bg-white/5'
-                            }`
-                        }
-                        style={({ isActive }) =>
-                            isActive
-                                ? {
-                                    background: 'rgba(231,23,99,0.12)',
-                                    border: '1px solid rgba(231,23,99,0.25)',
-                                }
-                                : {}
-                        }
-                    >
-                        <Icon className="w-4 h-4 flex-shrink-0" />
-                        {label}
-                    </NavLink>
+            <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+                {NAV_GROUPS.map((group) => (
+                    <div key={group.title}>
+                        <p className="px-4 mb-1.5 text-[10px] font-black uppercase tracking-widest text-white/25">
+                            {group.title}
+                        </p>
+                        <div className="space-y-1">
+                            {group.items.map(({ to, icon: Icon, label }) => (
+                                <NavLink
+                                    key={to}
+                                    to={to}
+                                    onClick={() => setSidebarOpen(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive
+                                            ? 'text-white'
+                                            : 'text-white/40 hover:text-white hover:bg-white/5'
+                                        }`
+                                    }
+                                    style={({ isActive }) =>
+                                        isActive
+                                            ? {
+                                                background: 'rgba(231,23,99,0.12)',
+                                                border: '1px solid rgba(231,23,99,0.25)',
+                                            }
+                                            : {}
+                                    }
+                                >
+                                    <Icon className="w-4 h-4 flex-shrink-0" />
+                                    {label}
+                                </NavLink>
+                            ))}
+                        </div>
+                    </div>
                 ))}
             </nav>
 

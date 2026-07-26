@@ -8,12 +8,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { coachingTypes, pricingTable, durations, basicConsultation } from '@/data/SiteData';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { validateCouponRemote } from '@/services/couponService';
 import { formatPrice as fmtPrice } from '@/utils/coupons';
+import { useSiteData } from '@/contexts/SiteDataContext';
 
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
 const formatPrice = (p) =>
@@ -283,6 +283,7 @@ function CouponInput({ coachingId, planType, durationMonths, originalPrice, onAp
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function Enroll() {
+    const { coachingTypes, pricingTable, durations, basicConsultation, loading } = useSiteData();
 
     usePageMeta({
         title: 'Enroll Now',
@@ -488,6 +489,14 @@ export default function Enroll() {
         `bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 ${touched[f] && errors[f] ? 'border-red-400/60' : ''}`;
     const partnerInputCls = (f) =>
         `bg-white/5 border-white/10 text-white placeholder:text-white/30 h-9 ${partnerTouched[f] && partnerErrors[f] ? 'border-red-400/60' : ''}`;
+
+    if (loading || !coachingTypes.length || !basicConsultation) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-white/30" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background">

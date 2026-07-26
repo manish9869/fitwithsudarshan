@@ -136,24 +136,38 @@ Is there anything else you need from me before we begin?`,
 };
 
 // ─── Build all URLs ───────────────────────────────────────────────────────────
+// `wa` is a single shared object — every component does `import { wa } from
+// "@/utils/whatsapp"` and reads `wa.coaching` etc. at render time (not at
+// import time), so mutating its properties in place after an admin edit
+// propagates everywhere without touching a single consumer.
+
+const TEMPLATE_KEYS = Object.keys(MESSAGES);
+
+// Exposed so the admin panel can pre-fill its editor with the real, current
+// message text instead of showing empty boxes until someone saves an override.
+export const DEFAULT_WHATSAPP_MESSAGES = MESSAGES;
 
 export const wa = {
-    // Pre-built URLs for every template
-    coaching: build(MESSAGES.coaching),
-    pricing: build(MESSAGES.pricing),
-    programs: build(MESSAGES.programs),
-    transformations: build(MESSAGES.transformations),
-    tools: build(MESSAGES.tools),
-    contact: build(MESSAGES.contact),
-    paymentFailed: build(MESSAGES.paymentFailed),
-    postPayment: build(MESSAGES.postPayment),
-    blog: build(MESSAGES.blog),
-    testimonials: build(MESSAGES.testimonials),
-    footer: build(MESSAGES.footer),
-    assessmentCompleted: build(MESSAGES.assessmentCompleted),
-    /** Build a URL from any custom string */
     custom: (text) => build(text),
 };
+
+function rebuildWa(overrides) {
+    for (const key of TEMPLATE_KEYS) {
+        const text = (overrides && overrides[key]) || MESSAGES[key];
+        wa[key] = build(text);
+    }
+}
+
+rebuildWa(null);
+
+/**
+ * Called once after site content loads (see SiteDataContext) with the
+ * `whatsapp_templates` row from the CMS. Any key left blank in the admin
+ * panel falls back to the built-in default message.
+ */
+export function applyWhatsAppTemplates(overrides) {
+    rebuildWa(overrides);
+}
 
 // Default export — general coaching URL (backwards-compatible with WHATSAPP_URL)
 export const WHATSAPP_URL = wa.coaching;

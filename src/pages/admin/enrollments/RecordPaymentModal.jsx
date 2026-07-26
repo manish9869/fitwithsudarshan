@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Loader2, IndianRupee, CheckCircle2, Ban } from 'lucide-react';
-import { recordEnrollmentPayment } from './adminApi';
-import { useToast } from './ToastProvider';
+import { recordEnrollmentPayment } from '../adminApi';
+import { useToast } from '../ToastProvider';
 
 const METHODS = [
     { value: 'razorpay_link', label: 'Razorpay Link' },

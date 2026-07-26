@@ -24,31 +24,31 @@ import { SiteDataProvider } from '@/contexts/SiteDataContext';
 
 // ── Public pages ──────────────────────────────────────────────────────────
 const Enroll = lazy(() =>
-  lazyRetry(() => import('@/pages/Enroll'))
+  lazyRetry(() => import('@/pages/checkout/Enroll'))
 );
 
 const PaymentPage = lazy(() =>
-  lazyRetry(() => import('@/pages/PaymentPage'))
+  lazyRetry(() => import('@/pages/checkout/PaymentPage'))
 );
 
 const PaymentSuccess = lazy(() =>
-  lazyRetry(() => import('@/pages/PaymentSuccess'))
+  lazyRetry(() => import('@/pages/checkout/PaymentSuccess'))
 );
 
 const PaymentFailed = lazy(() =>
-  lazyRetry(() => import('@/pages/PaymentFailed'))
+  lazyRetry(() => import('@/pages/checkout/PaymentFailed'))
 );
 
 const Terms = lazy(() =>
-  lazyRetry(() => import('@/pages/Terms'))
+  lazyRetry(() => import('@/pages/legal/Terms'))
 );
 
 const RefundPolicy = lazy(() =>
-  lazyRetry(() => import('@/pages/RefundPolicy'))
+  lazyRetry(() => import('@/pages/legal/RefundPolicy'))
 );
 
 const PrivacyPolicy = lazy(() =>
-  lazyRetry(() => import('@/pages/PrivacyPolicy'))
+  lazyRetry(() => import('@/pages/legal/PrivacyPolicy'))
 );
 
 const Onboarding = lazy(() =>
@@ -60,7 +60,7 @@ const Programs = lazy(() =>
 );
 
 const FAQ = lazy(() =>
-  lazyRetry(() => import('@/pages/FAQSection'))
+  lazyRetry(() => import('@/pages/legal/FAQSection'))
 );
 
 const BlogPost = lazy(() =>
@@ -85,7 +85,7 @@ const AdminDashboard = lazy(() =>
 );
 
 const AdminEnrollments = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminEnrollments'))
+  lazyRetry(() => import('@/pages/admin/enrollments/AdminEnrollments'))
 );
 
 const AdminAssessments = lazy(() =>
@@ -93,15 +93,15 @@ const AdminAssessments = lazy(() =>
 );
 
 const AdminCoupons = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminCoupons'))
+  lazyRetry(() => import('@/pages/admin/coupons/AdminCoupons'))
 );
 
 const AdminManualEnrollment = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminManualEnrollment'))
+  lazyRetry(() => import('@/pages/admin/enrollments/AdminManualEnrollment'))
 );
 
 const AdminFollowUps = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminFollowUps'))
+  lazyRetry(() => import('@/pages/admin/enrollments/AdminFollowUps'))
 );
 
 const AdminFunnelAudit = lazy(() =>
@@ -109,21 +109,25 @@ const AdminFunnelAudit = lazy(() =>
 );
 
 const AdminBalanceDue = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminBalanceDue'))
+  lazyRetry(() => import('@/pages/admin/enrollments/AdminBalanceDue'))
 );
 
 // ── Admin CMS ─────────────────────────────────────────────────────────────
 const AdminCMSList = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminCMSList'))
+  lazyRetry(() => import('@/pages/admin/content/AdminCMSList'))
 );
 
 const AdminPricingMatrix = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminPricingMatrix'))
+  lazyRetry(() => import('@/pages/admin/content/AdminPricingMatrix'))
 );
 
 
 const AdminLegalPages = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/AdminLegalPages'))
+  lazyRetry(() => import('@/pages/admin/content/AdminLegalPages'))
+);
+
+const AdminSiteSettings = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/content/AdminSiteSettings'))
 );
 // ── Loading fallback ──────────────────────────────────────────────────────
 function PageFallback() {
@@ -425,6 +429,7 @@ function App() {
                 }
               />
               <Route path="content/legal-pages" element={<LazyRoute><AdminLegalPages /></LazyRoute>} />
+              <Route path="site-settings" element={<LazyRoute><AdminSiteSettings /></LazyRoute>} />
               {/* ── Generic CMS editor ──
                   Handles:
                   /admin/content/testimonials
