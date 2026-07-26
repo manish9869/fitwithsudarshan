@@ -3,7 +3,7 @@
 // JSON, no code — so a non-technical user can edit everything with normal
 // text boxes, toggles, and "Add" buttons.
 import { useState, useRef } from 'react';
-import { Plus, X, GripVertical, Check, Loader2, ImagePlus, ImageOff } from 'lucide-react';
+import { Plus, X, GripVertical, Check, Loader2, ImagePlus, ImageOff, Undo2 } from 'lucide-react';
 import { uploadImage } from './cmsApi';
 import { useToast } from '../ToastProvider';
 
@@ -175,9 +175,9 @@ export function ChipInput({ label, value, onChange, placeholder, hint }) {
 
 // ── Image upload field — drag/click to upload, shows a live preview.
 // Stores just the resulting CDN URL as the field value. When `defaultPreview`
-// is given, an empty value falls back to it visually and a "Reset to
-// Default" action appears once a custom image is set — that's the plumbing
-// behind "optionally override this image, and go back to normal anytime."
+// is given, a permanent "Use Default Image" button is always on screen (not
+// just after a custom image is set) — so if an upload turns out wrong, going
+// back to the original is always one click away, never hidden or hard to find.
 export function ImageField({ label, value, onChange, folder, defaultPreview, hint }) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
@@ -244,11 +244,18 @@ export function ImageField({ label, value, onChange, folder, defaultPreview, hin
                             {uploading ? 'Uploading…' : isCustom ? 'Replace Photo' : 'Upload Photo'}
                         </button>
                         {defaultPreview ? (
-                            isCustom && (
-                                <button type="button" onClick={() => onChange('')} className="text-xs text-white/30 hover:text-red-400">
-                                    Reset to Default
-                                </button>
-                            )
+                            <button
+                                type="button"
+                                onClick={() => onChange('')}
+                                disabled={!isCustom}
+                                title={isCustom ? 'Go back to the original image' : 'Already showing the default image'}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-40"
+                                style={isCustom
+                                    ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.75)' }
+                                    : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}
+                            >
+                                <Undo2 className="w-3.5 h-3.5" /> Use Default Image
+                            </button>
                         ) : (
                             value && (
                                 <button type="button" onClick={() => onChange('')} className="text-xs text-white/30 hover:text-red-400">
