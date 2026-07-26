@@ -48,40 +48,10 @@ export const CMS_CONFIGS = {
         ],
     },
 
-    services: {
-        title: 'Services',
-        idKey: 'id',
-        titleField: 'title',
-        subtitleField: 'subtitle',
-        searchFields: ['title', 'subtitle', 'badge'],
-        fields: [
-            { key: 'id', label: 'ID (e.g. online)', type: 'text', required: true, lockOnEdit: true },
-            { key: 'title', label: 'Title', type: 'text', required: true },
-            { key: 'subtitle', label: 'Subtitle', type: 'text' },
-            { key: 'features', label: 'Features (comma separated)', type: 'list' },
-            { key: 'badge', label: 'Badge', type: 'text' },
-            { key: 'color', label: 'Color gradient class', type: 'text' },
-            { key: 'accent', label: 'Accent class', type: 'text' },
-            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
-            { key: 'active', label: 'Active', type: 'boolean', default: true },
-        ],
-    },
-
-    recode_method: {
-        title: 'RECODE Method Steps',
-        idKey: 'id',
-        titleField: 'title',
-        subtitleField: 'step',
-        searchFields: ['title', 'description', 'step'],
-        fields: [
-            { key: 'step', label: 'Step (e.g. 01)', type: 'text' },
-            { key: 'title', label: 'Title', type: 'text', required: true },
-            { key: 'description', label: 'Description', type: 'textarea' },
-            { key: 'color', label: 'Color gradient class', type: 'text' },
-            { key: 'accent', label: 'Accent class', type: 'text' },
-            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
-        ],
-    },
+    // services and recode_method each have their own dedicated editor — see
+    // AdminServices.jsx and AdminRecodeMethod.jsx — since their `color`/
+    // `accent` fields need a safelisted color picker rather than raw
+    // Tailwind class text, and their `features` need a chip input.
 
     transformations: {
         title: 'Transformations',

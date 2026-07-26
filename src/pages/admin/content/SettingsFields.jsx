@@ -3,7 +3,7 @@
 // JSON, no code — so a non-technical user can edit everything with normal
 // text boxes, toggles, and "Add" buttons.
 import { useState } from 'react';
-import { Plus, X, GripVertical } from 'lucide-react';
+import { Plus, X, GripVertical, Check } from 'lucide-react';
 
 const labelCls = 'text-[11px] font-bold text-white/45 uppercase tracking-widest mb-1.5 block';
 const inputCls = 'w-full rounded-lg px-3 py-2.5 text-sm text-white bg-white/5 border border-white/10 placeholder:text-white/25 outline-none focus:border-[rgba(231,23,99,0.5)]';
@@ -165,6 +165,34 @@ export function ChipInput({ label, value, onChange, placeholder, hint }) {
                     placeholder={items.length ? 'Add another…' : placeholder}
                     className="flex-1 min-w-[140px] bg-transparent outline-none text-sm text-white placeholder:text-white/25 py-1"
                 />
+            </div>
+            {hint && <p className="text-[11px] text-white/25 mt-1.5">{hint}</p>}
+        </div>
+    );
+}
+
+// ── Color swatch picker — for the handful of places content picks from a
+// small, safelisted set of accent colors. Options: [{ value, name, swatch }].
+export function SwatchPicker({ label, value, onChange, options, hint }) {
+    return (
+        <div>
+            {label && <label className={labelCls}>{label}</label>}
+            <div className="flex flex-wrap gap-2.5">
+                {options.map((opt) => {
+                    const active = value === opt.value;
+                    return (
+                        <button key={opt.value} type="button" onClick={() => onChange(opt.value)} title={opt.name}
+                            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-transform"
+                            style={{
+                                background: opt.swatch,
+                                boxShadow: active ? `0 0 0 2px #0e0e16, 0 0 0 4px ${opt.swatch}` : 'none',
+                                transform: active ? 'scale(1.08)' : 'scale(1)',
+                            }}
+                        >
+                            {active && <Check className="w-4 h-4 text-white" style={{ filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.6))' }} />}
+                        </button>
+                    );
+                })}
             </div>
             {hint && <p className="text-[11px] text-white/25 mt-1.5">{hint}</p>}
         </div>
