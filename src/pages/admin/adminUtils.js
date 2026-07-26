@@ -59,6 +59,19 @@ export function fmtGoals(goals) {
     return String(goals);
 }
 
+// Display-only — never mutates what's actually stored. Handles the common
+// real-world mess (ALL CAPS, all lowercase, "john  doe") without trying to
+// be clever about apostrophes/hyphens (McDonald, O'Brien) — good enough for
+// how names actually get typed into a form, not a full name-parsing library.
+export function fmtName(name) {
+    if (!name) return name;
+    return String(name)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/\b\p{L}/gu, (c) => c.toUpperCase());
+}
+
 // ── Date Range Presets ────────────────────────────────────────────────────────
 export const DATE_PRESETS = [
     { label: 'Today', days: 0 },
