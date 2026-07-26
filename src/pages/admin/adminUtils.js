@@ -6,6 +6,7 @@
  */
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
+import { getToken } from './adminApi';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 export function fmtCurrency(amount) {
@@ -513,25 +514,26 @@ export function exportAssessmentsToExcel(rows, { dateFrom, dateTo } = {}) {
     XLSX.writeFile(wb, `recode-assessments-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-// ── PDF Invoice (via backend) ─────────────────────────────────────────────────
+// ── PDF Invoice (via backend, admin-authenticated) ────────────────────────────
+// Goes through the authenticated /api/admin/enrollments/:id/invoice route
+// (not the public /api/invoice used right after a website checkout) so it
+// works for manual enrollments too and the PDF is always built from the
+// server's own record, not whatever fields this call happens to pass.
 export async function downloadInvoicePDF(enrollment) {
     const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
-    const invoiceId =
-        enrollment?.enrollmentId ||
-        enrollment?.enrollment_id;
+    const dbId = enrollment?.id;
+    const invoiceId = enrollment?.enrollmentId || enrollment?.enrollment_id;
 
-    if (!invoiceId) {
+    if (!dbId) {
         throw new Error('Missing enrollment ID.');
     }
 
-    const res = await fetch(`${API_BASE}/api/invoice`, {
-        method: 'POST',
+    const res = await fetch(`${API_BASE}/api/admin/enrollments/${dbId}/invoice`, {
         headers: {
-            'Content-Type': 'application/json',
             Accept: 'application/pdf',
+            Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify(enrollment),
     });
 
     const contentType = res.headers.get('content-type') || '';
@@ -573,21 +575,23 @@ export async function downloadInvoicePDF(enrollment) {
 
     return true;
 }
-// ── PDF Receipt for a single payment (partial/installment) — via backend ─────
-export async function downloadPaymentReceiptPDF({ enrollment, payment, paidToDate }) {
+// ── PDF Receipt for a single payment (partial/installment) — via backend,
+//    admin-authenticated. Goes through /api/admin/enrollments/:id/payments/
+//    :paymentId/receipt — the server looks up the enrollment + payment (and
+//    recomputes the running "paid to date" total) itself instead of trusting
+//    whatever the caller passes in.
+export async function downloadPaymentReceiptPDF({ enrollment, payment }) {
     const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
-    if (!payment || payment.amount == null) {
-        throw new Error('Missing payment data.');
+    if (!enrollment?.id || !payment?.id) {
+        throw new Error('Missing enrollment or payment ID.');
     }
 
-    const res = await fetch(`${API_BASE}/api/payment-receipt`, {
-        method: 'POST',
+    const res = await fetch(`${API_BASE}/api/admin/enrollments/${enrollment.id}/payments/${payment.id}/receipt`, {
         headers: {
-            'Content-Type': 'application/json',
             Accept: 'application/pdf',
+            Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({ enrollment, payment, paidToDate }),
     });
 
     const contentType = res.headers.get('content-type') || '';

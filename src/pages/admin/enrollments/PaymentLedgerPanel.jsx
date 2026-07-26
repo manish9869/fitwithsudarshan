@@ -23,24 +23,6 @@ function methodMeta(m) {
     return METHOD_META[m] || METHOD_META.other;
 }
 
-// Maps the admin panel's snake_case enrollment row into the camelCase
-// shape the backend's stateless /api/payment-receipt endpoint expects
-// (same pattern as the existing full-invoice download).
-function mapEnrollmentForReceipt(enrollment) {
-    return {
-        enrollmentId: enrollment.enrollment_id,
-        customerName: enrollment.customer_name,
-        customerEmail: enrollment.customer_email,
-        customerPhone: enrollment.customer_phone,
-        programName: enrollment.program_name,
-        coachingType: enrollment.coaching_type,
-        durationMonths: enrollment.duration_months,
-        totalAmount: enrollment.total_amount ?? enrollment.amount_paid,
-        amountPaid: enrollment.amount_paid,
-        razorpayOrderId: enrollment.razorpay_order_id,
-    };
-}
-
 export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) {
     const toast = useToast();
     const [payments, setPayments] = useState([]);
@@ -123,17 +105,7 @@ export default function PaymentLedgerPanel({ enrollment, onEnrollmentUpdated }) 
     const handleDownloadReceipt = async (payment) => {
         setDownloadingReceiptId(payment.id);
         try {
-            await downloadPaymentReceiptPDF({
-                enrollment: mapEnrollmentForReceipt(enrollment),
-                payment: {
-                    id: payment.id,
-                    amount: payment.amount,
-                    method: payment.method,
-                    reference: payment.reference,
-                    paid_at: payment.paid_at,
-                },
-                paidToDate: payment._paidToDate,
-            });
+            await downloadPaymentReceiptPDF({ enrollment, payment });
             toast.success('Receipt downloaded');
         } catch (e) {
             toast.error(e.message || 'Failed to download receipt.');

@@ -270,7 +270,10 @@ export default function PaymentSuccess() {
             const res = await fetch(`${API_BASE}/api/invoice`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(enrollment),
+                body: JSON.stringify({
+                    enrollmentId: enrollment.enrollmentId,
+                    razorpayPaymentId: enrollment.razorpayPaymentId,
+                }),
             });
             if (!res.ok) throw new Error('Failed to generate invoice');
             const blob = await res.blob();

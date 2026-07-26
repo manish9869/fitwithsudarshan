@@ -31,7 +31,8 @@ import {
 import {
     IndianRupee, TrendingUp, Users, ClipboardList, Tag, Heart,
     RefreshCw, AlertCircle, ArrowUpRight, Calendar, Sparkles, Loader2,
-    Percent, BellRing, ListChecks, ClipboardCheck,
+    Percent, BellRing, ListChecks, ClipboardCheck, Salad,
+    ShieldAlert, Globe,
 } from 'lucide-react';
 import { fetchDashboard, fetchAssessments, fetchFollowUps } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
@@ -108,7 +109,7 @@ function CustomTooltip({ active, payload, label, formatter, labelFormatter, valu
     );
 }
 
-function DonutTooltip({ active, payload, total = 0, formatter, valueLabel = 'Count' }) {
+function DonutTooltip({ active, payload, total = 0, formatter, valueLabel = 'Count', secondaryKey, secondaryFormatter, secondaryLabel }) {
     if (!active || !payload?.length) return null;
 
     const item = payload[0];
@@ -116,6 +117,7 @@ function DonutTooltip({ active, payload, total = 0, formatter, valueLabel = 'Cou
     const value = item.value ?? item.payload?.value ?? 0;
     const pct = total ? Math.round((Number(value) / Number(total)) * 100) : 0;
     const displayValue = formatter ? formatter(value) : value;
+    const secondaryValue = secondaryKey ? item.payload?.[secondaryKey] : undefined;
 
     return (
         <div style={tooltipWrapperStyle}>
@@ -137,6 +139,12 @@ function DonutTooltip({ active, payload, total = 0, formatter, valueLabel = 'Cou
             <p className="text-[11px] text-white/35 mt-1">
                 {pct}% of total
             </p>
+
+            {secondaryValue != null && (
+                <p className="text-[11px] font-bold mt-1" style={{ color: '#34d399' }}>
+                    {secondaryFormatter ? secondaryFormatter(secondaryValue) : secondaryValue} {secondaryLabel}
+                </p>
+            )}
         </div>
     );
 }
@@ -177,6 +185,26 @@ function KpiCard({ icon: Icon, label, value, sub, accent, delay = 0 }) {
         </motion.div>
     );
 }
+// ── KPI Section — groups related KPI cards under a small labeled header so
+// 11 cards read as 3 digestible questions ("how's the business doing?",
+// "what needs me right now?", "what are clients choosing?") instead of one
+// flat wall of numbers.
+function KpiSection({ title, icon: Icon, accent = '#e71763', children }) {
+    return (
+        <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+                <Icon className="w-3.5 h-3.5" style={{ color: accent }} />
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: accent }}>
+                    {title}
+                </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {children}
+            </div>
+        </div>
+    );
+}
+
 // ── Chart Card ────────────────────────────────────────────────────────────────
 function ChartCard({ title, icon: Icon, children, className = '', bodyClassName = 'p-4', badge }) {
     return (
@@ -571,6 +599,7 @@ export default function AdminDashboard() {
 
     const coachingTotal = c.coachingTypeSplit?.reduce((sum, item) => sum + Number(item.value || 0), 0) || 0;
     const planTypeTotal = c.planTypeSplit?.reduce((sum, item) => sum + Number(item.value || 0), 0) || 0;
+    const sourceTotal = c.enrollmentSourceSplit?.reduce((sum, item) => sum + Number(item.value || 0), 0) || 0;
 
     const assessmentStatusData = (c.assessmentStatusSplit || []).map((item) => ({
         ...item,
@@ -694,8 +723,10 @@ export default function AdminDashboard() {
                 </div>
             ) : (
                 <>
-                    {/* ── KPIs — one consistent grid so every card aligns, no orphaned wraps ── */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+                    {/* ── KPIs — grouped into 3 questions instead of one flat wall of
+                        11 cards: how's the business doing, what needs me right now,
+                        and what are clients actually choosing. ── */}
+                    <KpiSection title="Business Performance" icon={TrendingUp} accent="#e71763">
                         <KpiCard
                             icon={IndianRupee} label="Revenue" accent="#e71763"
                             value={fmtCompactCurrency(k.totalRevenue)}
@@ -709,9 +740,9 @@ export default function AdminDashboard() {
                             delay={0.03}
                         />
                         <KpiCard
-                            icon={ClipboardList} label="New Assessments" accent="#60a5fa"
-                            value={k.assessmentsInRange ?? 0}
-                            sub={`${k.totalAssessmentsAllTime ?? 0} all-time`}
+                            icon={Percent} label="Conversion Rate" accent="#a78bfa"
+                            value={k.conversionRate != null ? `${k.conversionRate}%` : '—'}
+                            sub="assessments → enrollments"
                             delay={0.06}
                         />
                         <KpiCard
@@ -720,30 +751,15 @@ export default function AdminDashboard() {
                             sub={`${k.couponUsageCount ?? 0} coupon uses`}
                             delay={0.09}
                         />
-                        <KpiCard
-                            icon={Percent} label="Conversion Rate" accent="#a78bfa"
-                            value={k.conversionRate != null ? `${k.conversionRate}%` : '—'}
-                            sub="assessments → enrollments"
-                            delay={0.12}
-                        />
-                        <KpiCard
-                            icon={Heart} label="Couple Plans" accent="#f472b6"
-                            value={k.coupleCount ?? 0}
-                            sub="in selected range"
-                            delay={0.15}
-                        />
-                        <KpiCard
-                            icon={Sparkles} label="Avg. Commitment" accent="#fb923c"
-                            value={k.avgCommitment ? `${k.avgCommitment.toFixed(1)}/10` : '—'}
-                            sub="from assessments"
-                            delay={0.18}
-                        />
+                    </KpiSection>
+
+                    <KpiSection title="Needs Your Attention" icon={ShieldAlert} accent="#f87171">
                         <KpiCard
                             icon={ClipboardCheck} label="Pending Review"
                             accent={k.pendingReviewCount > 0 ? '#fbbf24' : '#34d399'}
                             value={k.pendingReviewCount ?? 0}
                             sub={k.pendingReviewCount > 0 ? 'assessments awaiting review' : 'all reviewed'}
-                            delay={0.21}
+                            delay={0.12}
                         />
                         <Link to="/admin/follow-ups" className="block">
                             <KpiCard
@@ -751,7 +767,7 @@ export default function AdminDashboard() {
                                 accent={k.followUpsDue > 0 ? '#f87171' : '#34d399'}
                                 value={k.followUpsDue ?? 0}
                                 sub={k.followUpsDue > 0 ? 'clients waiting — tap to review' : 'all caught up'}
-                                delay={0.24}
+                                delay={0.15}
                             />
                         </Link>
                         <Link to="/admin/balance-due" className="block">
@@ -760,10 +776,39 @@ export default function AdminDashboard() {
                                 accent={k.totalOutstandingBalance > 0 ? '#fbbf24' : '#34d399'}
                                 value={fmtCompactCurrency(k.totalOutstandingBalance)}
                                 sub={`${k.clientsWithBalance ?? 0} clients — tap to collect`}
-                                delay={0.27}
+                                delay={0.18}
                             />
                         </Link>
-                    </div>
+                    </KpiSection>
+
+                    <KpiSection title="Client Insights" icon={Users} accent="#60a5fa">
+                        <KpiCard
+                            icon={ClipboardList} label="New Assessments" accent="#60a5fa"
+                            value={k.assessmentsInRange ?? 0}
+                            sub={`${k.totalAssessmentsAllTime ?? 0} all-time`}
+                            delay={0.21}
+                        />
+                        <KpiCard
+                            icon={Heart} label="Couple Plans" accent="#f472b6"
+                            value={k.coupleCount ?? 0}
+                            sub="in selected range"
+                            delay={0.24}
+                        />
+                        <KpiCard
+                            icon={Sparkles} label="Avg. Commitment" accent="#fb923c"
+                            value={k.avgCommitment ? `${k.avgCommitment.toFixed(1)}/10` : '—'}
+                            sub="from assessments"
+                            delay={0.27}
+                        />
+                        <Link to="/admin/diet-plans" className="block">
+                            <KpiCard
+                                icon={Salad} label="Diet Plans Created" accent="#2dd4bf"
+                                value={k.dietPlansInRange ?? 0}
+                                sub={`${k.totalDietPlansAllTime ?? 0} all-time · ${k.dietPlansLinkedInRange ?? 0} for enrolled clients`}
+                                delay={0.3}
+                            />
+                        </Link>
+                    </KpiSection>
 
                     {/* ── Lifetime Strip ── */}
                     <div
@@ -868,7 +913,7 @@ export default function AdminDashboard() {
                     </ChartCard>
 
                     {/* ── Donut Charts ── */}
-                    <div className="grid lg:grid-cols-2 gap-5 mb-5">
+                    <div className="grid lg:grid-cols-3 gap-5 mb-5">
                         <ChartCard title="Enrollments by Coaching Type" icon={Users}>
                             {!c.coachingTypeSplit?.length ? (
                                 <EmptyState />
@@ -947,6 +992,52 @@ export default function AdminDashboard() {
                                                 <DonutTooltip
                                                     total={planTypeTotal}
                                                     valueLabel="plans"
+                                                />
+                                            }
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
+                        </ChartCard>
+
+                        <ChartCard title="Enrollment Source" icon={Globe} badge="website vs manual">
+                            {!c.enrollmentSourceSplit?.some((s) => s.value > 0) ? (
+                                <EmptyState />
+                            ) : (
+                                <ResponsiveContainer width="100%" height={275}>
+                                    <PieChart>
+                                        <Pie
+                                            data={c.enrollmentSourceSplit}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={58}
+                                            outerRadius={92}
+                                            paddingAngle={4}
+                                            cornerRadius={8}
+                                            labelLine={false}
+                                            label={renderPieLabel}
+                                        >
+                                            {c.enrollmentSourceSplit.map((_, i) => (
+                                                <Cell
+                                                    key={i}
+                                                    fill={[PIE_COLORS[0], PIE_COLORS[1]][i % 2]}
+                                                    stroke="rgba(12,12,22,0.95)"
+                                                    strokeWidth={3}
+                                                />
+                                            ))}
+                                        </Pie>
+
+                                        <Tooltip
+                                            cursor={false}
+                                            content={
+                                                <DonutTooltip
+                                                    total={sourceTotal}
+                                                    valueLabel="enrollments"
+                                                    secondaryKey="revenue"
+                                                    secondaryFormatter={(v) => fmtCompactCurrency(v)}
+                                                    secondaryLabel="revenue"
                                                 />
                                             }
                                         />
