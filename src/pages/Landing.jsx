@@ -5,9 +5,7 @@ import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import FooterSection from '@/components/landing/FooterSection';
 import { TransformationsSection } from '@/components/landing/TransformationsSection';
 import { ToolsSection } from '@/components/landing/ToolsSection';
-// FIX: was importing the static PricingSection.jsx (hardcoded @/data/SiteData).
-// Import the dynamic one so admin edits (pricing, sale flag) actually show up.
-import { PricingSection } from '@/components/landing/ProgramsSection';
+import { PricingSection } from '@/components/landing/PricingSection';
 import { ContactSection } from '@/components/landing/ContactSection';
 import BlogSection from '@/components/landing/BlogSection';
 import FloatingWhatsApp from '@/components/landing/FloatingWhatsApp';
@@ -18,7 +16,7 @@ import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 import { wa } from "@/utils/whatsapp";
-
+// Reusable scroll-reveal wrapper
 function Reveal({ children, delay = 0 }) {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-80px" });
@@ -47,6 +45,12 @@ export default function Landing() {
             <Reveal delay={0.05}><div id="pricing"><PricingSection /></div></Reveal>
             <Reveal delay={0.05}><div id="blog"><BlogSection /></div></Reveal>
 
+            {/* ── Final CTA Section ──
+                320px fixes:
+                - py-24 → py-12 sm:py-24  (was 96px top+bottom on mobile — way too much)
+                - px-4  → px-3 sm:px-4
+                - overflow-hidden already present, keeps the 600px glow orb clipped
+            */}
             <section className="py-12 sm:py-24 px-3 sm:px-4 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
                 <motion.div
@@ -66,15 +70,18 @@ export default function Landing() {
                             Your Transformation Starts Now
                         </motion.span>
 
+                        {/* 320px: text-2xl base (was text-3xl — "Ready to RECODE?" overflows at 320px) */}
                         <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 sm:mb-6 text-white">
                             Ready to{' '}
                             <span style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.4)' }}>RECODE?</span>
                         </h2>
 
+                        {/* 320px: text-base (was text-lg), tighter bottom margin */}
                         <p className="text-sm sm:text-lg text-muted-foreground mb-6 sm:mb-8 px-2">
                             Join hundreds who've already started their transformation with Sudarshan. Your RECODE journey begins today.
                         </p>
 
+                        {/* Pulse CTA — flex justify-center wrapper prevents inline-flex overflow */}
                         <div className="flex justify-center">
                             <div className="relative">
                                 <motion.span
@@ -91,6 +98,10 @@ export default function Landing() {
                                 />
                                 <a href={wa.coaching} target="_blank" rel="noopener noreferrer">
                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+                                        {/*
+                                            320px: px-6 py-4 base (was px-12 py-7 — button was ~260px wide,
+                                            nearly full viewport, text clipped with any font rendering variance)
+                                        */}
                                         <Button
                                             size="lg"
                                             className="relative text-white rounded-full py-4 sm:py-7 text-sm sm:text-lg font-bold px-6 sm:px-12"
@@ -111,6 +122,7 @@ export default function Landing() {
 
             <FloatingWhatsApp />
             <StickyCTABar />
+
         </div>
     );
 }

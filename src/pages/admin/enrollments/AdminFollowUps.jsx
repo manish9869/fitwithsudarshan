@@ -16,11 +16,11 @@ import {
     RefreshCw, Search, MessageCircle, CheckCircle2, Clock, X,
     AlertCircle, Loader2, StickyNote, PauseCircle, Calendar,
 } from 'lucide-react';
-import { fetchFollowUps, markFollowUp } from './adminApi';
-import { fmtCurrency, fmtDateTime } from './adminUtils';
-import { useToast } from './ToastProvider';
-import { useDebounce } from './useDebounce';
-import PaginationBar from './PaginationBar';
+import { fetchFollowUps, markFollowUp } from '../adminApi';
+import { fmtCurrency, fmtDateTime } from '../adminUtils';
+import { useToast } from '../ToastProvider';
+import { useDebounce } from '../useDebounce';
+import PaginationBar from '../PaginationBar';
 
 function daysAgo(iso) {
     if (!iso) return null;

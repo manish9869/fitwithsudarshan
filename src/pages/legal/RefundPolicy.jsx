@@ -9,8 +9,7 @@ import { useSiteData } from '@/contexts/SiteDataContext';
 export default function RefundPolicy() {
     const { legalPages } = useSiteData();
 
-    ```
-const page = legalPages?.['refund-policy'] || {
+    const page = legalPages?.['refund-policy'] || {
     title: 'Refund & Cancellation Policy',
     last_updated: '',
     intro: '',
@@ -210,7 +209,5 @@ return (
 
         <FooterSection />
     </div>
-);
-```
-
+    );
 }

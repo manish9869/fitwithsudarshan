@@ -4,17 +4,17 @@ import {
     Loader2, AlertCircle, AlertTriangle, CheckCircle2, Plus, X, Edit2, Trash2,
     Search, RefreshCw, MessageCircle, Users, IndianRupee, Eye,
 } from 'lucide-react';
-import { coachingTypes, durations, pricingTable } from '@/data/SiteData';
+import { useSiteData } from '@/contexts/SiteDataContext';
 import {
     createManualEnrollment, updateManualEnrollment, deleteManualEnrollment,
     sendEnrollmentEmail, fetchEnrollments, searchEnrollments, fetchEnrollmentPayments,
-} from './adminApi';
+} from '../adminApi';
 import RecordPaymentModal from './RecordPaymentModal';
 import PaymentLedgerPanel from './PaymentLedgerPanel';
-import PaginationBar from './PaginationBar';
-import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES } from './adminUtils';
+import PaginationBar from '../PaginationBar';
+import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES } from '../adminUtils';
 import EmailSendMenu from './EmailSendMenu';
-import { useToast } from './ToastProvider';
+import { useToast } from '../ToastProvider';
 
 // ── All 4 real-world payment modes, plus cash/other for edge cases ──────────
 const PAYMENT_METHODS = [
@@ -94,7 +94,7 @@ function rowToForm(row) {
     };
 }
 
-function EnrollmentFormModal({ editingRow, onClose, onSaved }) {
+function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, durations, pricingTable }) {
     const isEdit = !!editingRow;
     const [form, setForm] = useState(() => rowToForm(editingRow));
     const [saving, setSaving] = useState(false);
@@ -587,6 +587,7 @@ function ManualEnrollmentDetailDrawer({ row, onClose, onEdit, onPaymentRecorded 
     );
 }
 export default function AdminManualEnrollment() {
+    const { coachingTypes, durations, pricingTable } = useSiteData();
     const toast = useToast();
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -953,6 +954,9 @@ export default function AdminManualEnrollment() {
                         editingRow={editingRow}
                         onClose={() => { setModalOpen(false); setEditingRow(null); }}
                         onSaved={handleSaved}
+                        coachingTypes={coachingTypes}
+                        durations={durations}
+                        pricingTable={pricingTable}
                     />
                 )}
             </AnimatePresence>

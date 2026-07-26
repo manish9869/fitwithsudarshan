@@ -80,7 +80,7 @@ export default defineConfig({
           // Admin panel chunk — only loads on /admin routes
           'admin': [
             './src/pages/admin/AdminDashboard.jsx',
-            './src/pages/admin/AdminEnrollments.jsx',
+            './src/pages/admin/enrollments/AdminEnrollments.jsx',
             './src/pages/admin/AdminAssessments.jsx',
             './src/pages/admin/AdminLayout.jsx',
             './src/pages/admin/AdminLogin.jsx',

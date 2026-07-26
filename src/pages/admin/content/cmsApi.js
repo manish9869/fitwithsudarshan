@@ -2,7 +2,7 @@
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
-import { getToken } from './adminApi';
+import { getToken } from '../adminApi';
 
 async function req(path, opts = {}) {
     const token = getToken();
@@ -83,3 +83,22 @@ export const putPricingAdmin = (rows) =>
         method: 'PUT',
         body: { rows },
     }).then((d) => d.pricingTable);
+
+// ── Image upload → Supabase Storage (CDN URL) ──────────────────────────────
+// Not routed through req() — that helper always sends JSON; this needs a
+// multipart body so the browser sets its own Content-Type + boundary.
+export async function uploadImage(file, folder = 'uploads') {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_BASE}/api/admin/upload?folder=${encodeURIComponent(folder)}`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data; // { url, path }
+}

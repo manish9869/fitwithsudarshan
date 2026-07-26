@@ -9,8 +9,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { coachingTypes, pricingTable, durations, basicConsultation } from '@/data/SiteData';
 import { useRazorpay } from '@/hooks/useRazorpay';
+import { useSiteData } from '@/contexts/SiteDataContext';
 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -127,6 +127,7 @@ const trustBadges = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function PaymentPage() {
+    const { coachingTypes, pricingTable, durations, basicConsultation, loading } = useSiteData();
     const [coachingId, setCoachingId] = useState('online');
     const [planType, setPlanType] = useState('individual');
     const [durationMonths, setDurationMonths] = useState('3');
@@ -195,6 +196,14 @@ export default function PaymentPage() {
             onDismiss: () => setModalStatus('dismissed'),
         });
     };
+
+    if (loading || !coachingTypes.length || !basicConsultation) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-white/30" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background text-foreground">

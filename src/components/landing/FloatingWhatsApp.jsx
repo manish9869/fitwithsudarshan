@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MessageCircle } from "lucide-react";
 import { wa } from "@/utils/whatsapp";
+import { useSiteData } from "@/contexts/SiteDataContext";
+import { DEFAULT_FLOATING_WHATSAPP } from "@/utils/siteContentDefaults";
 
 export default function FloatingWhatsApp() {
+    const { floatingWhatsapp } = useSiteData();
     const [showTooltip, setShowTooltip] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
@@ -12,7 +15,9 @@ export default function FloatingWhatsApp() {
         return () => clearTimeout(t);
     }, []);
 
+    if (floatingWhatsapp?.enabled === false) return null;
 
+    const tooltipText = floatingWhatsapp?.tooltipText || DEFAULT_FLOATING_WHATSAPP.tooltipText;
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
@@ -28,8 +33,7 @@ export default function FloatingWhatsApp() {
                     >
                         <div className="flex-1">
                             <p className="text-white text-xs font-semibold leading-relaxed">
-                                💬 Speak Directly With The Founder -
-                                Get clarity on your transformation journey.
+                                {tooltipText}
                             </p>
                         </div>
                         <button onClick={() => setDismissed(true)} className="text-white/40 hover:text-white/80 flex-shrink-0 mt-0.5">

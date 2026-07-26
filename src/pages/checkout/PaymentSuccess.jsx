@@ -4,7 +4,7 @@
  * Receives enrollment data via React Router state.
  * Responsive down to 320px viewport width.
  */
-import { Navbar } from '../components/landing/Navbar';
+import { Navbar } from '../../components/landing/Navbar';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';

@@ -5,10 +5,10 @@ import {
     Wallet, HelpCircle, Clock, AlertCircle, Copy, Check, Layers, CheckCircle2,
     Download, Mail,
 } from 'lucide-react';
-import { fetchEnrollmentPayments, sendBalanceReminder, sendPaymentReceiptEmail } from './adminApi';
-import { fmtCurrency, fmtDateTime, downloadPaymentReceiptPDF } from './adminUtils';
+import { fetchEnrollmentPayments, sendBalanceReminder, sendPaymentReceiptEmail } from '../adminApi';
+import { fmtCurrency, fmtDateTime, downloadPaymentReceiptPDF } from '../adminUtils';
 import RecordPaymentModal from './RecordPaymentModal';
-import { useToast } from './ToastProvider';
+import { useToast } from '../ToastProvider';
 
 const METHOD_META = {
     razorpay: { label: 'Razorpay (Website)', icon: CreditCard, color: '#e71763' },

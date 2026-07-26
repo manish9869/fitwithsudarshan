@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useSiteData } from "@/contexts/SiteDataContext";
+import { DEFAULT_STICKY_CTA } from "@/utils/siteContentDefaults";
 
 export default function StickyCTABar() {
+    const { stickyCta } = useSiteData();
     const [visible, setVisible] = useState(false);
     const [closed, setClosed] = useState(false);
 
@@ -16,6 +19,12 @@ export default function StickyCTABar() {
         window.addEventListener("scroll", handleScroll, { passive: true });
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    if (stickyCta?.enabled === false) return null;
+
+    const title = stickyCta?.title || DEFAULT_STICKY_CTA.title;
+    const subtitle = stickyCta?.subtitle || DEFAULT_STICKY_CTA.subtitle;
+    const ctaLabel = stickyCta?.ctaLabel || DEFAULT_STICKY_CTA.ctaLabel;
 
     return (
         <AnimatePresence>
@@ -37,10 +46,9 @@ export default function StickyCTABar() {
                                 transition={{ duration: 1.5, repeat: Infinity }}
                             />
                             <p className="text-white font-semibold text-sm truncate">
-                                Not sure where to start?
-
+                                {title}
                             </p>
-                            <p className="text-muted-foreground text-xs hidden sm:block"> Chat directly with Sudarshan, Founder of RECODE™</p>
+                            <p className="text-muted-foreground text-xs hidden sm:block">{subtitle}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <Link to="/enroll">
@@ -50,7 +58,7 @@ export default function StickyCTABar() {
                                     className="px-5 py-2 rounded-full text-white font-bold text-sm"
                                     style={{ background: '#e71763', boxShadow: '0 0 20px rgba(231,23,99,0.35)' }}
                                 >
-                                    Enroll Now <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
+                                    {ctaLabel} <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
                                 </motion.button>
                             </Link>
                             <button onClick={() => setClosed(true)} className="text-white/40 hover:text-white/80 p-1">
