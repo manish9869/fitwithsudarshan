@@ -1,17 +1,27 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { testimonials } from "@/data/SiteData";
+import { useSiteData } from "@/contexts/SiteDataContext";
 
 function Orb({ style, delay = 0 }) {
     return (
-        <motion.div className="absolute rounded-full blur-3xl pointer-events-none" style={style}
+        <motion.div
+            className="absolute rounded-full blur-3xl pointer-events-none"
+            style={style}
             animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.7, 0.3] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay }} />
+            transition={{
+                duration: 9,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay,
+            }}
+        />
     );
 }
 
 export default function TestimonialsSection() {
+    const { testimonials, loading } = useSiteData();
+
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-60px" });
 
@@ -22,42 +32,138 @@ export default function TestimonialsSection() {
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
     useEffect(() => {
-        if (!isAutoPlaying || !inViewForAutoplay) return;
-        const timer = setInterval(() => setCurrentIndex((p) => (p + 1) % testimonials.length), 5000);
-        return () => clearInterval(timer);
-    }, [isAutoPlaying, inViewForAutoplay]);
+        if (
+            !isAutoPlaying ||
+            !inViewForAutoplay ||
+            !testimonials ||
+            testimonials.length === 0
+        ) {
+            return;
+        }
 
-    const next = () => { setIsAutoPlaying(false); setCurrentIndex((p) => (p + 1) % testimonials.length); };
-    const prev = () => { setIsAutoPlaying(false); setCurrentIndex((p) => (p - 1 + testimonials.length) % testimonials.length); };
+        const timer = setInterval(() => {
+            setCurrentIndex((p) => (p + 1) % testimonials.length);
+        }, 5000);
+
+        return () => clearInterval(timer);
+    }, [isAutoPlaying, inViewForAutoplay, testimonials]);
+
+    useEffect(() => {
+        if (
+            testimonials?.length &&
+            currentIndex >= testimonials.length
+        ) {
+            setCurrentIndex(0);
+        }
+    }, [testimonials, currentIndex]);
+
+    if (loading || !testimonials?.length) {
+        return null;
+    }
+
+    const next = () => {
+        setIsAutoPlaying(false);
+        setCurrentIndex((p) => (p + 1) % testimonials.length);
+    };
+
+    const prev = () => {
+        setIsAutoPlaying(false);
+        setCurrentIndex(
+            (p) => (p - 1 + testimonials.length) % testimonials.length
+        );
+    };
+
     const t = testimonials[currentIndex];
 
     return (
-        // FIX: py-14 sm:py-20 md:py-28 — was flat py-28 (112px) on all screens
-        <section id="testimonials" className="relative py-14 sm:py-20 md:py-28 overflow-hidden">
+        <section
+            id="testimonials"
+            ref={playRef}
+            className="relative py-14 sm:py-20 md:py-28 overflow-hidden"
+        >
             {/* Atmosphere */}
             <div className="absolute inset-0 pointer-events-none">
-                <motion.div className="absolute inset-0"
-                    style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(231,23,99,0.06) 0%, transparent 70%)' }}
-                    animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 6, repeat: Infinity }} />
-                <Orb style={{ left: '-8%', top: '20%', width: 400, height: 400, background: 'rgba(231,23,99,0.06)' }} delay={0} />
-                <Orb style={{ right: '-5%', bottom: '15%', width: 350, height: 350, background: 'rgba(231,23,99,0.04)' }} delay={3} />
+                <motion.div
+                    className="absolute inset-0"
+                    style={{
+                        background:
+                            "radial-gradient(ellipse 70% 50% at 50% 50%, rgba(231,23,99,0.06) 0%, transparent 70%)",
+                    }}
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 6, repeat: Infinity }}
+                />
+
+                <Orb
+                    style={{
+                        left: "-8%",
+                        top: "20%",
+                        width: 400,
+                        height: 400,
+                        background: "rgba(231,23,99,0.06)",
+                    }}
+                    delay={0}
+                />
+
+                <Orb
+                    style={{
+                        right: "-5%",
+                        bottom: "15%",
+                        width: 350,
+                        height: 350,
+                        background: "rgba(231,23,99,0.04)",
+                    }}
+                    delay={3}
+                />
+
                 {[25, 50, 75].map((pos, i) => (
-                    <motion.div key={i} className="absolute top-0 bottom-0 w-px"
-                        style={{ left: `${pos}%`, background: 'linear-gradient(to bottom, transparent, rgba(231,23,99,0.07), transparent)' }}
-                        animate={{ opacity: [0, 1, 0] }} transition={{ duration: 6 + i * 2, repeat: Infinity, delay: i * 1.5 }} />
+                    <motion.div
+                        key={i}
+                        className="absolute top-0 bottom-0 w-px"
+                        style={{
+                            left: `${pos}%`,
+                            background:
+                                "linear-gradient(to bottom, transparent, rgba(231,23,99,0.07), transparent)",
+                        }}
+                        animate={{ opacity: [0, 1, 0] }}
+                        transition={{
+                            duration: 6 + i * 2,
+                            repeat: Infinity,
+                            delay: i * 1.5,
+                        }}
+                    />
                 ))}
             </div>
 
-            <div ref={ref} className="relative container mx-auto px-4 max-w-6xl">
-
+            <div
+                ref={ref}
+                className="relative container mx-auto px-4 max-w-6xl"
+            >
                 {/* Header */}
-                {/* FIX: mb-8 sm:mb-12 md:mb-16 — was flat mb-16 */}
-                <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} className="text-center mb-8 sm:mb-12 md:mb-16">
-                    <motion.span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full mb-6"
-                        style={{ color: '#e71763', border: '1px solid rgba(231,23,99,0.28)', background: 'rgba(231,23,99,0.07)' }}
-                        animate={{ boxShadow: ['0 0 0px transparent', '0 0 22px rgba(231,23,99,0.35)', '0 0 0px transparent'] }}
-                        transition={{ duration: 3, repeat: Infinity }}>
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{
+                        duration: 0.7,
+                        ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className="text-center mb-8 sm:mb-12 md:mb-16"
+                >
+                    <motion.span
+                        className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] px-4 py-2 rounded-full mb-6"
+                        style={{
+                            color: "#e71763",
+                            border: "1px solid rgba(231,23,99,0.28)",
+                            background: "rgba(231,23,99,0.07)",
+                        }}
+                        animate={{
+                            boxShadow: [
+                                "0 0 0px transparent",
+                                "0 0 22px rgba(231,23,99,0.35)",
+                                "0 0 0px transparent",
+                            ],
+                        }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                    >
                         Results
                     </motion.span>
 
@@ -65,86 +171,221 @@ export default function TestimonialsSection() {
                         Real People.{" "}
                         <motion.span
                             className="block sm:inline"
-                            style={{ color: '#e71763' }}
-                            animate={{ textShadow: ['0 0 20px rgba(231,23,99,0.3)', '0 0 60px rgba(231,23,99,0.65)', '0 0 20px rgba(231,23,99,0.3)'] }}
-                            transition={{ duration: 3, repeat: Infinity }}>
+                            style={{ color: "#e71763" }}
+                            animate={{
+                                textShadow: [
+                                    "0 0 20px rgba(231,23,99,0.3)",
+                                    "0 0 60px rgba(231,23,99,0.65)",
+                                    "0 0 20px rgba(231,23,99,0.3)",
+                                ],
+                            }}
+                            transition={{
+                                duration: 3,
+                                repeat: Infinity,
+                            }}
+                        >
                             Real Transformations.
                         </motion.span>
                     </h2>
-                    <p className="text-white/40 max-w-lg mx-auto text-sm">RECODE clients achieve sustainable results — not quick fixes that fade away.</p>
+
+                    <p className="text-white/40 max-w-lg mx-auto text-sm">
+                        RECODE clients achieve sustainable results — not quick
+                        fixes that fade away.
+                    </p>
                 </motion.div>
 
                 {/* Hero testimonial */}
-                {/* FIX: mb-8 sm:mb-10 md:mb-14 */}
-                <motion.div initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className="max-w-4xl mx-auto mb-8 sm:mb-10 md:mb-14">
-                    <div className="relative rounded-3xl p-6 sm:p-8 md:p-12 overflow-hidden"
-                        style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 40px 80px rgba(0,0,0,0.5)' }}>
-                        <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-                            style={{ background: 'rgba(231,23,99,0.08)', transform: 'translate(30%, -30%)' }} />
-                        <motion.div className="absolute inset-0 rounded-3xl pointer-events-none"
-                            style={{ background: 'linear-gradient(135deg, rgba(231,23,99,0.04) 0%, transparent 50%)' }}
-                            animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 5, repeat: Infinity }} />
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{
+                        duration: 0.7,
+                        delay: 0.15,
+                        ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className="max-w-4xl mx-auto mb-8 sm:mb-10 md:mb-14"
+                >
+                    <div
+                        className="relative rounded-3xl p-6 sm:p-8 md:p-12 overflow-hidden"
+                        style={{
+                            background: "rgba(255,255,255,0.025)",
+                            border: "1px solid rgba(255,255,255,0.07)",
+                            boxShadow: "0 40px 80px rgba(0,0,0,0.5)",
+                        }}
+                    >
+                        <div
+                            className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+                            style={{
+                                background: "rgba(231,23,99,0.08)",
+                                transform: "translate(30%, -30%)",
+                            }}
+                        />
 
-                        <Quote className="absolute top-5 left-5 sm:top-6 sm:left-6 h-10 w-10 sm:h-14 sm:w-14" style={{ color: 'rgba(231,23,99,0.12)' }} />
+                        <motion.div
+                            className="absolute inset-0 rounded-3xl pointer-events-none"
+                            style={{
+                                background:
+                                    "linear-gradient(135deg, rgba(231,23,99,0.04) 0%, transparent 50%)",
+                            }}
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 5, repeat: Infinity }}
+                        />
+
+                        <Quote
+                            className="absolute top-5 left-5 sm:top-6 sm:left-6 h-10 w-10 sm:h-14 sm:w-14"
+                            style={{ color: "rgba(231,23,99,0.12)" }}
+                        />
 
                         <div className="relative z-10">
                             <div className="flex items-center gap-1 mb-4 sm:mb-6">
                                 {[...Array(t.rating)].map((_, i) => (
-                                    <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.07, type: 'spring' }}>
-                                        <Star className="h-4 w-4 sm:h-5 sm:w-5" style={{ fill: '#e71763', color: '#e71763' }} />
+                                    <motion.div
+                                        key={i}
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{
+                                            delay: i * 0.07,
+                                            type: "spring",
+                                        }}
+                                    >
+                                        <Star
+                                            className="h-4 w-4 sm:h-5 sm:w-5"
+                                            style={{
+                                                fill: "#e71763",
+                                                color: "#e71763",
+                                            }}
+                                        />
                                     </motion.div>
                                 ))}
                             </div>
 
                             <AnimatePresence mode="wait">
-                                <motion.blockquote key={currentIndex}
-                                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+                                <motion.blockquote
+                                    key={currentIndex}
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -16 }}
                                     transition={{ duration: 0.35 }}
-                                    className="text-base sm:text-xl md:text-2xl leading-relaxed text-white mb-6 sm:mb-8 font-medium">
-                                    "{t.quote}"
+                                    className="text-base sm:text-xl md:text-2xl leading-relaxed text-white mb-6 sm:mb-8 font-medium"
+                                >
+                                    &quot;{t.quote}&quot;
                                 </motion.blockquote>
                             </AnimatePresence>
 
                             <AnimatePresence mode="wait">
-                                <motion.div key={`info-${currentIndex}`}
-                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                    className="flex items-center justify-between flex-wrap gap-4">
+                                <motion.div
+                                    key={`info-${currentIndex}`}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="flex items-center justify-between flex-wrap gap-4"
+                                >
                                     <div className="flex items-center gap-3 sm:gap-4">
-                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center"
-                                            style={{ background: 'rgba(231,23,99,0.12)', border: '2px solid rgba(231,23,99,0.35)' }}>
-                                            <span className="text-lg sm:text-xl font-black" style={{ color: '#e71763' }}>{t.name.charAt(0)}</span>
+                                        <div
+                                            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center"
+                                            style={{
+                                                background:
+                                                    "rgba(231,23,99,0.12)",
+                                                border:
+                                                    "2px solid rgba(231,23,99,0.35)",
+                                            }}
+                                        >
+                                            <span
+                                                className="text-lg sm:text-xl font-black"
+                                                style={{ color: "#e71763" }}
+                                            >
+                                                {t.name.charAt(0)}
+                                            </span>
                                         </div>
+
                                         <div>
-                                            <p className="font-black text-white">{t.name}</p>
-                                            <p className="text-xs sm:text-sm text-white/40">{t.role}</p>
+                                            <p className="font-black text-white">
+                                                {t.name}
+                                            </p>
+
+                                            <p className="text-xs sm:text-sm text-white/40">
+                                                {t.role}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="px-3 sm:px-4 py-2 rounded-xl text-center"
-                                        style={{ background: 'rgba(231,23,99,0.1)', border: '1px solid rgba(231,23,99,0.25)' }}>
-                                        <p className="font-black text-xs sm:text-sm" style={{ color: '#e71763' }}>{t.transformation}</p>
-                                        <p className="text-[10px] text-white/35 mt-0.5">Transformation</p>
+
+                                    <div
+                                        className="px-3 sm:px-4 py-2 rounded-xl text-center"
+                                        style={{
+                                            background:
+                                                "rgba(231,23,99,0.1)",
+                                            border:
+                                                "1px solid rgba(231,23,99,0.25)",
+                                        }}
+                                    >
+                                        <p
+                                            className="font-black text-xs sm:text-sm"
+                                            style={{ color: "#e71763" }}
+                                        >
+                                            {t.transformation}
+                                        </p>
+
+                                        <p className="text-[10px] text-white/35 mt-0.5">
+                                            Transformation
+                                        </p>
                                     </div>
                                 </motion.div>
                             </AnimatePresence>
 
                             {/* Controls */}
                             <div className="flex items-center justify-center gap-4 mt-6 sm:mt-8">
-                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prev}
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={prev}
                                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"
-                                    style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>
+                                    style={{
+                                        border:
+                                            "1px solid rgba(255,255,255,0.12)",
+                                        background:
+                                            "rgba(255,255,255,0.04)",
+                                    }}
+                                >
                                     <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                                 </motion.button>
+
                                 <div className="flex items-center gap-1.5 sm:gap-2">
                                     {testimonials.map((_, i) => (
-                                        <button key={i} onClick={() => { setIsAutoPlaying(false); setCurrentIndex(i); }}
+                                        <button
+                                            key={i}
+                                            onClick={() => {
+                                                setIsAutoPlaying(false);
+                                                setCurrentIndex(i);
+                                            }}
                                             className="rounded-full transition-all"
-                                            style={{ width: i === currentIndex ? '24px' : '6px', height: '6px', background: i === currentIndex ? '#e71763' : 'rgba(255,255,255,0.15)' }} />
+                                            style={{
+                                                width:
+                                                    i === currentIndex
+                                                        ? "24px"
+                                                        : "6px",
+                                                height: "6px",
+                                                background:
+                                                    i === currentIndex
+                                                        ? "#e71763"
+                                                        : "rgba(255,255,255,0.15)",
+                                            }}
+                                            aria-label={`Show testimonial ${i + 1}`}
+                                        />
                                     ))}
                                 </div>
-                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={next}
+
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={next}
                                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"
-                                    style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}>
+                                    style={{
+                                        border:
+                                            "1px solid rgba(255,255,255,0.12)",
+                                        background:
+                                            "rgba(255,255,255,0.04)",
+                                    }}
+                                >
                                     <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                                 </motion.button>
                             </div>
@@ -155,29 +396,104 @@ export default function TestimonialsSection() {
                 {/* Cards row */}
                 <div className="grid md:grid-cols-3 gap-4 sm:gap-5">
                     {testimonials.slice(0, 3).map((item, index) => (
-                        <motion.div key={item.id}
-                            initial={{ opacity: 0, y: 40, scale: 0.92 }}
-                            animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-                            transition={{ duration: 0.6, delay: 0.3 + index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                            whileHover={{ y: -8, scale: 1.02 }}
+                        <motion.div
+                            key={item.id}
+                            initial={{
+                                opacity: 0,
+                                y: 40,
+                                scale: 0.92,
+                            }}
+                            animate={
+                                isInView
+                                    ? {
+                                        opacity: 1,
+                                        y: 0,
+                                        scale: 1,
+                                    }
+                                    : {}
+                            }
+                            transition={{
+                                duration: 0.6,
+                                delay: 0.3 + index * 0.1,
+                                ease: [0.22, 1, 0.36, 1],
+                            }}
+                            whileHover={{
+                                y: -8,
+                                scale: 1.02,
+                            }}
                             className="rounded-2xl p-5 sm:p-6 cursor-default relative overflow-hidden"
-                            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', transition: 'box-shadow 0.3s' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(231,23,99,0.35)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(231,23,99,0.12), 0 20px 40px rgba(0,0,0,0.4)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.boxShadow = 'none'; }}>
-                            <div className="absolute top-0 left-0 right-0 h-0.5 opacity-0 hover:opacity-100 transition-opacity"
-                                style={{ background: 'linear-gradient(90deg, transparent, #e71763, transparent)' }} />
+                            style={{
+                                background: "rgba(255,255,255,0.025)",
+                                border:
+                                    "1px solid rgba(255,255,255,0.07)",
+                                transition: "box-shadow 0.3s",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor =
+                                    "rgba(231,23,99,0.35)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 0 40px rgba(231,23,99,0.12), 0 20px 40px rgba(0,0,0,0.4)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor =
+                                    "rgba(255,255,255,0.07)";
+                                e.currentTarget.style.boxShadow = "none";
+                            }}
+                        >
+                            <div
+                                className="absolute top-0 left-0 right-0 h-0.5 opacity-0 hover:opacity-100 transition-opacity"
+                                style={{
+                                    background:
+                                        "linear-gradient(90deg, transparent, #e71763, transparent)",
+                                }}
+                            />
+
                             <div className="flex items-center gap-1 mb-4">
-                                {[...Array(item.rating)].map((_, i) => <Star key={i} className="h-3.5 w-3.5" style={{ fill: '#e71763', color: '#e71763' }} />)}
+                                {[...Array(item.rating)].map((_, i) => (
+                                    <Star
+                                        key={i}
+                                        className="h-3.5 w-3.5"
+                                        style={{
+                                            fill: "#e71763",
+                                            color: "#e71763",
+                                        }}
+                                    />
+                                ))}
                             </div>
-                            <p className="text-white/45 text-sm leading-relaxed mb-5 line-clamp-4">"{item.quote}"</p>
+
+                            <p className="text-white/45 text-sm leading-relaxed mb-5 line-clamp-4">
+                                &quot;{item.quote}&quot;
+                            </p>
+
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                                    style={{ background: 'rgba(231,23,99,0.12)', border: '1px solid rgba(231,23,99,0.25)' }}>
-                                    <span className="text-sm font-black" style={{ color: '#e71763' }}>{item.name.charAt(0)}</span>
+                                <div
+                                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                                    style={{
+                                        background:
+                                            "rgba(231,23,99,0.12)",
+                                        border:
+                                            "1px solid rgba(231,23,99,0.25)",
+                                    }}
+                                >
+                                    <span
+                                        className="text-sm font-black"
+                                        style={{ color: "#e71763" }}
+                                    >
+                                        {item.name.charAt(0)}
+                                    </span>
                                 </div>
+
                                 <div>
-                                    <p className="font-black text-sm text-white">{item.name}</p>
-                                    <p className="text-xs font-bold" style={{ color: '#e71763' }}>{item.transformation}</p>
+                                    <p className="font-black text-sm text-white">
+                                        {item.name}
+                                    </p>
+
+                                    <p
+                                        className="text-xs font-bold"
+                                        style={{ color: "#e71763" }}
+                                    >
+                                        {item.transformation}
+                                    </p>
                                 </div>
                             </div>
                         </motion.div>
