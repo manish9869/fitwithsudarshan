@@ -20,6 +20,7 @@ import {
     HelpCircle,
     FileText,
     Settings,
+    Salad,
 } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
@@ -41,6 +42,7 @@ const NAV_GROUPS = [
             { to: '/admin/balance-due', icon: Wallet, label: 'Balance Due' },
             { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
             { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
+            { to: '/admin/diet-plans', icon: Salad, label: 'Diet Plans' },
         ],
     },
     {

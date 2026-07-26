@@ -6,7 +6,55 @@
 // falls back to showing the raw database id, which means nothing to a
 // non-technical user (this is why FAQ rows used to show a UUID).
 
+const FOOD_CATEGORIES = ['Breakfast', 'Grains & Roti', 'Rice & Dal', 'Vegetables', 'Dairy & Paneer', 'Proteins', 'Snacks', 'Fruits', 'Beverages', 'Supplements'];
+const MUSCLE_GROUPS = ['Cardio', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Flexibility'];
+const DIFFICULTY_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+const EXERCISE_LOCATIONS = ['Home', 'Gym', 'Both'];
+
 export const CMS_CONFIGS = {
+    diet_foods: {
+        title: 'Diet Plan Foods',
+        idKey: 'id',
+        titleField: 'name',
+        subtitleField: 'category',
+        searchFields: ['name', 'category'],
+        fields: [
+            { key: 'id', label: 'ID (e.g. paneer-tikka)', type: 'text', required: true, lockOnEdit: true },
+            { key: 'name', label: 'Food Name', type: 'text', required: true },
+            { key: 'category', label: 'Category', type: 'select', options: FOOD_CATEGORIES, default: FOOD_CATEGORIES[0] },
+            { key: 'serving_size', label: 'Serving Size (e.g. 1 bowl)', type: 'text' },
+            { key: 'calories', label: 'Calories', type: 'number', default: 0 },
+            { key: 'protein', label: 'Protein (g)', type: 'number', default: 0 },
+            { key: 'carbs', label: 'Carbs (g)', type: 'number', default: 0 },
+            { key: 'fats', label: 'Fats (g)', type: 'number', default: 0 },
+            { key: 'is_veg', label: 'Vegetarian', type: 'boolean', default: true },
+            { key: 'is_eggetarian', label: 'Eggetarian-Safe', type: 'boolean', default: true },
+            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
+            { key: 'active', label: 'Active', type: 'boolean', default: true },
+        ],
+    },
+
+    diet_exercises: {
+        title: 'Diet Plan Exercises',
+        idKey: 'id',
+        titleField: 'name',
+        subtitleField: 'muscle_group',
+        searchFields: ['name', 'muscle_group'],
+        fields: [
+            { key: 'id', label: 'ID (e.g. bicep-curl)', type: 'text', required: true, lockOnEdit: true },
+            { key: 'name', label: 'Exercise Name', type: 'text', required: true },
+            { key: 'muscle_group', label: 'Muscle Group', type: 'select', options: MUSCLE_GROUPS, default: MUSCLE_GROUPS[0] },
+            { key: 'duration', label: 'Duration (e.g. 5 min)', type: 'text' },
+            { key: 'sets', label: 'Sets', type: 'number', default: 0 },
+            { key: 'reps', label: 'Reps (e.g. 12 or 30 sec)', type: 'text' },
+            { key: 'calories_burned', label: 'Calories Burned', type: 'number', default: 0 },
+            { key: 'difficulty', label: 'Difficulty', type: 'select', options: DIFFICULTY_LEVELS, default: DIFFICULTY_LEVELS[0] },
+            { key: 'location', label: 'Location', type: 'select', options: EXERCISE_LOCATIONS, default: EXERCISE_LOCATIONS[2] },
+            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
+            { key: 'active', label: 'Active', type: 'boolean', default: true },
+        ],
+    },
+
     testimonials: {
         title: 'Testimonials',
         idKey: 'id',

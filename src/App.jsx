@@ -121,6 +121,14 @@ const AdminCoachingTypes = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminCoachingTypes'))
 );
 
+const DietPlanList = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietPlanList'))
+);
+
+const DietPlanBuilder = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietPlanBuilder'))
+);
+
 const AdminRecodeMethod = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminRecodeMethod'))
 );
@@ -439,6 +447,22 @@ function App() {
                 element={
                   <LazyRoute>
                     <AdminRecodeMethod />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="diet-plans"
+                element={
+                  <LazyRoute>
+                    <DietPlanList />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="diet-plans/:id"
+                element={
+                  <LazyRoute>
+                    <DietPlanBuilder />
                   </LazyRoute>
                 }
               />
