@@ -1,23 +1,9 @@
 // src/pages/admin/AdminLegalPages.jsx
 import { useState, useEffect } from 'react';
 import { Loader2, Save, Plus, Trash2, FileText, Lock, RefreshCw, GripVertical } from 'lucide-react';
-import { listCmsRows } from './cmsApi';
+import { listCmsRows, putLegalPage } from './cmsApi';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea } from './SettingsFields';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
-import { getToken } from '../adminApi';
-async function putLegalPage(slug, payload) {
-    const token = getToken();
-    const res = await fetch(`${API_BASE}/api/admin/content/legal-pages/${slug}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to save');
-    return data.row;
-}
 
 const PAGES = [
     { slug: 'terms', label: 'Terms & Conditions', icon: FileText },
