@@ -135,7 +135,6 @@ export const CMS_CONFIGS = {
             { key: 'label', label: 'Label (e.g. 3 Months)', type: 'text', required: true },
             { key: 'sublabel', label: 'Sublabel (e.g. Foundation)', type: 'text' },
             { key: 'description', label: 'Description', type: 'textarea' },
-            { key: 'popular', label: 'Popular (Most Popular ribbon)', type: 'boolean', default: false },
             { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
         ],
     },

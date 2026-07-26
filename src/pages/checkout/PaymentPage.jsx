@@ -127,7 +127,7 @@ const trustBadges = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function PaymentPage() {
-    const { coachingTypes, pricingTable, durations, basicConsultation, loading } = useSiteData();
+    const { coachingTypes, pricingTable, durations, basicConsultation, popularFlags, loading } = useSiteData();
     const [coachingId, setCoachingId] = useState('online');
     const [planType, setPlanType] = useState('individual');
     const [durationMonths, setDurationMonths] = useState('3');
@@ -369,6 +369,7 @@ export default function PaymentPage() {
                                     {durations.map((dur) => {
                                         const p = pricingTable[coachingId]?.[planType]?.[dur.months] || 0;
                                         const selected = durationMonths === dur.months;
+                                        const isPopular = !!popularFlags[`${coachingId}:${planType}:${dur.months}`];
                                         return (
                                             <button
                                                 key={dur.months}
@@ -387,7 +388,7 @@ export default function PaymentPage() {
                                                     </div>
                                                     <div className="text-left">
                                                         <span className={`font-bold text-sm ${selected ? 'text-white' : 'text-white/70'}`}>{dur.label}</span>
-                                                        {dur.popular && (
+                                                        {isPopular && (
                                                             <span
                                                                 className="ml-2 text-[10px] font-black px-2 py-0.5 rounded-full"
                                                                 style={{ background: 'rgba(231,23,99,0.2)', color: '#e71763' }}

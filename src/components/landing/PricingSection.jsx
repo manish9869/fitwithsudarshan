@@ -9,11 +9,37 @@ const tabIcons = { online: Globe, video: Video, personal: MapPin };
 const formatPrice = (p) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(p);
 
+// A cell is "on sale" purely from admin-set data — no plan is special-cased.
+function isCellOnSale(pricingTable, saleFlags, coachingId, planType, months) {
+    const price = pricingTable[coachingId]?.[planType]?.[months] || 0;
+    const sale = saleFlags[`${coachingId}:${planType}:${months}`];
+    return !!sale?.onSale && sale.originalPrice > price;
+}
+
+function isCellPopular(popularFlags, coachingId, planType, months) {
+    return !!popularFlags[`${coachingId}:${planType}:${months}`];
+}
+
+// Small pulsing badge for tab/toggle buttons — flags "there's an offer in
+// here" before the user even clicks in, independent of the card-level badge.
+function TabSaleDot() {
+    return (
+        <motion.span
+            className="absolute -top-1.5 -right-1.5 z-10 flex items-center justify-center w-4 h-4 rounded-full"
+            style={{ background: '#e71763', boxShadow: '0 0 10px rgba(231,23,99,0.85)' }}
+            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+            transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+        >
+            <Flame className="w-2.5 h-2.5 text-white" />
+        </motion.span>
+    );
+}
+
 // One card, used for every plan — regular durations AND the one-time Basic
-// offer alike. Which cell it reads (price + sale state) is entirely driven
-// by coachingId/planType/months, so Basic isn't a special case anymore —
-// it's just another cell in the same pricing table.
-function PricingCard({ pricingTable, saleFlags, coachingId, planType, duration, isPopular, isCouple, index }) {
+// offer alike. Which cell it reads (price + sale + popular state) is
+// entirely driven by coachingId/planType/months, so Basic isn't a special
+// case anymore — it's just another cell in the same pricing table.
+function PricingCard({ pricingTable, saleFlags, popularFlags, coachingId, planType, duration, isCouple, index }) {
     const price = pricingTable[coachingId]?.[planType]?.[duration.months] || 0;
     const [hovered, setHovered] = useState(false);
 
@@ -21,6 +47,7 @@ function PricingCard({ pricingTable, saleFlags, coachingId, planType, duration, 
     const sale = saleFlags[cellKey];
     const isOnSale = !!sale?.onSale && sale.originalPrice > price;
     const originalPrice = sale?.originalPrice;
+    const isPopular = !!popularFlags[cellKey];
 
     return (
         <motion.div
@@ -51,8 +78,6 @@ function PricingCard({ pricingTable, saleFlags, coachingId, planType, duration, 
                     </div>
                 </div>
             )}
-
-            {/* Flashing SALE badge whenever this exact cell is marked on sale */}
             {isOnSale && !isPopular && (
                 <div className="absolute -top-px left-1/2 -translate-x-1/2">
                     <div className="flex items-center gap-1.5 px-4 py-1 text-xs font-black text-white"
@@ -61,7 +86,10 @@ function PricingCard({ pricingTable, saleFlags, coachingId, planType, duration, 
                     </div>
                 </div>
             )}
-            {isOnSale && isPopular && (
+
+            {/* Flashing SALE badge on every on-sale card, popular or not — this is
+                the "eye catchy" pulsing badge, always independent of the ribbon above. */}
+            {isOnSale && (
                 <motion.span
                     className="absolute -top-3 -right-3 z-10 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black text-white whitespace-nowrap"
                     style={{ background: '#e71763', boxShadow: '0 0 14px rgba(231,23,99,0.8)' }}
@@ -124,9 +152,12 @@ function PricingCard({ pricingTable, saleFlags, coachingId, planType, duration, 
 }
 
 export function PricingSection() {
-    const { coachingTypes, pricingTable, durations, planInclusions, basicConsultation, saleFlags, loading } = useSiteData();
+    const { coachingTypes, pricingTable, durations, planInclusions, basicConsultation, saleFlags, popularFlags, loading } = useSiteData();
     const [activeTab, setActiveTab] = useState("online");
+    // Three independent plan tabs — individual, couple, and (online-only) basic.
+    // Each can be on sale at the same time as any other; nothing here is special-cased.
     const [planType, setPlanType] = useState("individual");
+    const [basicVariant, setBasicVariant] = useState("individual");
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-60px" });
 
@@ -136,14 +167,29 @@ export function PricingSection() {
 
     const activeCoaching = coachingTypes.find((c) => c.id === activeTab) || coachingTypes[0];
     const Icon = tabIcons[activeCoaching.id] || Globe;
-    const isCouple = planType === "couple";
+    const basicAvailable = activeTab === "online" && !!basicConsultation;
+    const effectivePlanType = planType === "basic" && !basicAvailable ? "individual" : planType;
 
-    // Basic is just one more offer under the Online tab — same card, same
-    // pricing table, same sale mechanism as every duration. Its planType
-    // becomes basic_individual/basic_couple based on the same toggle above.
-    const basicPlanType = isCouple ? "basic_couple" : "basic_individual";
-    const showBasic = activeTab === "online" && !!basicConsultation;
-    const basicPseudoDuration = showBasic
+    const coachingHasSale = (ct) => {
+        const any = ["individual", "couple"].some((pt) =>
+            durations.some((d) => isCellOnSale(pricingTable, saleFlags, ct.id, pt, d.months))
+        );
+        const basicAny = ct.id === "online" && (
+            isCellOnSale(pricingTable, saleFlags, "online", "basic_individual", "1") ||
+            isCellOnSale(pricingTable, saleFlags, "online", "basic_couple", "1")
+        );
+        return any || basicAny;
+    };
+
+    const planTabHasSale = (pt) => {
+        if (pt === "basic") {
+            return isCellOnSale(pricingTable, saleFlags, "online", "basic_individual", "1") ||
+                isCellOnSale(pricingTable, saleFlags, "online", "basic_couple", "1");
+        }
+        return durations.some((d) => isCellOnSale(pricingTable, saleFlags, activeTab, pt, d.months));
+    };
+
+    const basicPseudoDuration = basicAvailable
         ? {
             months: "1",
             label: basicConsultation.name || "RECODE Blueprint",
@@ -152,6 +198,13 @@ export function PricingSection() {
             features: basicConsultation.features,
         }
         : null;
+    const basicPlanType = basicVariant === "couple" ? "basic_couple" : "basic_individual";
+
+    const planTabs = [
+        { id: "individual", icon: User, label: "Individual" },
+        { id: "couple", icon: Users, label: "Couple" },
+        ...(basicAvailable ? [{ id: "basic", icon: Zap, label: "Basic" }] : []),
+    ];
 
     return (
         <section id="pricing" className="relative py-28 overflow-hidden">
@@ -200,14 +253,19 @@ export function PricingSection() {
                         const TabIcon = tabIcons[ct.id] || Globe;
                         const active = activeTab === ct.id;
                         return (
-                            <motion.button key={ct.id} onClick={() => setActiveTab(ct.id)}
+                            <motion.button key={ct.id}
+                                onClick={() => {
+                                    setActiveTab(ct.id);
+                                    if (ct.id !== "online" && planType === "basic") setPlanType("individual");
+                                }}
                                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                                className="flex items-center gap-2 px-6 py-3 rounded-full font-black text-sm transition-all"
+                                className="relative flex items-center gap-2 px-6 py-3 rounded-full font-black text-sm transition-all"
                                 style={active
                                     ? { background: '#e71763', color: 'white', boxShadow: '0 0 30px rgba(231,23,99,0.55)' }
                                     : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)' }}>
                                 <TabIcon className="w-4 h-4" />
                                 {ct.shortName}
+                                {coachingHasSale(ct) && <TabSaleDot />}
                             </motion.button>
                         );
                     })}
@@ -240,30 +298,48 @@ export function PricingSection() {
                     </motion.div>
                 </AnimatePresence>
 
-                <div className="flex justify-center gap-3 mb-10 flex-wrap">
-                    {[
-                        { id: "individual", icon: User, label: "Individual" },
-                        { id: "couple", icon: Users, label: "Couple" },
-                    ].map(({ id, icon: Ic, label }) => (
+                <div className="flex justify-center gap-3 mb-6 flex-wrap">
+                    {planTabs.map(({ id, icon: Ic, label }) => (
                         <motion.button key={id} onClick={() => setPlanType(id)}
                             whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                            className="flex items-center gap-2 px-6 py-2.5 rounded-full font-black text-sm"
-                            style={planType === id
+                            className="relative flex items-center gap-2 px-6 py-2.5 rounded-full font-black text-sm"
+                            style={effectivePlanType === id
                                 ? { background: '#e71763', color: 'white', boxShadow: '0 0 22px rgba(231,23,99,0.45)' }
                                 : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
                             <Ic className="w-4 h-4" /> {label}
+                            {planTabHasSale(id) && <TabSaleDot />}
                         </motion.button>
                     ))}
                 </div>
 
-                <AnimatePresence mode="wait">
-                    <motion.div key={`${activeTab}-${planType}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
-                        {durations.map((dur, i) => (
-                            <PricingCard key={dur.months} pricingTable={pricingTable} saleFlags={saleFlags} coachingId={activeTab} planType={planType} duration={dur} isPopular={!!dur.popular} isCouple={isCouple} index={i} />
+                {effectivePlanType === "basic" && (
+                    <div className="flex justify-center gap-2 mb-8">
+                        {[{ id: "individual", label: "For Yourself" }, { id: "couple", label: "For a Couple" }].map((v) => (
+                            <button key={v.id} onClick={() => setBasicVariant(v.id)}
+                                className="px-4 py-1.5 rounded-full text-xs font-bold transition-all"
+                                style={basicVariant === v.id
+                                    ? { background: 'rgba(231,23,99,0.18)', color: '#e71763', border: '1px solid rgba(231,23,99,0.4)' }
+                                    : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
+                                {v.label}
+                            </button>
                         ))}
-                        {showBasic && (
-                            <PricingCard key="basic" pricingTable={pricingTable} saleFlags={saleFlags} coachingId="online" planType={basicPlanType} duration={basicPseudoDuration} isPopular={false} isCouple={isCouple} index={durations.length} />
+                    </div>
+                )}
+
+                <AnimatePresence mode="wait">
+                    <motion.div key={`${activeTab}-${effectivePlanType}-${effectivePlanType === "basic" ? basicVariant : ""}`}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className={effectivePlanType === "basic" ? "max-w-sm mx-auto mb-14" : "grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14"}>
+                        {effectivePlanType === "basic" ? (
+                            <PricingCard pricingTable={pricingTable} saleFlags={saleFlags} popularFlags={popularFlags}
+                                coachingId="online" planType={basicPlanType} duration={basicPseudoDuration}
+                                isCouple={basicVariant === "couple"} index={0} />
+                        ) : (
+                            durations.map((dur, i) => (
+                                <PricingCard key={dur.months} pricingTable={pricingTable} saleFlags={saleFlags} popularFlags={popularFlags}
+                                    coachingId={activeTab} planType={effectivePlanType} duration={dur}
+                                    isCouple={effectivePlanType === "couple"} index={i} />
+                            ))
                         )}
                     </motion.div>
                 </AnimatePresence>

@@ -9,7 +9,7 @@ const EMPTY = {
     brand: {}, coach: {}, contact: { social: {} }, whyRecode: { others: [], recode: [] },
     targetAudience: [], planInclusions: [], coachingTypes: [], durations: [],
     pricingTable: {}, basicConsultation: null, services: [], recodeMethod: [],
-    testimonials: [], blogPosts: [], transformations: [], saleFlags: {},
+    testimonials: [], blogPosts: [], transformations: [], saleFlags: {}, popularFlags: {},
 };
 
 export function SiteDataProvider({ children }) {
