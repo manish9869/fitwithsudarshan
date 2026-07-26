@@ -8,9 +8,9 @@ import { useState, useEffect } from 'react';
 import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
-import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater } from './SettingsFields';
+import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -73,6 +73,14 @@ function CoachForm({ value, onChange }) {
     return (
         <>
             <FieldGroup title="Coach Profile">
+                <ImageField
+                    label="Profile Photo"
+                    value={v.photo || ''}
+                    onChange={set('photo')}
+                    folder="coach"
+                    defaultPreview={DEFAULT_COACH_PHOTO}
+                    hint="Shown next to your bio on the homepage. Upload a new one anytime, or reset to go back to the original."
+                />
                 <div className="grid sm:grid-cols-2 gap-4">
                     <TextInput label="Full Name" value={v.name} onChange={set('name')} placeholder="Sudarshan Chavan" />
                     <TextInput label="First Name" value={v.firstName} onChange={set('firstName')} placeholder="Sudarshan" />
@@ -137,6 +145,16 @@ function HeroForm({ value, onChange }) {
     const set = (k) => (val) => onChange({ ...v, [k]: val });
     return (
         <>
+            <FieldGroup title="Banner Image" description="The full-width background photo behind the homepage headline.">
+                <ImageField
+                    label="Banner Photo"
+                    value={v.bannerImage || ''}
+                    onChange={set('bannerImage')}
+                    folder="hero"
+                    defaultPreview={DEFAULT_HERO_BANNER_IMAGE}
+                    hint="Upload a new one anytime, or reset to go back to the original."
+                />
+            </FieldGroup>
             <FieldGroup title="Headline" description="The big animated text at the top of the homepage.">
                 <TagListEditor
                     label="Typewriter Words"

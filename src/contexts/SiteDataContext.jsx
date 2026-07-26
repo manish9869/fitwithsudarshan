@@ -11,7 +11,7 @@ const SiteDataContext = createContext(null);
 const EMPTY = {
     brand: {}, coach: {}, contact: { social: {} }, whyRecode: { others: [], recode: [] },
     targetAudience: [], planInclusions: [], coachingTypes: [], durations: [],
-    pricingTable: {}, basicConsultation: null, services: [], recodeMethod: [],
+    pricingTable: {}, basicConsultation: null, recodeMethod: [],
     testimonials: [], blogPosts: [], transformations: [], saleFlags: {}, popularFlags: {},
 };
 

@@ -55,10 +55,6 @@ const Onboarding = lazy(() =>
   lazyRetry(() => import('@/pages/Onboarding'))
 );
 
-const Programs = lazy(() =>
-  lazyRetry(() => import('@/pages/Programs'))
-);
-
 const FAQ = lazy(() =>
   lazyRetry(() => import('@/pages/legal/FAQSection'))
 );
@@ -123,10 +119,6 @@ const AdminPricingMatrix = lazy(() =>
 
 const AdminCoachingTypes = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminCoachingTypes'))
-);
-
-const AdminServices = lazy(() =>
-  lazyRetry(() => import('@/pages/admin/content/AdminServices'))
 );
 
 const AdminRecodeMethod = lazy(() =>
@@ -306,15 +298,6 @@ function App() {
             />
 
             <Route
-              path="/programs"
-              element={
-                <LazyRoute>
-                  <Programs />
-                </LazyRoute>
-              }
-            />
-
-            <Route
               path="/faq"
               element={
                 <LazyRoute>
@@ -448,14 +431,6 @@ function App() {
                 element={
                   <LazyRoute>
                     <AdminCoachingTypes />
-                  </LazyRoute>
-                }
-              />
-              <Route
-                path="content/services"
-                element={
-                  <LazyRoute>
-                    <AdminServices />
                   </LazyRoute>
                 }
               />

@@ -48,10 +48,11 @@ export const CMS_CONFIGS = {
         ],
     },
 
-    // services and recode_method each have their own dedicated editor — see
-    // AdminServices.jsx and AdminRecodeMethod.jsx — since their `color`/
-    // `accent` fields need a safelisted color picker rather than raw
-    // Tailwind class text, and their `features` need a chip input.
+    // recode_method has its own dedicated editor — see AdminRecodeMethod.jsx —
+    // since its `accent` field needs a safelisted color picker rather than
+    // raw Tailwind class text. (services/ProgramsSection was removed: it was
+    // an orphaned page nothing on the site linked to, and duplicated what
+    // Coaching Types + Pricing already show.)
 
     transformations: {
         title: 'Transformations',

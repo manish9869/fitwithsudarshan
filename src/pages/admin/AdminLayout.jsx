@@ -56,7 +56,6 @@ const NAV_GROUPS = [
             { to: '/admin/site-settings', icon: Settings, label: 'Site Settings' },
             { to: '/admin/content/testimonials', icon: Users, label: 'Testimonials' },
             { to: '/admin/content/blog_posts', icon: ClipboardList, label: 'Blog Posts' },
-            { to: '/admin/content/services', icon: Tag, label: 'Services' },
             { to: '/admin/content/transformations', icon: Activity, label: 'Transformations' },
             { to: '/admin/content/coaching_types', icon: Users, label: 'Coaching Types' },
             { to: '/admin/content/durations', icon: BellRing, label: 'Durations' },
