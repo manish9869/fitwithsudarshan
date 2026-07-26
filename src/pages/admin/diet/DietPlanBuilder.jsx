@@ -5,7 +5,7 @@
 // the plain-form primitives from ../content/SettingsFields.jsx and the
 // dark-admin theme instead of the reference app's shadcn components.
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Loader2, ChevronLeft, ChevronRight, Plus, Trash2, Search, X, Save,
@@ -77,6 +77,7 @@ function Modal({ title, onClose, children, wide }) {
 export default function DietPlanBuilder() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const toast = useToast();
     const isNew = id === 'new';
 
@@ -144,6 +145,20 @@ export default function DietPlanBuilder() {
                         })));
                         setUseTemplate(false);
                     }
+                } else if (location.state?.prefill) {
+                    // Arrived here via the "Diet Plan" action on an enrollment —
+                    // carry over what we already know instead of retyping it.
+                    const pf = location.state.prefill;
+                    if (location.state.enrollmentId) setEnrollmentId(location.state.enrollmentId);
+                    setClient((c) => ({
+                        ...c,
+                        name: pf.name || c.name,
+                        age: pf.age || c.age,
+                        weight: pf.weight || c.weight,
+                        goal: pf.goal || c.goal,
+                        allergies: pf.allergies || c.allergies,
+                        notes: pf.notes || c.notes,
+                    }));
                 }
             } catch (e) {
                 toast.error(e.message);

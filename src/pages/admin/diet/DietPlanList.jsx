@@ -117,7 +117,15 @@ export default function DietPlanList() {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <p className="text-sm font-bold text-white">{p.client_name}</p>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <p className="text-sm font-bold text-white">{p.client_name}</p>
+                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                                                    style={p.enrollment_id
+                                                        ? { background: 'rgba(52,211,153,0.1)', color: '#34d399' }
+                                                        : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>
+                                                    {p.enrollment_id ? 'ENROLLED' : 'CUSTOM'}
+                                                </span>
+                                            </div>
                                             <p className="text-xs text-white/35 sm:hidden">{p.goal}</p>
                                         </td>
                                         <td className="px-4 py-3 hidden sm:table-cell">

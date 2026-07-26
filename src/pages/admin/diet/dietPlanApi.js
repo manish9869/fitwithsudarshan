@@ -33,6 +33,9 @@ export const listDietPlans = () =>
 export const getDietPlan = (id) =>
     req(`/diet-plans/${id}`).then((d) => d.plan);
 
+export const getDietPlanByEnrollment = (enrollmentId) =>
+    req(`/diet-plans/by-enrollment/${enrollmentId}`).then((d) => d.plan);
+
 export const createDietPlan = (payload) =>
     req('/diet-plans', { method: 'POST', body: payload }).then((d) => d.plan);
 
