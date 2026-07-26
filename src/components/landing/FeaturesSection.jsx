@@ -309,6 +309,7 @@ export default function FeaturesSection() {
                                     <img
                                         src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan.jpeg"
                                         alt={coach.name}
+                                        loading="lazy"
                                         className="absolute inset-0 w-full h-full object-cover object-center"
                                     />
 

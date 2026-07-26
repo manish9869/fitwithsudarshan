@@ -492,6 +492,7 @@ function FeaturedCard({ post, onOpen }) {
                 <img
                     src={post.image}
                     alt={post.title}
+                    loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
 
@@ -616,6 +617,7 @@ function BlogCard({ post, index, onOpen }) {
                 <img
                     src={post.image}
                     alt={post.title}
+                    loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-600"
                 />
 
