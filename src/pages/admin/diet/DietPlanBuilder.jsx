@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { listCmsRows } from '../content/cmsApi';
 import { fmtName } from '../adminUtils';
-import { useSiteData } from '@/contexts/SiteDataContext';
+import { fetchAdminProfile } from '../adminApi';
 import { TextInput, TextArea, ToggleField, SelectField } from '../content/SettingsFields';
 import { useToast } from '../ToastProvider';
 import {
@@ -82,7 +82,6 @@ export default function DietPlanBuilder() {
     const location = useLocation();
     const toast = useToast();
     const isNew = id === 'new';
-    const { coach, contact } = useSiteData();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -184,22 +183,23 @@ export default function DietPlanBuilder() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
-    // Trainer identity already lives in Admin → Site Settings → Coach Bio /
-    // Contact (name, certifications, phone) — no need for a separate admin
-    // profile page that would just be a second place to keep in sync. Only
-    // fills in on a brand-new plan, and only while the fields are still
-    // untouched, so it never clobbers what's saved on an existing plan.
+    // Trainer identity comes from the logged-in admin's own profile (Admin →
+    // My Profile, click your name/avatar in the sidebar) — not the public
+    // "Coach Bio" content, since this should reflect whoever is actually
+    // signed in and building the plan. Only fills in on a brand-new plan,
+    // and only while the fields are still untouched, so it never clobbers
+    // what's saved on an existing plan.
     useEffect(() => {
         if (!isNew) return;
         if (trainer.name || trainer.qualification || trainer.contact) return;
-        if (!coach?.name && !contact?.phone && !contact?.email) return;
-        setTrainer({
-            name: coach?.name || '',
-            qualification: coach?.certifications?.[0] || (coach?.yearsExperience ? `${coach.yearsExperience} Coach` : ''),
-            contact: contact?.phone || contact?.email || '',
-        });
+        fetchAdminProfile()
+            .then((p) => {
+                if (!p.display_name && !p.qualification && !p.contact) return;
+                setTrainer({ name: p.display_name || '', qualification: p.qualification || '', contact: p.contact || '' });
+            })
+            .catch(() => { /* non-blocking — admin can still fill it in manually */ });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isNew, coach, contact]);
+    }, [isNew]);
 
     // ── Client detail helpers ──────────────────────────────────────────────
     const setClientField = (key) => (val) => setClient((c) => ({ ...c, [key]: val }));
@@ -522,7 +522,7 @@ export default function DietPlanBuilder() {
 
                                 <div className="pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                                     <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Trainer Info</p>
-                                    <p className="text-[11px] text-white/25 mb-3">Auto-filled from Site Settings → Coach Bio — change it here for just this plan, or update it there to change the default for every new plan.</p>
+                                    <p className="text-[11px] text-white/25 mb-3">Auto-filled from your Profile (click your name in the sidebar) — change it here for just this plan, or update your Profile to change the default for every new plan.</p>
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <TextInput label="Trainer Name" value={trainer.name} onChange={setTrainerField('name')} placeholder="Your name" />
                                         <TextInput label="Contact" value={trainer.contact} onChange={setTrainerField('contact')} placeholder="Email or phone" />

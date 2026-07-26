@@ -24,12 +24,12 @@ export function FieldGroup({ title, description, children }) {
     );
 }
 
-export function TextInput({ label, value, onChange, placeholder, hint }) {
+export function TextInput({ label, value, onChange, placeholder, hint, type = 'text' }) {
     return (
         <div>
             {label && <label className={labelCls}>{label}</label>}
             <input
-                type="text"
+                type={type}
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}

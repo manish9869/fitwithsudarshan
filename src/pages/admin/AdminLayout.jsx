@@ -165,7 +165,12 @@ export default function AdminLayout() {
                 }}
             >
                 {admin && (
-                    <div className="flex items-center gap-2.5 px-4 py-2 mb-1">
+                    <NavLink
+                        to="/admin/profile"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 mb-1 rounded-xl transition-colors hover:bg-white/5"
+                        title="My Profile"
+                    >
                         <div
                             className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                             style={{
@@ -194,7 +199,7 @@ export default function AdminLayout() {
                                 {admin.role || 'admin'}
                             </p>
                         </div>
-                    </div>
+                    </NavLink>
                 )}
 
                 <button
