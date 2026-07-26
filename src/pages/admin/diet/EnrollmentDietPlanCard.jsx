@@ -42,7 +42,7 @@ export default function EnrollmentDietPlanCard({ enrollment }) {
             // PDF-drawing code into every admin page load, not just the ones
             // that actually download a plan.
             const { generateDietPlanPDF } = await import('./dietPdfGenerator');
-            generateDietPlanPDF(plan, { mode: 'full', includeInstructions: true });
+            await generateDietPlanPDF(plan, { mode: 'full', includeInstructions: true });
         } catch (e) { toast.error(e.message); }
         finally { setBusy(false); }
     };

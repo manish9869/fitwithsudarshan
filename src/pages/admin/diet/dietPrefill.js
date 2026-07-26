@@ -2,6 +2,7 @@
 // Shared by EnrollmentDietPlanCard.jsx (drawer) and AdminEnrollments.jsx
 // (row action) — both need the exact same enrollment → diet-plan-wizard
 // prefill mapping, so it lives in one place instead of two.
+import { fmtName } from '../adminUtils';
 
 // Enrollment `goals` is free-text (e.g. "Lose Weight", "Build Muscle"), the
 // diet plan's `goal` is a fixed set — best-effort match so the wizard opens
@@ -19,7 +20,7 @@ export function buildDietPrefillFromEnrollment(enrollment) {
     return {
         enrollmentId: enrollment.id,
         prefill: {
-            name: enrollment.customer_name || '',
+            name: fmtName(enrollment.customer_name) || '',
             age: enrollment.age || undefined,
             weight: enrollment.weight || undefined,
             goal: guessGoal(enrollment.goals),

@@ -12,6 +12,8 @@ import {
     User, Target, Sparkles, CalendarDays, FileDown, Check, Dumbbell, Salad, Edit2,
 } from 'lucide-react';
 import { listCmsRows } from '../content/cmsApi';
+import { fmtName } from '../adminUtils';
+import { useSiteData } from '@/contexts/SiteDataContext';
 import { TextInput, TextArea, ToggleField, SelectField } from '../content/SettingsFields';
 import { useToast } from '../ToastProvider';
 import {
@@ -80,6 +82,7 @@ export default function DietPlanBuilder() {
     const location = useLocation();
     const toast = useToast();
     const isNew = id === 'new';
+    const { coach, contact } = useSiteData();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -106,6 +109,12 @@ export default function DietPlanBuilder() {
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [selectedWorkoutTemplate, setSelectedWorkoutTemplate] = useState('home-workout');
     const [useTemplate, setUseTemplate] = useState(null);
+    // When editing a plan that already has real content, Step 3 shouldn't
+    // silently pre-pick "Custom" (confusing — looks like an unexplained
+    // choice) or let a stray click on "Build Custom" wipe existing days.
+    // It shows a plain "already built" state instead, unless the admin
+    // explicitly asks to regenerate from a template.
+    const [showRegenerateOptions, setShowRegenerateOptions] = useState(false);
 
     const [exportMode, setExportMode] = useState('full');
     const [exportInstructions, setExportInstructions] = useState(true);
@@ -149,7 +158,6 @@ export default function DietPlanBuilder() {
                             dayNumber: d.day_number, meals: d.meals, exercises: d.exercises,
                             restDay: d.rest_day, notes: d.notes || '',
                         })));
-                        setUseTemplate(false);
                     }
                     setMaxStepReached(5);
                 } else if (location.state?.prefill) {
@@ -175,6 +183,23 @@ export default function DietPlanBuilder() {
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
+
+    // Trainer identity already lives in Admin → Site Settings → Coach Bio /
+    // Contact (name, certifications, phone) — no need for a separate admin
+    // profile page that would just be a second place to keep in sync. Only
+    // fills in on a brand-new plan, and only while the fields are still
+    // untouched, so it never clobbers what's saved on an existing plan.
+    useEffect(() => {
+        if (!isNew) return;
+        if (trainer.name || trainer.qualification || trainer.contact) return;
+        if (!coach?.name && !contact?.phone && !contact?.email) return;
+        setTrainer({
+            name: coach?.name || '',
+            qualification: coach?.certifications?.[0] || (coach?.yearsExperience ? `${coach.yearsExperience} Coach` : ''),
+            contact: contact?.phone || contact?.email || '',
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isNew, coach, contact]);
 
     // ── Client detail helpers ──────────────────────────────────────────────
     const setClientField = (key) => (val) => setClient((c) => ({ ...c, [key]: val }));
@@ -207,8 +232,8 @@ export default function DietPlanBuilder() {
         try {
             const existing = await getDietPlanByEnrollment(enr.id);
             if (existing && existing.id !== id) {
-                setLinkedPlanWarning({ clientName: enr.customer_name, plan: existing });
-                toast.error(`${enr.customer_name} already has a diet plan — edit that one instead of creating a duplicate.`);
+                setLinkedPlanWarning({ clientName: fmtName(enr.customer_name), plan: existing });
+                toast.error(`${fmtName(enr.customer_name)} already has a diet plan — edit that one instead of creating a duplicate.`);
                 return;
             }
         } catch { /* non-blocking — don't let a failed check block a legitimate autofill */ }
@@ -217,13 +242,13 @@ export default function DietPlanBuilder() {
         setEnrollmentId(enr.id);
         setClient((c) => ({
             ...c,
-            name: enr.customer_name || c.name,
+            name: fmtName(enr.customer_name) || c.name,
             weight: enr.weight || c.weight,
             allergies: enr.medical_note || enr.medical_issue || c.allergies,
         }));
         setEnrollSearch('');
         setEnrollResults([]);
-        toast.success(`Autofilled from ${enr.customer_name}'s enrollment`);
+        toast.success(`Autofilled from ${fmtName(enr.customer_name)}'s enrollment`);
     };
 
     // ── Template application ────────────────────────────────────────────
@@ -325,7 +350,8 @@ export default function DietPlanBuilder() {
         } catch {
             return; // handleSave already showed the real error — don't download an unsaved plan
         }
-        generateDietPlanPDF(buildPayload(), { mode: exportMode, includeInstructions: exportInstructions });
+        await generateDietPlanPDF(buildPayload(), { mode: exportMode, includeInstructions: exportInstructions });
+        navigate('/admin/diet-plans');
     };
 
     // Tab clicks can only revisit steps already validated through — they
@@ -342,7 +368,11 @@ export default function DietPlanBuilder() {
     };
     const nextStep = () => {
         if (step === 1 && !client.name.trim()) { toast.error('Enter client name'); return; }
-        if (step === 3) { useTemplate === true ? handleApplyTemplate() : useTemplate === false ? handleCustomPlan() : toast.error('Choose an approach'); return; }
+        if (step === 3) {
+            if (!isNew && planHasContent && !showRegenerateOptions) { advanceTo(4); return; }
+            useTemplate === true ? handleApplyTemplate() : useTemplate === false ? handleCustomPlan() : toast.error('Choose an approach');
+            return;
+        }
         advanceTo(step + 1);
     };
 
@@ -351,6 +381,7 @@ export default function DietPlanBuilder() {
         weight: Number(client.weight), activityLevel: client.activityLevel, goal: client.goal,
     }), [client.gender, client.age, client.height, client.weight, client.activityLevel, client.goal]);
 
+    const planHasContent = days.some((d) => d.meals?.some((m) => m.foods?.length) || d.exercises?.length);
     const activeDay = days[currentDay];
     const dayTotals = activeDay ? calcDayTotals(activeDay) : { calories: 0, protein: 0, carbs: 0, fats: 0, caloriesBurned: 0 };
 
@@ -399,7 +430,7 @@ export default function DietPlanBuilder() {
         <div className={`${pageWidthClass} mx-auto space-y-6 pb-10`}>
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h1 className="text-xl font-black text-white">{isNew ? 'New Diet Plan' : `Editing: ${client.name || 'Plan'}`}</h1>
+                    <h1 className="text-xl font-black text-white">{isNew ? 'New Diet Plan' : `Editing: ${fmtName(client.name) || 'Plan'}`}</h1>
                     <p className="text-xs text-white/35 mt-1">Build a personalized diet & exercise plan and export it as a branded PDF.</p>
                 </div>
                 <button onClick={() => navigate('/admin/diet-plans')} className="text-xs font-bold text-white/40 hover:text-white/70">← Back to Plans</button>
@@ -451,7 +482,7 @@ export default function DietPlanBuilder() {
                                             <button key={r.id} onClick={() => applyEnrollment(r)}
                                                 className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5"
                                                 style={inputCard}>
-                                                <span className="font-bold text-white">{r.customer_name}</span>
+                                                <span className="font-bold text-white">{fmtName(r.customer_name)}</span>
                                                 <span className="text-white/35 ml-2">{r.customer_phone || r.customer_email}</span>
                                             </button>
                                         ))}
@@ -490,7 +521,8 @@ export default function DietPlanBuilder() {
                                 <TextInput label="Allergies / Restrictions" value={client.allergies} onChange={setClientField('allergies')} placeholder="e.g. Nuts, Dairy" />
 
                                 <div className="pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                                    <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-3">Trainer Info</p>
+                                    <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Trainer Info</p>
+                                    <p className="text-[11px] text-white/25 mb-3">Auto-filled from Site Settings → Coach Bio — change it here for just this plan, or update it there to change the default for every new plan.</p>
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <TextInput label="Trainer Name" value={trainer.name} onChange={setTrainerField('name')} placeholder="Your name" />
                                         <TextInput label="Contact" value={trainer.contact} onChange={setTrainerField('contact')} placeholder="Email or phone" />
@@ -549,7 +581,24 @@ export default function DietPlanBuilder() {
                     )}
 
                     {/* STEP 3: Template */}
-                    {step === 3 && (
+                    {step === 3 && !isNew && planHasContent && !showRegenerateOptions && (
+                        <div className="max-w-3xl space-y-4">
+                            <div className="rounded-2xl p-6 text-center" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.2)' }}>
+                                <Check className="w-6 h-6 mx-auto mb-2" style={{ color: '#34d399' }} />
+                                <p className="text-sm font-black text-white mb-1">This plan already has content</p>
+                                <p className="text-xs text-white/40 mb-4">Head to Build Plan to review or edit the existing days.</p>
+                                <button onClick={() => advanceTo(4)}
+                                    className="px-5 py-2.5 rounded-xl text-xs font-black text-white"
+                                    style={{ background: '#e71763' }}>
+                                    Go to Build Plan <ChevronRight className="inline w-3.5 h-3.5 ml-1" />
+                                </button>
+                            </div>
+                            <button onClick={() => setShowRegenerateOptions(true)} className="text-xs font-bold text-white/30 hover:text-white/60 mx-auto block">
+                                Start over from a template instead (replaces all current days)
+                            </button>
+                        </div>
+                    )}
+                    {step === 3 && (isNew || !planHasContent || showRegenerateOptions) && (
                         <div className="max-w-3xl space-y-6">
                             <div className="grid sm:grid-cols-2 gap-4">
                                 <button onClick={() => setUseTemplate(true)}

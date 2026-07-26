@@ -12,6 +12,7 @@
 // uses a white page background with black/pink header-footer bars, not the
 // dark admin theme.
 import jsPDF from 'jspdf';
+import { fmtName } from '../adminUtils';
 
 const PW = 210, PH = 297; // A4 portrait, mm
 const ML = 14, MR = 14;
@@ -447,28 +448,59 @@ const MODE_SUFFIX = {
     'full': 'Full_Plan', 'macros-per-meal': 'Macros_Per_Meal', 'summary': 'Summary', 'diet-only': 'Diet_Only',
 };
 
-function addHeaderFooter(doc, plan, pageNum, totalPages) {
+// Fetches the site's actual logo (public/logo.png, same origin — no CORS
+// issue) and converts it to a data URI jsPDF's addImage() can embed
+// directly. Returns null on any failure so the header can fall back to the
+// old styled-text wordmark instead of breaking the export.
+async function loadLogoDataUri() {
+    try {
+        const res = await fetch('/logo.png');
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch {
+        return null;
+    }
+}
+
+function addHeaderFooter(doc, plan, pageNum, totalPages, logoDataUri) {
     // Header
     doc.setFillColor(...BRAND_BLACK);
     doc.rect(0, 0, PW, 26, 'F');
     doc.setFillColor(...BRAND_PINK);
     doc.rect(0, 25, PW, 1.5, 'F');
 
-    doc.setTextColor(...WHITE);
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Fit', ML, 16);
-    doc.setTextColor(...BRAND_PINK);
-    doc.text('withsudarshan', ML + doc.getTextWidth('Fit'), 16);
+    if (logoDataUri) {
+        // Source is a square PNG (1396x1158) — hold it to a fixed height and
+        // let width follow the aspect ratio instead of stretching it.
+        const logoH = 17, logoW = logoH * (1396 / 1158);
+        doc.addImage(logoDataUri, 'PNG', ML, (26 - logoH) / 2, logoW, logoH);
+        doc.setTextColor(...LIGHT_GRAY);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text('RECODE™ Transformation System', ML + logoW + 4, 15);
+    } else {
+        doc.setTextColor(...WHITE);
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Fit', ML, 16);
+        doc.setTextColor(...BRAND_PINK);
+        doc.text('withsudarshan', ML + doc.getTextWidth('Fit'), 16);
 
-    doc.setTextColor(...LIGHT_GRAY);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.text('RECODE™ Transformation System', ML, 22);
+        doc.setTextColor(...LIGHT_GRAY);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text('RECODE™ Transformation System', ML, 22);
+    }
 
     doc.setTextColor(...LIGHT_GRAY);
     doc.setFontSize(7.5);
-    doc.text(`Client: ${plan.client_name}`, PW - MR, 14, { align: 'right' });
+    doc.text(`Client: ${fmtName(plan.client_name)}`, PW - MR, 14, { align: 'right' });
     doc.text(`Page ${pageNum} of ${totalPages}`, PW - MR, 21, { align: 'right' });
 
     // Footer
@@ -478,12 +510,13 @@ function addHeaderFooter(doc, plan, pageNum, totalPages) {
     doc.rect(0, PH - 12, PW, 1.2, 'F');
     doc.setTextColor(...MID_GRAY);
     doc.setFontSize(6.5);
-    const trainerLine = `${plan.trainer_name || 'RECODE Coach'}${plan.trainer_contact ? ' | ' + plan.trainer_contact : ''} | Generated ${new Date().toLocaleDateString('en-IN')}`;
+    const trainerLine = `${fmtName(plan.trainer_name) || 'RECODE Coach'}${plan.trainer_contact ? ' | ' + plan.trainer_contact : ''} | Generated ${new Date().toLocaleDateString('en-IN')}`;
     doc.text(trainerLine, PW / 2, PH - 4.5, { align: 'center' });
 }
 
-export function generateDietPlanPDF(plan, { mode = 'full', includeInstructions = true } = {}) {
+export async function generateDietPlanPDF(plan, { mode = 'full', includeInstructions = true } = {}) {
     const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const logoDataUri = await loadLogoDataUri();
 
     // ── Dedicated cover page — client snapshot, BMI, plan averages, macro
     // ratio. Real day-by-day content always starts fresh on page 2, so the
@@ -499,12 +532,12 @@ export function generateDietPlanPDF(plan, { mode = 'full', includeInstructions =
     doc.setTextColor(...DARK_GRAY);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text(plan.client_name || 'Client', ML, y + 18);
+    doc.text(fmtName(plan.client_name) || 'Client', ML, y + 18);
 
     doc.setTextColor(...MID_GRAY);
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
-    const trainerLine = `Prepared by ${plan.trainer_name || 'your RECODE Coach'}${plan.trainer_qualification ? ' — ' + plan.trainer_qualification : ''}`;
+    const trainerLine = `Prepared by ${fmtName(plan.trainer_name) || 'your RECODE Coach'}${plan.trainer_qualification ? ' — ' + plan.trainer_qualification : ''}`;
     doc.text(trainerLine, ML, y + 25);
 
     doc.setDrawColor(...BRAND_PINK);
@@ -613,7 +646,7 @@ export function generateDietPlanPDF(plan, { mode = 'full', includeInstructions =
     const totalPages = doc.getNumberOfPages();
     for (let p = 1; p <= totalPages; p++) {
         doc.setPage(p);
-        addHeaderFooter(doc, plan, p, totalPages);
+        addHeaderFooter(doc, plan, p, totalPages, logoDataUri);
     }
 
     const fileName = `${(plan.client_name || 'Client').replace(/\s+/g, '_')}_${MODE_SUFFIX[mode] || 'Plan'}.pdf`;

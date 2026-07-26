@@ -56,6 +56,7 @@ import {
     fmtDate,
     fmtDateTime,
     fmtGoals,
+    fmtName,
     exportToCSV,
     downloadInvoicePDF,
     statusBadge,
@@ -607,7 +608,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                     <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                             <p className="font-black text-white text-sm truncate">
-                                {enrollment?.customer_name || '…'}
+                                {fmtName(enrollment?.customer_name) || '…'}
                             </p>
 
                             <p className="text-[10px] text-white/35 font-mono mt-0.5">
@@ -822,7 +823,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                     }}
                                 >
                                     <div className="px-4">
-                                        {dl('Name', enrollment.customer_name)}
+                                        {dl('Name', fmtName(enrollment.customer_name))}
                                         {dl('Email', enrollment.customer_email)}
                                         {dl('Phone', enrollment.customer_phone)}
                                         {dl('Age', enrollment.age ? `${enrollment.age} yrs` : null)}
@@ -864,7 +865,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                         }}
                                     >
                                         <div className="px-4">
-                                            {dl('Name', enrollment.partner_name)}
+                                            {dl('Name', fmtName(enrollment.partner_name))}
                                             {dl(
                                                 'Age',
                                                 enrollment.partner_age
@@ -1799,7 +1800,7 @@ export default function AdminEnrollments() {
                                         >
                                             <td className="px-4 py-3">
                                                 <p className="text-sm font-semibold text-white">
-                                                    {row.customer_name}
+                                                    {fmtName(row.customer_name)}
                                                 </p>
 
                                                 <p className="text-[11px] text-white/35">

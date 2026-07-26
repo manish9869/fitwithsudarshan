@@ -7,6 +7,7 @@ import { Plus, Search, Loader2, Edit2, Copy, Trash2, FileDown, Salad } from 'luc
 import { listDietPlans, getDietPlan, createDietPlan, deleteDietPlan } from './dietPlanApi';
 import { generateDietPlanPDF } from './dietPdfGenerator';
 import { useToast } from '../ToastProvider';
+import { fmtName } from '../adminUtils';
 
 export default function DietPlanList() {
     const navigate = useNavigate();
@@ -66,7 +67,7 @@ export default function DietPlanList() {
         setBusyId(id);
         try {
             const plan = await getDietPlan(id);
-            generateDietPlanPDF(plan, { mode: 'full', includeInstructions: true });
+            await generateDietPlanPDF(plan, { mode: 'full', includeInstructions: true });
         } catch (e) { toast.error(e.message); }
         finally { setBusyId(null); }
     };
@@ -118,7 +119,7 @@ export default function DietPlanList() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="text-sm font-bold text-white">{p.client_name}</p>
+                                                <p className="text-sm font-bold text-white">{fmtName(p.client_name)}</p>
                                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
                                                     style={p.enrollment_id
                                                         ? { background: 'rgba(52,211,153,0.1)', color: '#34d399' }
@@ -160,7 +161,7 @@ export default function DietPlanList() {
                 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={() => setDeleteTarget(null)}>
                     <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
                     <div className="relative w-full max-w-sm rounded-2xl p-6 text-center" style={{ background: '#0e0e16', border: '1px solid rgba(239,68,68,0.25)' }} onClick={(e) => e.stopPropagation()}>
-                        <p className="font-bold text-white text-sm mb-4">Delete {deleteTarget.client_name}'s plan permanently?</p>
+                        <p className="font-bold text-white text-sm mb-4">Delete {fmtName(deleteTarget.client_name)}'s plan permanently?</p>
                         <div className="flex gap-3">
                             <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2.5 rounded-xl text-sm text-white/50" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
                             <button onClick={handleDelete} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#ef4444' }}>Delete</button>
