@@ -88,6 +88,10 @@ const AdminAssessments = lazy(() =>
   lazyRetry(() => import('@/pages/admin/AdminAssessments'))
 );
 
+const AdminProfile = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/AdminProfile'))
+);
+
 const AdminCoupons = lazy(() =>
   lazyRetry(() => import('@/pages/admin/coupons/AdminCoupons'))
 );
@@ -373,6 +377,15 @@ function App() {
                 element={
                   <LazyRoute>
                     <AdminAssessments />
+                  </LazyRoute>
+                }
+              />
+
+              <Route
+                path="profile"
+                element={
+                  <LazyRoute>
+                    <AdminProfile />
                   </LazyRoute>
                 }
               />

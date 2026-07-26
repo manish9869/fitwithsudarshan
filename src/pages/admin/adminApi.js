@@ -99,6 +99,23 @@ export async function changePassword(currentPassword, newPassword) {
     return request('/change-password', { method: 'POST', body: { currentPassword, newPassword } });
 }
 
+// ── Profile (display name, qualification, contact) ─────────────────────────────
+export async function fetchAdminProfile() {
+    const data = await request('/profile');
+    return data.profile;
+}
+
+export async function saveAdminProfile(payload) {
+    const data = await request('/profile', { method: 'PATCH', body: payload });
+    // Keep the session-cached admin object (used by the sidebar) in sync so
+    // a display-name change shows up immediately, without re-logging in.
+    const stored = getStoredAdmin();
+    if (stored) {
+        try { sessionStorage.setItem(ADMIN_KEY, JSON.stringify({ ...stored, displayName: data.profile.display_name })); } catch { /* noop */ }
+    }
+    return data.profile;
+}
+
 export function logout() {
     clearSession();
 }
