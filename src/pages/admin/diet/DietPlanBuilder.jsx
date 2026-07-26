@@ -270,8 +270,13 @@ export default function DietPlanBuilder() {
         days,
     });
 
+    // Throws on failure (instead of swallowing the error) so callers that
+    // need to know the save actually succeeded — like the PDF download,
+    // which should never hand out a PDF for a plan that isn't in the DB —
+    // can tell the difference. The direct "Save Draft" button click still
+    // gets a toast either way since that happens before the rethrow.
     const handleSave = async () => {
-        if (!client.name.trim()) { toast.error('Client name is required'); setStep(1); return; }
+        if (!client.name.trim()) { toast.error('Client name is required'); setStep(1); throw new Error('Client name is required'); }
         setSaving(true);
         try {
             if (isNew) {
@@ -282,13 +287,21 @@ export default function DietPlanBuilder() {
                 await updateDietPlan(id, buildPayload());
                 toast.success('Plan saved');
             }
-        } catch (e) { toast.error(e.message); }
-        finally { setSaving(false); }
+        } catch (e) {
+            toast.error(e.message || 'Failed to save plan — it was not added to your Diet Plans list.');
+            throw e;
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleDownloadPDF = async () => {
         if (!client.name.trim()) { toast.error('Client name is required'); setStep(1); return; }
-        await handleSave();
+        try {
+            await handleSave();
+        } catch {
+            return; // handleSave already showed the real error — don't download an unsaved plan
+        }
         generateDietPlanPDF(buildPayload(), { mode: exportMode, includeInstructions: exportInstructions });
     };
 
@@ -390,15 +403,6 @@ export default function DietPlanBuilder() {
                             </div>
 
                             <div className="rounded-2xl p-5 space-y-4" style={card}>
-                                <p className="text-sm font-black text-white">Trainer Info</p>
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <TextInput label="Trainer Name" value={trainer.name} onChange={setTrainerField('name')} placeholder="Your name" />
-                                    <TextInput label="Qualification" value={trainer.qualification} onChange={setTrainerField('qualification')} placeholder="Certified Nutritionist" />
-                                </div>
-                                <TextInput label="Contact" value={trainer.contact} onChange={setTrainerField('contact')} placeholder="Email or phone" />
-                            </div>
-
-                            <div className="rounded-2xl p-5 space-y-4" style={card}>
                                 <p className="text-sm font-black text-white">Client Info</p>
                                 <TextInput label="Client Name" value={client.name} onChange={setClientField('name')} placeholder="Client's full name" />
                                 <div className="grid grid-cols-2 gap-4">
@@ -411,6 +415,17 @@ export default function DietPlanBuilder() {
                                     <TextInput label="Target (kg)" value={String(client.targetWeight)} onChange={setClientField('targetWeight')} />
                                 </div>
                                 <TextInput label="Allergies / Restrictions" value={client.allergies} onChange={setClientField('allergies')} placeholder="e.g. Nuts, Dairy" />
+
+                                <div className="pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                                    <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-3">Trainer Info</p>
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                        <TextInput label="Trainer Name" value={trainer.name} onChange={setTrainerField('name')} placeholder="Your name" />
+                                        <TextInput label="Contact" value={trainer.contact} onChange={setTrainerField('contact')} placeholder="Email or phone" />
+                                    </div>
+                                    <div className="mt-4">
+                                        <TextInput label="Qualification" value={trainer.qualification} onChange={setTrainerField('qualification')} placeholder="Certified Nutritionist" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -644,13 +659,6 @@ export default function DietPlanBuilder() {
                                 ))}
                                 <ToggleField label="Include General Guidelines" checked={exportInstructions} onChange={setExportInstructions} hint="Hydration/sleep tips + trainer notes page" />
                             </div>
-
-                            <button onClick={handleDownloadPDF} disabled={saving}
-                                className="w-full py-4 rounded-xl font-black text-white flex items-center justify-center gap-2 disabled:opacity-50"
-                                style={{ background: '#e71763', boxShadow: '0 0 25px rgba(231,23,99,0.4)' }}>
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-                                Save & Download PDF
-                            </button>
                         </div>
                     )}
                 </motion.div>
@@ -663,7 +671,7 @@ export default function DietPlanBuilder() {
                     <ChevronLeft className="inline w-3.5 h-3.5 mr-1" /> Previous
                 </button>
                 <div className="flex items-center gap-3">
-                    <button onClick={handleSave} disabled={saving}
+                    <button onClick={() => handleSave().catch(() => {})} disabled={saving}
                         className="px-4 py-2.5 rounded-xl text-xs font-bold text-white/70 flex items-center gap-1.5 disabled:opacity-50" style={inputCard}>
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save Draft
                     </button>
@@ -672,7 +680,14 @@ export default function DietPlanBuilder() {
                             className="px-5 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-40" style={{ background: '#e71763' }}>
                             {step === 3 && useTemplate === true ? 'Apply Template' : 'Next'} <ChevronRight className="inline w-3.5 h-3.5 ml-1" />
                         </button>
-                    ) : null}
+                    ) : (
+                        <button onClick={handleDownloadPDF} disabled={saving}
+                            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50"
+                            style={{ background: '#e71763', boxShadow: '0 0 20px rgba(231,23,99,0.35)' }}>
+                            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                            Save & Download PDF
+                        </button>
+                    )}
                 </div>
             </div>
 
