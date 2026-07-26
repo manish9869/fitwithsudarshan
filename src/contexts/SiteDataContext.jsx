@@ -1,7 +1,10 @@
 // src/contexts/SiteDataContext.jsx
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { fetchSiteContent, readCachedSiteContent } from '@/services/contentApi';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { fetchSiteContent, fetchContentVersion, readCachedSiteContent } from '@/services/contentApi';
 import { applyWhatsAppTemplates } from '@/utils/whatsapp';
+
+// How often an already-open tab checks whether an admin changed something.
+const VERSION_POLL_MS = 15_000;
 
 const SiteDataContext = createContext(null);
 
@@ -20,6 +23,7 @@ export function SiteDataProvider({ children }) {
     });
     const [loading, setLoading] = useState(!readCachedSiteContent());
     const [error, setError] = useState('');
+    const lastVersionRef = useRef(null);
 
     const load = useCallback(async () => {
         try {
@@ -35,6 +39,29 @@ export function SiteDataProvider({ children }) {
     }, []);
 
     useEffect(() => { load(); }, [load]);
+
+    // Background poll: an admin save bumps the backend's content version, so
+    // a tab a customer already has open picks up the change on its own —
+    // no hard refresh needed.
+    useEffect(() => {
+        const checkVersion = async () => {
+            try {
+                const version = await fetchContentVersion();
+                if (lastVersionRef.current === null) {
+                    lastVersionRef.current = version;
+                    return;
+                }
+                if (version !== lastVersionRef.current) {
+                    lastVersionRef.current = version;
+                    load();
+                }
+            } catch {
+                // Transient network issue — try again on the next tick.
+            }
+        };
+        const interval = setInterval(checkVersion, VERSION_POLL_MS);
+        return () => clearInterval(interval);
+    }, [load]);
 
     return (
         <SiteDataContext.Provider value={{ ...data, loading, error, refresh: load }}>

@@ -10,6 +10,16 @@ export async function fetchSiteContent() {
     return data;
 }
 
+// Cheap poll target — just a number, no DB query on the backend. Lets an
+// already-open tab detect an admin edit and refetch, instead of the
+// customer needing to hard-refresh to see a price/content change.
+export async function fetchContentVersion() {
+    const res = await fetch(`${API_BASE}/api/content/version`);
+    if (!res.ok) throw new Error('Failed to check content version');
+    const { version } = await res.json();
+    return version;
+}
+
 // Instant-paint fallback: whatever we last successfully fetched, so the
 // page doesn't flash empty while the network request is in flight.
 export function readCachedSiteContent() {
