@@ -2,8 +2,10 @@
 // Small, reusable "plain form" building blocks for AdminSiteSettings — no
 // JSON, no code — so a non-technical user can edit everything with normal
 // text boxes, toggles, and "Add" buttons.
-import { useState } from 'react';
-import { Plus, X, GripVertical, Check } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, X, GripVertical, Check, Loader2, ImagePlus, ImageOff } from 'lucide-react';
+import { uploadImage } from './cmsApi';
+import { useToast } from '../ToastProvider';
 
 const labelCls = 'text-[11px] font-bold text-white/45 uppercase tracking-widest mb-1.5 block';
 const inputCls = 'w-full rounded-lg px-3 py-2.5 text-sm text-white bg-white/5 border border-white/10 placeholder:text-white/25 outline-none focus:border-[rgba(231,23,99,0.5)]';
@@ -166,6 +168,106 @@ export function ChipInput({ label, value, onChange, placeholder, hint }) {
                     className="flex-1 min-w-[140px] bg-transparent outline-none text-sm text-white placeholder:text-white/25 py-1"
                 />
             </div>
+            {hint && <p className="text-[11px] text-white/25 mt-1.5">{hint}</p>}
+        </div>
+    );
+}
+
+// ── Image upload field — drag/click to upload, shows a live preview.
+// Stores just the resulting CDN URL as the field value. When `defaultPreview`
+// is given, an empty value falls back to it visually and a "Reset to
+// Default" action appears once a custom image is set — that's the plumbing
+// behind "optionally override this image, and go back to normal anytime."
+export function ImageField({ label, value, onChange, folder, defaultPreview, hint }) {
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState('');
+    const inputRef = useRef(null);
+    const toast = useToast();
+    const isCustom = !!value;
+    const previewSrc = value || defaultPreview;
+
+    const handleFile = async (file) => {
+        if (!file) return;
+        setError('');
+        setUploading(true);
+        try {
+            const { url } = await uploadImage(file, folder);
+            onChange(url);
+            toast.success('Image uploaded');
+        } catch (e) {
+            setError(e.message || 'Upload failed');
+            toast.error(e.message || 'Upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div>
+            {label && <label className={labelCls}>{label}</label>}
+            <div className="flex items-center gap-3">
+                <div
+                    className="w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                    {previewSrc ? (
+                        <img src={previewSrc} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                        <ImageOff className="w-5 h-5 text-white/20" />
+                    )}
+                </div>
+                <div className="flex-1 min-w-0">
+                    {defaultPreview && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mb-1.5"
+                            style={isCustom
+                                ? { background: 'rgba(52,211,153,0.1)', color: '#34d399' }
+                                : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>
+                            {isCustom ? 'Custom image active' : 'Using default image'}
+                        </span>
+                    )}
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+                        className="hidden"
+                        onChange={(e) => handleFile(e.target.files?.[0])}
+                    />
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                            type="button"
+                            onClick={() => inputRef.current?.click()}
+                            disabled={uploading}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60"
+                            style={{ background: 'rgba(231,23,99,0.15)', border: '1px solid rgba(231,23,99,0.3)', color: '#e71763' }}
+                        >
+                            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                            {uploading ? 'Uploading…' : isCustom ? 'Replace Photo' : 'Upload Photo'}
+                        </button>
+                        {defaultPreview ? (
+                            isCustom && (
+                                <button type="button" onClick={() => onChange('')} className="text-xs text-white/30 hover:text-red-400">
+                                    Reset to Default
+                                </button>
+                            )
+                        ) : (
+                            value && (
+                                <button type="button" onClick={() => onChange('')} className="text-xs text-white/30 hover:text-red-400">
+                                    Remove
+                                </button>
+                            )
+                        )}
+                    </div>
+                </div>
+            </div>
+            {error && <p className="text-[11px] mt-1.5" style={{ color: '#f87171' }}>{error}</p>}
+            {!defaultPreview && (
+                <input
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder="Or paste an image URL directly"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-white/60 bg-white/5 border border-white/10 mt-2"
+                />
+            )}
             {hint && <p className="text-[11px] text-white/25 mt-1.5">{hint}</p>}
         </div>
     );

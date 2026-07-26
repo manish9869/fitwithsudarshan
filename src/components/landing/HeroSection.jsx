@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { wa } from "@/utils/whatsapp";
 import { useSiteData } from "@/contexts/SiteDataContext";
+import { DEFAULT_HERO_BANNER_IMAGE } from "@/utils/siteContentDefaults";
 
 // ─── Typewriter ───────────────────────────────────────────────────────────────
 function Typewriter({ words }) {
@@ -262,11 +263,9 @@ function Particles() {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const heroBg =
-    "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1280&h=720&fit=crop&q=70&auto=format";
-
 export default function HeroSection() {
     const { hero } = useSiteData();
+    const heroBg = hero?.bannerImage || DEFAULT_HERO_BANNER_IMAGE;
 
     const [statsStarted, setStatsStarted] =
         useState(false);

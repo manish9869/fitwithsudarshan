@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { useSiteData } from "@/contexts/SiteDataContext";
+import { DEFAULT_COACH_PHOTO } from "@/utils/siteContentDefaults";
 import {
     CheckCircle2,
     XCircle,
@@ -307,7 +308,7 @@ export default function FeaturesSection() {
                                     }}
                                 >
                                     <img
-                                        src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan.jpeg"
+                                        src={coach.photo || DEFAULT_COACH_PHOTO}
                                         alt={coach.name}
                                         loading="lazy"
                                         className="absolute inset-0 w-full h-full object-cover object-center"
