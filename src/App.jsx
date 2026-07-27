@@ -151,6 +151,10 @@ const AdminLegalPages = lazy(() =>
 const AdminSiteSettings = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminSiteSettings'))
 );
+
+const AdminLogs = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/AdminLogs'))
+);
 // ── Loading fallback ──────────────────────────────────────────────────────
 function PageFallback() {
   return (
@@ -488,6 +492,7 @@ function App() {
               />
               <Route path="content/legal-pages" element={<LazyRoute><AdminLegalPages /></LazyRoute>} />
               <Route path="site-settings" element={<LazyRoute><AdminSiteSettings /></LazyRoute>} />
+              <Route path="logs" element={<LazyRoute><AdminLogs /></LazyRoute>} />
               {/* ── CMS: these have their own simplified editors ── */}
               <Route
                 path="content/coaching_types"

@@ -23,6 +23,10 @@ export const DEFAULT_MAINTENANCE = {
     message: "The site is currently undergoing scheduled maintenance. We're working hard to improve your experience — please check back shortly. For anything urgent, reach out on WhatsApp.",
 };
 
+export const DEFAULT_LOGGING = {
+    verbose: false,
+};
+
 // The original hero banner and coach photo — used whenever an admin hasn't
 // uploaded a custom one (hero.bannerImage / coach.photo are empty). Uploading
 // a custom image overrides these; clearing it reverts back to these exact URLs.

@@ -21,6 +21,7 @@ import {
     FileText,
     Settings,
     Salad,
+    ScrollText,
 } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
@@ -32,6 +33,7 @@ const NAV_GROUPS = [
         items: [
             { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { to: '/admin/funnel-audit', icon: Activity, label: 'Funnel Audit' },
+            { to: '/admin/logs', icon: ScrollText, label: 'System Logs' },
         ],
     },
     {

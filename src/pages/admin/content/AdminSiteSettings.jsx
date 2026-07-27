@@ -5,12 +5,13 @@
 // Each one is a single JSON blob in the DB, but the user never sees JSON —
 // every field below is a normal text box, toggle, or "Add" list.
 import { useState, useEffect } from 'react';
-import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE, DEFAULT_LOGGING } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -21,6 +22,7 @@ const DEFAULTS_BY_KEY = {
     sticky_cta: DEFAULT_STICKY_CTA,
     floating_whatsapp: DEFAULT_FLOATING_WHATSAPP,
     maintenance: DEFAULT_MAINTENANCE,
+    logging: DEFAULT_LOGGING,
 };
 
 const SECTIONS = [
@@ -37,6 +39,7 @@ const SECTIONS = [
     { key: 'sticky_cta', label: 'Sticky Bottom Bar', icon: ArrowUpCircle },
     { key: 'floating_whatsapp', label: 'Floating WhatsApp', icon: Smartphone },
     { key: 'maintenance', label: 'Maintenance Mode', icon: Wrench },
+    { key: 'logging', label: 'Logging', icon: ScrollText },
 ];
 
 const WHATSAPP_TEMPLATE_FIELDS = [
@@ -331,6 +334,30 @@ function MaintenanceForm({ value, onChange }) {
     );
 }
 
+function LoggingForm({ value, onChange }) {
+    const v = value || {};
+    const set = (k) => (val) => onChange({ ...v, [k]: val });
+    return (
+        <FieldGroup
+            title="Logging"
+            description="Every checkout writes several log entries as it progresses (order created, payment confirmed, coupon updated, ledger recorded, emails sent...). With this off, only failures/warnings and the final outcome of each transaction are kept — the same information you'd actually need day to day, with far less written to the database. Turn it on temporarily while debugging a specific customer's payment to see every step."
+        >
+            <ToggleField
+                label="Verbose logging (log every step, not just outcomes)"
+                checked={!!v.verbose}
+                onChange={set('verbose')}
+            />
+            <Link
+                to="/admin/logs"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold mt-1"
+                style={{ color: '#e71763' }}
+            >
+                View recent logs <ExternalLink className="w-3 h-3" />
+            </Link>
+        </FieldGroup>
+    );
+}
+
 const FORM_COMPONENTS = {
     brand: BrandForm,
     coach: CoachForm,
@@ -343,6 +370,7 @@ const FORM_COMPONENTS = {
     sticky_cta: StickyCtaForm,
     floating_whatsapp: FloatingWhatsappForm,
     maintenance: MaintenanceForm,
+    logging: LoggingForm,
 };
 
 export default function AdminSiteSettings() {
