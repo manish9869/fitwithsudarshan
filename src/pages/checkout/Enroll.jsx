@@ -310,7 +310,20 @@ export default function Enroll() {
     const [modalStatus, setModalStatus] = useState('idle');
 
     // ── Coupon state ────────────────────────────────────────────────────────────
-    const [appliedCoupon, setAppliedCoupon] = useState(draft?.appliedCoupon ?? null);
+    // MAJOR BUG FIX: this used to restore from the draft unconditionally,
+    // with no equivalent to the `hasIncomingSelection` guard coachingId/
+    // planType/durationMonths already have above. Arriving via a *fresh*
+    // plan selection (e.g. clicking a different plan on the landing page's
+    // pricing table, which navigates here with router state) correctly
+    // picked up the NEW plan/duration — but the coupon still came from
+    // whatever stale draft was left in sessionStorage from a PREVIOUS,
+    // different plan (e.g. test the ₹249 Basic plan, apply WELCOME10, leave,
+    // then pick the ₹6,999 6-month plan). The result: a coupon computed
+    // against the old price silently carried over and displayed a
+    // completely wrong discounted total for the new plan. A fresh incoming
+    // selection now always starts with no coupon applied, same as it starts
+    // at step 0 regardless of the draft.
+    const [appliedCoupon, setAppliedCoupon] = useState(hasIncomingSelection ? null : (draft?.appliedCoupon ?? null));
 
     const [form, setForm] = useState(draft?.form ?? {
         fullName: '', whatsapp: '', email: '', age: '',
@@ -344,6 +357,19 @@ export default function Enroll() {
         ? (pricingTable[coachingId]?.[planType]?.['1'] || 0)
         : (pricingTable[coachingId]?.[planType]?.[durationMonths] || 0);
     const finalPrice = appliedCoupon ? appliedCoupon.discountedPrice : originalPrice;
+
+    // Safety net on top of the explicit resets in the change handlers below
+    // (and the hasIncomingSelection guard above): a coupon's discountedPrice
+    // / savings are only ever valid for the exact originalPrice they were
+    // computed against. If originalPrice ever changes out from under an
+    // applied coupon for ANY reason — a resumed draft whose price changed
+    // server-side since, or a future code path that forgets its own reset —
+    // this catches it instead of silently showing a mismatched total.
+    useEffect(() => {
+        if (appliedCoupon && appliedCoupon.originalPriceAtApply !== originalPrice) {
+            setAppliedCoupon(null);
+        }
+    }, [originalPrice, appliedCoupon]);
 
     const selectedDuration = basic
         ? { months: '1', label: 'One-Time', sublabel: 'RECODE BLUEPRINT', description: basicConsultation.description }
@@ -703,7 +729,7 @@ export default function Enroll() {
                                         durationMonths={basic ? '1' : durationMonths}
                                         originalPrice={originalPrice}
                                         appliedCoupon={appliedCoupon}
-                                        onApply={(coupon) => setAppliedCoupon(coupon)}
+                                        onApply={(coupon) => setAppliedCoupon({ ...coupon, originalPriceAtApply: originalPrice })}
                                         onRemove={() => setAppliedCoupon(null)}
                                     />
                                     {coachingId === 'personal' && !appliedCoupon && (
