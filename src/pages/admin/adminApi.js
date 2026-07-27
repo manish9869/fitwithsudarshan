@@ -235,6 +235,11 @@ export async function deleteManualEnrollment(id) {
 export async function fetchFunnelAudit(days = 30) {
     return request('/funnel-audit', { params: { days } });
 }
+
+// ── System logs (transaction_logs browser) ──────────────────────────────────
+export async function fetchLogs(filters) {
+    return request('/logs', { params: filters });
+}
 export async function deleteEnrollmentAdmin(id) {
     return request(`/enrollments/${id}`, { method: 'DELETE' });
 }
