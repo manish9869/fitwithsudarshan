@@ -580,6 +580,31 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
     );
 }
 
+function CopyUploadLinkButton({ token }) {
+    const [copied, setCopied] = useState(false);
+    if (!token) return null;
+    return (
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                const url = `${window.location.origin}/upload-photos/${token}`;
+                navigator.clipboard.writeText(url).catch(() => { });
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1400);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors"
+            style={{
+                background: copied ? 'rgba(52,211,153,0.12)' : 'rgba(231,23,99,0.08)',
+                border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : 'rgba(231,23,99,0.2)'}`,
+                color: copied ? '#34d399' : '#e71763',
+            }}
+        >
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copied ? 'Copied' : 'Copy Upload Link'}
+        </button>
+    );
+}
+
 function PhotoViewer({ url, label }) {
     const [open, setOpen] = useState(false);
 
@@ -972,12 +997,17 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange, onRe
                             </div>
 
                             <section>
-                                <p
-                                    className="text-[10px] font-black uppercase tracking-widest mb-3"
-                                    style={{ color: '#e71763' }}
-                                >
-                                    Assessment Photos
-                                </p>
+                                <div className="flex items-center justify-between mb-3">
+                                    <p
+                                        className="text-[10px] font-black uppercase tracking-widest"
+                                        style={{ color: '#e71763' }}
+                                    >
+                                        Assessment Photos
+                                    </p>
+                                    {(!assessment.photoFrontUrl || !assessment.photoSideUrl) && (
+                                        <CopyUploadLinkButton token={assessment.photo_upload_token} />
+                                    )}
+                                </div>
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <PhotoViewer

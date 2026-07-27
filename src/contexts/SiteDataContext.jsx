@@ -25,16 +25,28 @@ export function SiteDataProvider({ children }) {
     const [error, setError] = useState('');
     const lastVersionRef = useRef(null);
 
+    // Mobile connections drop/stall far more often than desktop — a single
+    // failed attempt used to leave the whole page's content sections empty
+    // until the visitor manually hard-refreshed. Retrying a couple of times
+    // with a short backoff covers a transient blip without a page reload.
+    const MAX_LOAD_ATTEMPTS = 3;
     const load = useCallback(async () => {
-        try {
-            const fresh = await fetchSiteContent();
-            setData(fresh);
-            applyWhatsAppTemplates(fresh.whatsappTemplates);
-            setError('');
-        } catch (e) {
-            setError(e.message || 'Failed to load site content');
-        } finally {
-            setLoading(false);
+        for (let attempt = 1; attempt <= MAX_LOAD_ATTEMPTS; attempt++) {
+            try {
+                const fresh = await fetchSiteContent();
+                setData(fresh);
+                applyWhatsAppTemplates(fresh.whatsappTemplates);
+                setError('');
+                setLoading(false);
+                return;
+            } catch (e) {
+                if (attempt === MAX_LOAD_ATTEMPTS) {
+                    setError(e.message || 'Failed to load site content');
+                    setLoading(false);
+                    return;
+                }
+                await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+            }
         }
     }, []);
 
