@@ -13,6 +13,7 @@ const EMPTY = {
     targetAudience: [], planInclusions: [], coachingTypes: [], durations: [],
     pricingTable: {}, basicConsultation: null, recodeMethod: [],
     testimonials: [], blogPosts: [], transformations: [], saleFlags: {}, popularFlags: {},
+    maintenance: { enabled: false },
 };
 
 export function SiteDataProvider({ children }) {

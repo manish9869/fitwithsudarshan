@@ -45,13 +45,22 @@ const RANGE_OPTIONS = [
     { label: '1Y', value: 365 },
 ];
 
-const PIE_COLORS = ['#e71763', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f472b6'];
+// Categorical palette for the bar/ring charts below — validated against this
+// panel's actual dark surface (#0a0a0a) with the dataviz skill's
+// validate_palette.js: the previous set (Tailwind-400 blue/emerald/amber/
+// violet/pink) all sat well above the dark-mode lightness band (OKLCH L
+// 0.71–0.84 vs. the ≈0.48–0.67 target), which is why they read washed-out
+// against a near-black background. This set keeps the brand pink as the
+// anchor (slot 1) and steps the rest into the dark band; worst adjacent CVD
+// ΔE 8.4 / normal-vision ΔE 19.8 — both clear the validator's target. Order
+// is the CVD-safety mechanism — don't reshuffle without re-validating.
+const PIE_COLORS = ['#e71763', '#3987e5', '#199e70', '#c98500', '#9085e9', '#d95926'];
 
 const STATUS_COLORS = {
-    new: '#60a5fa',
-    reviewed: '#fbbf24',
-    plan_sent: '#a78bfa',
-    completed: '#34d399',
+    new: '#3987e5',
+    reviewed: '#c98500',
+    plan_sent: '#9085e9',
+    completed: '#199e70',
     archived: 'rgba(255,255,255,0.3)',
 };
 
@@ -607,8 +616,11 @@ export default function AdminDashboard() {
         fill: STATUS_COLORS[item.name] || '#e71763',
     }));
 
-    const conversionValue = k.conversionRate ?? 0;
-    const conversionGaugeData = [{ name: 'Conversion', value: conversionValue, fill: '#a78bfa' }];
+    // Clamped defensively on top of the backend's own cap — a gauge with a
+    // fixed 0–100 domain (below) fed a value over 100 just clips silently,
+    // which reads as "stuck full" rather than showing what's wrong.
+    const conversionValue = Math.min(100, Math.max(0, k.conversionRate ?? 0));
+    const conversionGaugeData = [{ name: 'Conversion', value: conversionValue, fill: '#9085e9' }];
 
     return (
         <div className="relative">
@@ -740,9 +752,9 @@ export default function AdminDashboard() {
                             delay={0.03}
                         />
                         <KpiCard
-                            icon={Percent} label="Conversion Rate" accent="#a78bfa"
+                            icon={Percent} label="Conversion Rate" accent="#9085e9"
                             value={k.conversionRate != null ? `${k.conversionRate}%` : '—'}
-                            sub="assessments → enrollments"
+                            sub="paid enrollments vs. assessments"
                             delay={0.06}
                         />
                         <KpiCard
@@ -1126,8 +1138,8 @@ export default function AdminDashboard() {
                                     >
                                         <defs>
                                             <linearGradient id="revenueTypeBarGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.95} />
-                                                <stop offset="100%" stopColor="#e71763" stopOpacity={0.35} />
+                                                <stop offset="0%" stopColor="#3987e5" stopOpacity={0.95} />
+                                                <stop offset="100%" stopColor="#3987e5" stopOpacity={0.35} />
                                             </linearGradient>
                                         </defs>
 
@@ -1250,7 +1262,7 @@ export default function AdminDashboard() {
                             )}
                         </ChartCard>
 
-                        <ChartCard title="Conversion Rate" icon={Percent} badge="assessments → paid">
+                        <ChartCard title="Conversion Rate" icon={Percent} badge="paid vs. assessments">
                             <div className="relative flex items-center justify-center" style={{ height: 260 }}>
                                 <ResponsiveContainer width="100%" height={260}>
                                     <RadialBarChart
@@ -1269,12 +1281,23 @@ export default function AdminDashboard() {
                                     </RadialBarChart>
                                 </ResponsiveContainer>
 
-                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <p className="text-3xl font-black text-white">
+                                {/* Explicit z-index — this overlay sits on top of the SVG by DOM
+                                    order alone with no stacking context of its own, which is
+                                    fragile (any ancestor picking up a stacking context, e.g. from
+                                    a framer-motion transform, can silently reorder it behind the
+                                    chart). Pinning it removes that ambiguity outright. */}
+                                <div
+                                    className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+                                    style={{ zIndex: 10 }}
+                                >
+                                    <p
+                                        className="text-3xl font-black text-white"
+                                        style={{ textShadow: '0 1px 12px rgba(0,0,0,0.5)' }}
+                                    >
                                         {k.conversionRate != null ? `${k.conversionRate}%` : '—'}
                                     </p>
                                     <p className="text-[10px] text-white/30 mt-1.5 text-center px-10 leading-relaxed">
-                                        of assessments become paid clients
+                                        paid enrollments vs. assessments started
                                     </p>
                                 </div>
                             </div>
