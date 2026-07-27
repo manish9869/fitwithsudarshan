@@ -12,7 +12,7 @@ import {
 import RecordPaymentModal from './RecordPaymentModal';
 import PaymentLedgerPanel from './PaymentLedgerPanel';
 import PaginationBar from '../PaginationBar';
-import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES } from '../adminUtils';
+import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES, formatLabel } from '../adminUtils';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from '../ToastProvider';
 
@@ -562,8 +562,8 @@ function ManualEnrollmentDetailDrawer({ row, onClose, onEdit, onPaymentRecorded 
                         <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
                             <div className="px-4">
                                 {dl('Program', enrollment.program_name)}
-                                {dl('Coaching Type', enrollment.coaching_type)}
-                                {dl('Plan Type', enrollment.plan_type)}
+                                {dl('Coaching Type', formatLabel(enrollment.coaching_type))}
+                                {dl('Plan Type', formatLabel(enrollment.plan_type))}
                                 {dl('Duration', enrollment.duration_months ? `${enrollment.duration_months} Month${Number(enrollment.duration_months) > 1 ? 's' : ''}` : null)}
                                 {dl('Payment Date', fmtDateTime(enrollment.payment_date))}
                                 {dl('Created', fmtDate(enrollment.created_at))}
@@ -644,7 +644,10 @@ export default function AdminManualEnrollment() {
         return filtered.slice(start, start + pageSize);
     }, [filtered, page, pageSize]);
 
-    const totalRevenue = rows.reduce((s, r) => s + (Number(r.amount_paid) || 0), 0);
+    // Same fix as the main Enrollments page: only count rows actually marked
+    // paid, so a manual entry later marked failed/refunded can't keep
+    // inflating this total.
+    const totalRevenue = rows.reduce((s, r) => s + (r.payment_status === 'paid' ? (Number(r.amount_paid) || 0) : 0), 0);
     const withEmailCount = rows.filter((r) => r.customer_email).length;
     const partialCount = rows.filter((r) => r.payment_plan_status === 'partial').length;
 
@@ -850,7 +853,7 @@ export default function AdminManualEnrollment() {
                                     const badge = statusBadge(row.payment_status || 'paid');
                                     const isPartial = row.payment_plan_status === 'partial';
                                     const methodLabel = PAYMENT_METHODS.find((m) => m.value === row.payment_method)?.label
-                                        || (row.payment_method || '—').replace('_', ' ');
+                                        || formatLabel(row.payment_method);
                                     return (
                                         <tr key={row.id} className="transition-colors"
                                             style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
