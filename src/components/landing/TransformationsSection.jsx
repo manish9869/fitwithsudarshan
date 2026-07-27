@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     ChevronLeft,
     ChevronRight,
@@ -307,14 +307,20 @@ function smoothScrollTo(el, targetLeft, duration = 400) {
 export function TransformationsSection() {
     const { transformations, loading } = useSiteData();
 
-    const ref = useRef(null);
     const thumbnailScrollRef = useRef(null);
 
-    const isInView = useInView(ref, {
-        once: true,
-        margin: "-100px",
-    });
-
+    // NOTE: this section used to gate its own fade-in on its own
+    // useInView(), on top of the <Reveal> wrapper Landing.jsx already wraps
+    // it in. Because this component returns null entirely while site
+    // content is loading, its ref only ever attaches to a real DOM node
+    // once the fetch resolves — by which point the page has often already
+    // shifted layout enough that this second, stricter (-100px) observer
+    // missed its one-shot (`once: true`) window, leaving everything stuck
+    // at opacity:0 with nothing left to re-trigger it. That's what showed
+    // up as "blank until a hard refresh" on slower mobile loads. The outer
+    // <Reveal> already handles the scroll-triggered fade-in for the whole
+    // section, so this component's own content now just animates in
+    // unconditionally as soon as it mounts.
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [direction, setDirection] = useState(1);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -505,17 +511,12 @@ export function TransformationsSection() {
             `}</style>
 
             <div
-                ref={ref}
                 className="relative container mx-auto px-4"
             >
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
-                    animate={
-                        isInView
-                            ? { opacity: 1, y: 0 }
-                            : {}
-                    }
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                     className="text-center mb-8 sm:mb-12 md:mb-16"
                 >
@@ -543,11 +544,7 @@ export function TransformationsSection() {
                 {/* Main card */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
-                    animate={
-                        isInView
-                            ? { opacity: 1, y: 0 }
-                            : {}
-                    }
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{
                         duration: 0.5,
                         delay: 0.2,
@@ -888,11 +885,7 @@ export function TransformationsSection() {
                 {/* Thumbnail strip */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
-                    animate={
-                        isInView
-                            ? { opacity: 1, y: 0 }
-                            : {}
-                    }
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{
                         duration: 0.5,
                         delay: 0.4,
@@ -977,14 +970,10 @@ export function TransformationsSection() {
                                             opacity: 0,
                                             scale: 0.88,
                                         }}
-                                        animate={
-                                            isInView
-                                                ? {
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                }
-                                                : {}
-                                        }
+                                        animate={{
+                                            opacity: 1,
+                                            scale: 1,
+                                        }}
                                         transition={{
                                             duration: 0.3,
                                             delay:
@@ -1115,11 +1104,7 @@ export function TransformationsSection() {
                 {/* CTA */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
-                    animate={
-                        isInView
-                            ? { opacity: 1, y: 0 }
-                            : {}
-                    }
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{
                         duration: 0.5,
                         delay: 0.6,

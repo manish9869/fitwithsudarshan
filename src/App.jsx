@@ -55,6 +55,10 @@ const Onboarding = lazy(() =>
   lazyRetry(() => import('@/pages/Onboarding'))
 );
 
+const UploadPhotos = lazy(() =>
+  lazyRetry(() => import('@/pages/UploadPhotos'))
+);
+
 const FAQ = lazy(() =>
   lazyRetry(() => import('@/pages/legal/FAQSection'))
 );
@@ -305,6 +309,15 @@ function App() {
               element={
                 <LazyRoute>
                   <Onboarding />
+                </LazyRoute>
+              }
+            />
+
+            <Route
+              path="/upload-photos/:token"
+              element={
+                <LazyRoute>
+                  <UploadPhotos />
                 </LazyRoute>
               }
             />

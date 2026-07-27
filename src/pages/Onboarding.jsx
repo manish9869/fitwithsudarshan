@@ -448,6 +448,7 @@ export default function Onboarding() {
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [submitError, setSubmitError] = useState('');
+    const [photoUploadToken, setPhotoUploadToken] = useState(null);
     const [touched, setTouched] = useState({});
 
     const [form, setForm] = usePersistentForm(INITIAL_FORM);
@@ -533,6 +534,9 @@ export default function Onboarding() {
                 throw new Error(data.error || 'Submission failed. Please try again.');
             }
 
+            const data = await res.json().catch(() => ({}));
+            setPhotoUploadToken(data.photoUploadToken || null);
+
             // Clear persisted draft on success
             sessionStorage.removeItem(DRAFT_KEY);
             ['photoFront', 'photoSide', 'bloodReport'].forEach(k =>
@@ -571,13 +575,20 @@ export default function Onboarding() {
                     </p>
                     {(!form.photoFront || !form.photoSide) && (
                         <div className="rounded-2xl p-4 sm:p-5 mb-6 text-left" style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.18)' }}>
-                            <p className="text-sm text-white/60 leading-relaxed flex items-start gap-2">
+                            <p className="text-sm text-white/60 leading-relaxed flex items-start gap-2 mb-3">
                                 <Camera className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#60a5fa' }} />
                                 <span>
-                                    You can still send your front and side photos on WhatsApp — they help Sudarshan
-                                    fine-tune your plan based on your actual body composition and posture.
+                                    You skipped your front/side photos — they help Sudarshan fine-tune your plan
+                                    based on your actual body composition and posture. Add them whenever you're ready.
                                 </span>
                             </p>
+                            {photoUploadToken && (
+                                <button onClick={() => navigate(`/upload-photos/${photoUploadToken}`)}
+                                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-xs text-white"
+                                    style={{ background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.35)' }}>
+                                    <Upload className="w-3.5 h-3.5" /> Upload Photos Now
+                                </button>
+                            )}
                         </div>
                     )}
                     <div className="rounded-2xl p-4 sm:p-5 mb-6" style={{ background: 'rgba(231,23,99,0.06)', border: '1px solid rgba(231,23,99,0.18)' }}>
