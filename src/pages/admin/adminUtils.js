@@ -9,6 +9,19 @@ import * as XLSX from 'xlsx';
 import { getToken } from './adminApi';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
+
+// Beautifies raw DB slugs (coaching_type, plan_type, payment_method, etc.)
+// for display — "basic_individual" → "Basic Individual". Previously only
+// used for the enrollments list's filter dropdown labels; the table cells
+// and detail-drawer rows right next to those same filters showed the raw
+// slug, so the two views of the same field looked inconsistent.
+export function formatLabel(value) {
+    if (!value) return '—';
+    return String(value)
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function fmtCurrency(amount) {
     if (!amount && amount !== 0) return '—';
     return new Intl.NumberFormat('en-IN', {

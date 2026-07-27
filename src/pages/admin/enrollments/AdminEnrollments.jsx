@@ -57,6 +57,7 @@ import {
     fmtDateTime,
     fmtGoals,
     fmtName,
+    formatLabel,
     exportToCSV,
     downloadInvoicePDF,
     statusBadge,
@@ -82,14 +83,6 @@ const _cache = {
     allRows: null,
     ts: 0,
 };
-
-function formatLabel(value) {
-    if (!value) return '—';
-
-    return String(value)
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function StatCard({ label, value, sub, color }) {
     return (
@@ -910,8 +903,8 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                 >
                                     <div className="px-4">
                                         {dl('Program', enrollment.program_name)}
-                                        {dl('Coaching Type', enrollment.coaching_type)}
-                                        {dl('Plan Type', enrollment.plan_type)}
+                                        {dl('Coaching Type', formatLabel(enrollment.coaching_type))}
+                                        {dl('Plan Type', formatLabel(enrollment.plan_type))}
                                         {dl(
                                             'Duration',
                                             enrollment.duration_months
@@ -1447,8 +1440,14 @@ export default function AdminEnrollments() {
         }
     }, []);
 
+    // "Revenue" means money actually collected — must only count paid rows.
+    // This used to sum amount_paid across every row regardless of status, so
+    // a pending/failed/refunded enrollment's amount_paid (which can be
+    // nonzero — e.g. a payment that later got marked "failed" after the
+    // fact) inflated this total above what the Dashboard reports for the
+    // same data.
     const totalRevenue = pageData.reduce(
-        (sum, r) => sum + (Number(r.amount_paid) || 0),
+        (sum, r) => sum + (r.payment_status === 'paid' ? (Number(r.amount_paid) || 0) : 0),
         0
     );
 
@@ -1820,14 +1819,14 @@ export default function AdminEnrollments() {
                                             </td>
 
                                             <td className="px-4 py-3">
-                                                <span className="text-xs font-medium text-white/60 capitalize">
-                                                    {row.coaching_type || '—'}
+                                                <span className="text-xs font-medium text-white/60">
+                                                    {formatLabel(row.coaching_type)}
                                                 </span>
                                             </td>
 
                                             <td className="px-4 py-3">
-                                                <span className="text-xs text-white/60 capitalize">
-                                                    {row.plan_type || '—'}
+                                                <span className="text-xs text-white/60">
+                                                    {formatLabel(row.plan_type)}
                                                 </span>
                                             </td>
 
