@@ -5,6 +5,7 @@ import {
   Route,
   Routes,
   Navigate,
+  useLocation,
 } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
@@ -14,9 +15,10 @@ import CustomCursor from '@/components/CustomCursor';
 import ScrollToTop from '@/components/ScrollToTop';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
 import Landing from '@/pages/Landing';
+import MaintenancePage from '@/pages/MaintenancePage';
 import { lazyRetry } from '@/utils/lazyRetry';
 import RouteErrorBoundary from '@/components/RouteErrorBoundary';
-import { SiteDataProvider } from '@/contexts/SiteDataContext';
+import { SiteDataProvider, useSiteData } from '@/contexts/SiteDataContext';
 
 // ── Lazy pages — all wrapped in lazyRetry so a stale/failed chunk load
 //    (e.g. after a fresh deploy rotates asset hashes) triggers a single
@@ -217,6 +219,32 @@ function LazyRoute({ children }) {
   );
 }
 
+// ── Maintenance gate ─────────────────────────────────────────────────────────
+// Sits above every route. Admin paths always pass through unmodified — that's
+// the only way to reach Site Settings and turn maintenance mode back off.
+// Everything else renders the maintenance page instead of the real route the
+// moment `maintenance.enabled` is true, so no visitor can reach the
+// enrollment/payment flow from the UI. (The actual hard guarantee against a
+// transaction going through lives server-side in POST /api/create-order,
+// which independently rejects while maintenance is on — this gate is the UX
+// layer on top of that.)
+//
+// While site content is still loading with no cached copy yet, we hold on
+// the fallback spinner rather than the real page — otherwise a first-time
+// visitor could see the live site flash for a moment before the maintenance
+// flag arrives and swaps it out.
+function MaintenanceGate({ children }) {
+  const { maintenance, loading } = useSiteData();
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  if (isAdminRoute) return children;
+  if (loading) return <PageFallback />;
+  if (maintenance?.enabled) return <PageEnter><MaintenancePage /></PageEnter>;
+
+  return children;
+}
+
 // ── App ───────────────────────────────────────────────────────────────────
 function App() {
   return (
@@ -227,6 +255,7 @@ function App() {
           <ScrollToTop />
           <AnalyticsTracker />
 
+          <MaintenanceGate>
           <Routes>
             {/* ──────────────────────────────────────────────────────────── */}
             {/* Public                                                     */}
@@ -522,6 +551,7 @@ function App() {
               />
             </Route>
           </Routes>
+          </MaintenanceGate>
         </RouteErrorBoundary>
 
         <SpeedInsights />

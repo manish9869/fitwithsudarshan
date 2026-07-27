@@ -5,12 +5,12 @@
 // Each one is a single JSON blob in the DB, but the user never sees JSON —
 // every field below is a normal text box, toggle, or "Add" list.
 import { useState, useEffect } from 'react';
-import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone } from 'lucide-react';
+import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -20,6 +20,7 @@ const DEFAULTS_BY_KEY = {
     whatsapp_templates: DEFAULT_WHATSAPP_MESSAGES,
     sticky_cta: DEFAULT_STICKY_CTA,
     floating_whatsapp: DEFAULT_FLOATING_WHATSAPP,
+    maintenance: DEFAULT_MAINTENANCE,
 };
 
 const SECTIONS = [
@@ -35,6 +36,7 @@ const SECTIONS = [
     { key: 'whatsapp_templates', label: 'WhatsApp Messages', icon: MessageCircle },
     { key: 'sticky_cta', label: 'Sticky Bottom Bar', icon: ArrowUpCircle },
     { key: 'floating_whatsapp', label: 'Floating WhatsApp', icon: Smartphone },
+    { key: 'maintenance', label: 'Maintenance Mode', icon: Wrench },
 ];
 
 const WHATSAPP_TEMPLATE_FIELDS = [
@@ -314,6 +316,21 @@ function FloatingWhatsappForm({ value, onChange }) {
     );
 }
 
+function MaintenanceForm({ value, onChange }) {
+    const v = value || {};
+    const set = (k) => (val) => onChange({ ...v, [k]: val });
+    return (
+        <FieldGroup
+            title="Maintenance Mode"
+            description="Takes the entire public site offline behind a maintenance page. No enrollment, payment, or checkout can be started while this is on — the server rejects new orders even if someone still has an old page open. The admin panel stays accessible so you can turn it back off."
+        >
+            <ToggleField label="Site is under maintenance" checked={!!v.enabled} onChange={set('enabled')} />
+            <TextInput label="Page Title" value={v.title} onChange={set('title')} placeholder="We'll Be Right Back" />
+            <TextArea label="Message" value={v.message} onChange={set('message')} rows={4} placeholder="The site is currently undergoing scheduled maintenance..." />
+        </FieldGroup>
+    );
+}
+
 const FORM_COMPONENTS = {
     brand: BrandForm,
     coach: CoachForm,
@@ -325,6 +342,7 @@ const FORM_COMPONENTS = {
     whatsapp_templates: WhatsAppTemplatesForm,
     sticky_cta: StickyCtaForm,
     floating_whatsapp: FloatingWhatsappForm,
+    maintenance: MaintenanceForm,
 };
 
 export default function AdminSiteSettings() {

@@ -17,6 +17,12 @@ export const DEFAULT_FLOATING_WHATSAPP = {
     tooltipText: '💬 Speak Directly With The Founder - Get clarity on your transformation journey.',
 };
 
+export const DEFAULT_MAINTENANCE = {
+    enabled: false,
+    title: "We'll Be Right Back",
+    message: "The site is currently undergoing scheduled maintenance. We're working hard to improve your experience — please check back shortly. For anything urgent, reach out on WhatsApp.",
+};
+
 // The original hero banner and coach photo — used whenever an admin hasn't
 // uploaded a custom one (hero.bannerImage / coach.photo are empty). Uploading
 // a custom image overrides these; clearing it reverts back to these exact URLs.
