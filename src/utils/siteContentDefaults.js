@@ -59,6 +59,23 @@ export const DEFAULT_DIET_UNITS = {
     ],
 };
 
+// The PDF's "General Guidelines" page — global default, shown on every plan
+// unless that specific plan has its own override (diet_plans.guidelines).
+// Kept as one string per line (already numbered) rather than a repeater of
+// objects — simplest possible editor is a plain textarea, one tip per line.
+export const DEFAULT_DIET_GUIDELINES = {
+    tips: [
+        '1. Drink 8-10 glasses of water daily.',
+        '2. Stick to meal timings as closely as possible.',
+        '3. Avoid processed foods, sugary drinks, and fried snacks.',
+        '4. Aim for 7-8 hours of quality sleep each night.',
+        '5. Warm up before every workout; cool down and stretch after.',
+        '6. Track your progress every week (weight + measurements).',
+        '7. Consult your coach before making any modifications.',
+        '8. Stay consistent — results take time and dedication.',
+    ],
+};
+
 // The original hero banner and coach photo — used whenever an admin hasn't
 // uploaded a custom one (hero.bannerImage / coach.photo are empty). Uploading
 // a custom image overrides these; clearing it reverts back to these exact URLs.

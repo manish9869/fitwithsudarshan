@@ -53,8 +53,11 @@ export default function DietPlanList() {
                 client_age: plan.client_age, client_gender: plan.client_gender, client_height: plan.client_height,
                 client_weight: plan.client_weight, target_weight: plan.target_weight, goal: plan.goal,
                 diet_preference: plan.diet_preference, activity_level: plan.activity_level, allergies: plan.allergies,
-                client_notes: plan.client_notes, trainer_name: plan.trainer_name, trainer_qualification: plan.trainer_qualification,
+                client_notes: plan.client_notes, client_cuisine: plan.client_cuisine, client_budget_conscious: plan.client_budget_conscious,
+                trainer_name: plan.trainer_name, trainer_qualification: plan.trainer_qualification,
                 trainer_contact: plan.trainer_contact, plan_duration: plan.plan_duration, include_exercise: plan.include_exercise,
+                repeat_daily: plan.repeat_daily, target_calories: plan.target_calories, target_calories_manual: plan.target_calories_manual,
+                guidelines: plan.guidelines,
                 status: 'draft', days,
             });
             toast.success('Plan duplicated');

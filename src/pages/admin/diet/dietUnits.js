@@ -68,11 +68,18 @@ export function isConvertible(food) {
 // Returns the multiplier to apply to the food's per-base-serving nutrition
 // (i.e. what `quantity` has always meant in a day's meals JSONB).
 export function convertToQuantity(food, amount, unit, units) {
-    if (!isConvertible(food)) return Number(amount) || 0;
+    if (!isConvertible(food)) return round3(Number(amount) || 0);
     const baseGrams = (Number(food?.serving_qty) || 1) * gramsForUnit(units, food?.serving_unit);
     const loggedGrams = (Number(amount) || 0) * gramsForUnit(units, unit);
     if (baseGrams <= 0) return 0;
-    return loggedGrams / baseGrams;
+    // Grams-per-unit conversions rarely divide evenly (e.g. 80g / 150g =
+    // 0.5333...33) — round to 3 decimals so the plan/PDF show "0.533", not
+    // an unbounded repeating decimal.
+    return round3(loggedGrams / baseGrams);
+}
+
+function round3(n) {
+    return Math.round(n * 1000) / 1000;
 }
 
 // ── Category-aware unit filtering ───────────────────────────────────────

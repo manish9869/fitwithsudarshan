@@ -6,12 +6,12 @@
 // every field below is a normal text box, toggle, or "Add" list.
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler } from 'lucide-react';
+import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler, ClipboardList } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE, DEFAULT_LOGGING, DEFAULT_DIET_UNITS } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE, DEFAULT_LOGGING, DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -24,6 +24,7 @@ const DEFAULTS_BY_KEY = {
     maintenance: DEFAULT_MAINTENANCE,
     logging: DEFAULT_LOGGING,
     diet_units: DEFAULT_DIET_UNITS,
+    diet_guidelines: DEFAULT_DIET_GUIDELINES,
 };
 
 const SECTIONS = [
@@ -42,6 +43,7 @@ const SECTIONS = [
     { key: 'maintenance', label: 'Maintenance Mode', icon: Wrench },
     { key: 'logging', label: 'Logging', icon: ScrollText },
     { key: 'diet_units', label: 'Diet Serving Units', icon: Ruler },
+    { key: 'diet_guidelines', label: 'Diet Plan Guidelines', icon: ClipboardList },
 ];
 
 const WHATSAPP_TEMPLATE_FIELDS = [
@@ -382,6 +384,25 @@ function DietUnitsForm({ value, onChange }) {
     );
 }
 
+function DietGuidelinesForm({ value, onChange }) {
+    const v = value || {};
+    const text = (v.tips || []).join('\n');
+    return (
+        <FieldGroup
+            title="Diet Plan Guidelines"
+            description="Shown on the 'General Guidelines' page of every exported diet plan PDF, one tip per line. An admin can still override this for a specific client from within that plan's Export step — this is just the default every new plan starts with."
+        >
+            <TextArea
+                label="Tips (one per line)"
+                value={text}
+                onChange={(val) => onChange({ ...v, tips: val.split('\n') })}
+                rows={10}
+                placeholder="1. Drink 8-10 glasses of water daily."
+            />
+        </FieldGroup>
+    );
+}
+
 const FORM_COMPONENTS = {
     brand: BrandForm,
     coach: CoachForm,
@@ -396,6 +417,7 @@ const FORM_COMPONENTS = {
     maintenance: MaintenanceForm,
     logging: LoggingForm,
     diet_units: DietUnitsForm,
+    diet_guidelines: DietGuidelinesForm,
 };
 
 export default function AdminSiteSettings() {
