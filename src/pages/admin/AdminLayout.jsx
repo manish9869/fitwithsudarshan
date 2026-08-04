@@ -24,6 +24,7 @@ import {
     ScrollText,
     Apple,
     Dumbbell,
+    BarChart3,
 } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
@@ -34,6 +35,7 @@ const NAV_GROUPS = [
         title: 'Overview',
         items: [
             { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
             { to: '/admin/funnel-audit', icon: Activity, label: 'Funnel Audit' },
             { to: '/admin/logs', icon: ScrollText, label: 'System Logs' },
         ],

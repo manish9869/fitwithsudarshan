@@ -114,6 +114,10 @@ const AdminFunnelAudit = lazy(() =>
   lazyRetry(() => import('@/pages/admin/AdminFunnelAudit'))
 );
 
+const AdminAnalytics = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/AdminAnalytics'))
+);
+
 const AdminBalanceDue = lazy(() =>
   lazyRetry(() => import('@/pages/admin/enrollments/AdminBalanceDue'))
 );
@@ -468,6 +472,15 @@ function App() {
                 element={
                   <LazyRoute>
                     <AdminFunnelAudit />
+                  </LazyRoute>
+                }
+              />
+
+              <Route
+                path="analytics"
+                element={
+                  <LazyRoute>
+                    <AdminAnalytics />
                   </LazyRoute>
                 }
               />
