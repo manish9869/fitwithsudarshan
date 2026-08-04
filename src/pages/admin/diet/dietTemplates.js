@@ -338,7 +338,7 @@ export function generatePlanFromTemplate(templateId, duration, includeExercise, 
                 const food = foodsById.get(id);
                 if (!food) return null;
                 return {
-                    foodId: id, name: food.name, calories: food.calories, protein: food.protein,
+                    foodId: id, name: food.name, category: food.category, calories: food.calories, protein: food.protein,
                     carbs: food.carbs, fats: food.fats, fiber: food.fiber, sugar: food.sugar,
                     servingSize: food.serving_size, servingQty: food.serving_qty, servingUnit: food.serving_unit,
                     amount: food.serving_qty ?? 1, unit: food.serving_unit || null,

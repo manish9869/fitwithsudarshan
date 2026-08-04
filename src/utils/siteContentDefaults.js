@@ -32,23 +32,30 @@ export const DEFAULT_LOGGING = {
 // nutrition) since foods are stored with values per a fixed gram amount.
 // These are estimates, not per-food measurements — deliberately editable
 // here so Sudarshan can tune them (or add new units) without a code change.
+//
+// `type` controls which foods a unit is even offered for — a banana can't
+// be measured in ml, tea can't be measured in slices. 'solid' units only
+// show for non-Beverages foods, 'liquid' only for Beverages, 'both' always.
 export const DEFAULT_DIET_UNITS = {
     units: [
-        { label: 'Grams (g)', grams: '1' },
-        { label: 'Milliliters (ml)', grams: '1' },
-        { label: 'Ounce (oz)', grams: '28.35' },
-        { label: 'Tablespoon (tbsp)', grams: '15' },
-        { label: 'Teaspoon (tsp)', grams: '5' },
-        { label: 'Cup - Small', grams: '100' },
-        { label: 'Cup - Medium', grams: '150' },
-        { label: 'Cup - Large', grams: '200' },
-        { label: 'Bowl - Small', grams: '150' },
-        { label: 'Bowl - Medium', grams: '250' },
-        { label: 'Bowl - Large', grams: '350' },
-        { label: 'Katori', grams: '150' },
-        { label: 'Piece', grams: '30' },
-        { label: 'Slice', grams: '25' },
-        { label: 'Glass', grams: '200' },
+        { label: 'Grams (g)', grams: '1', type: 'solid' },
+        { label: 'Milliliters (ml)', grams: '1', type: 'liquid' },
+        { label: 'Ounce (oz)', grams: '28.35', type: 'both' },
+        { label: 'Tablespoon (tbsp)', grams: '15', type: 'both' },
+        { label: 'Teaspoon (tsp)', grams: '5', type: 'both' },
+        { label: 'Cup - Small', grams: '100', type: 'both' },
+        { label: 'Cup - Medium', grams: '150', type: 'both' },
+        { label: 'Cup - Large', grams: '200', type: 'both' },
+        { label: 'Bowl - Small', grams: '150', type: 'solid' },
+        { label: 'Bowl - Medium', grams: '250', type: 'solid' },
+        { label: 'Bowl - Large', grams: '350', type: 'solid' },
+        { label: 'Katori', grams: '150', type: 'solid' },
+        { label: 'Piece', grams: '30', type: 'solid' },
+        { label: 'Slice', grams: '25', type: 'solid' },
+        { label: 'Glass', grams: '200', type: 'liquid' },
+        { label: 'Plate', grams: '200', type: 'solid' },
+        { label: 'Scoop', grams: '30', type: 'solid' },
+        { label: 'Bar', grams: '60', type: 'solid' },
     ],
 };
 

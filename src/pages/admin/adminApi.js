@@ -125,6 +125,12 @@ export async function fetchDashboard(rangeDays = 90) {
     return request('/dashboard', { params: { range: rangeDays } });
 }
 
+// { configured: false } if GA4 isn't set up yet, otherwise
+// { configured: true, total, topPages, fetchedAt } or { configured: true, error }.
+export async function fetchLiveUsers() {
+    return request('/analytics/live-users');
+}
+
 // ── Enrollments ────────────────────────────────────────────────────────────────
 export async function fetchEnrollments(filters) {
     return request('/enrollments', { params: filters });

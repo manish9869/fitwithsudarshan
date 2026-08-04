@@ -34,7 +34,7 @@ import {
     Percent, BellRing, ListChecks, ClipboardCheck, Salad,
     ShieldAlert, Globe,
 } from 'lucide-react';
-import { fetchDashboard, fetchAssessments, fetchFollowUps } from './adminApi';
+import { fetchDashboard, fetchAssessments, fetchFollowUps, fetchLiveUsers } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
 import { Link } from 'react-router-dom';
 
@@ -577,6 +577,62 @@ function TodoList({ refreshKey }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+// GA4's "active users right now" (last ~30 min), independent of the
+// dashboard's own date-range selector — polls on its own short cycle rather
+// than reloading with the rest of the page. Renders nothing until GA4 is
+// actually configured on the backend (no env vars set = feature just isn't
+// there yet), so it doesn't clutter the dashboard with a permanent
+// "not set up" notice.
+function LiveVisitorsBadge() {
+    const [status, setStatus] = useState('loading'); // loading | ok | unconfigured | error
+    const [live, setLive] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        const poll = async () => {
+            try {
+                const res = await fetchLiveUsers();
+                if (cancelled) return;
+                if (!res.configured) { setStatus('unconfigured'); return; }
+                if (res.error) { setStatus('error'); return; }
+                setLive(res);
+                setStatus('ok');
+            } catch {
+                if (!cancelled) setStatus('error');
+            }
+        };
+        poll();
+        const id = setInterval(poll, 15_000);
+        return () => { cancelled = true; clearInterval(id); };
+    }, []);
+
+    if (status === 'loading' || status === 'unconfigured') return null;
+
+    const topPagesTitle = live?.topPages?.length
+        ? live.topPages.map((p) => `${p.page} (${p.users})`).join(', ')
+        : undefined;
+
+    return (
+        <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
+            title={topPagesTitle}
+            style={{ border: '1px solid rgba(52,211,153,0.25)', background: 'rgba(52,211,153,0.06)' }}
+        >
+            <span className="relative flex h-2 w-2 flex-shrink-0">
+                {status === 'ok' && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#34d399' }} />
+                )}
+                <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: status === 'ok' ? '#34d399' : 'rgba(255,255,255,0.25)' }} />
+            </span>
+            {status === 'error' ? (
+                <span className="text-white/40">Live visitors unavailable</span>
+            ) : (
+                <span className="font-bold text-white">{live.total} <span className="text-white/40 font-normal">live now</span></span>
+            )}
+        </div>
+    );
+}
+
 export default function AdminDashboard() {
     const [range, setRange] = useState(90);
     const [data, setData] = useState(null);
@@ -676,6 +732,8 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <LiveVisitorsBadge />
+
                     <div
                         className="relative flex items-center rounded-xl p-1"
                         style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}
