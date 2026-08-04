@@ -143,6 +143,22 @@ const DietPlanBuilder = lazy(() =>
   lazyRetry(() => import('@/pages/admin/diet/DietPlanBuilder'))
 );
 
+const DietTemplateList = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietTemplateList'))
+);
+
+const DietTemplateEditor = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietTemplateEditor'))
+);
+
+const DietWorkoutTemplateList = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietWorkoutTemplateList'))
+);
+
+const DietWorkoutTemplateEditor = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietWorkoutTemplateEditor'))
+);
+
 const AdminRecodeMethod = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminRecodeMethod'))
 );
@@ -536,6 +552,38 @@ function App() {
                 element={
                   <LazyRoute>
                     <DietPlanBuilder />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="diet-templates"
+                element={
+                  <LazyRoute>
+                    <DietTemplateList />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="diet-templates/:id"
+                element={
+                  <LazyRoute>
+                    <DietTemplateEditor />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="workout-templates"
+                element={
+                  <LazyRoute>
+                    <DietWorkoutTemplateList />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="workout-templates/:id"
+                element={
+                  <LazyRoute>
+                    <DietWorkoutTemplateEditor />
                   </LazyRoute>
                 }
               />

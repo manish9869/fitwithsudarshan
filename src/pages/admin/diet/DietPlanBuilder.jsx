@@ -6,9 +6,9 @@
 // dark-admin theme instead of the reference app's shadcn components.
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-    Loader2, ChevronLeft, ChevronRight, Plus, Trash2, Search, X, Save,
+    Loader2, ChevronLeft, ChevronRight, Plus, Trash2, Search, Save,
     User, Target, Sparkles, CalendarDays, FileDown, Check, Dumbbell, Salad, Edit2, Repeat2,
 } from 'lucide-react';
 import { listCmsRows, getSiteContentKey } from '../content/cmsApi';
@@ -23,8 +23,10 @@ import { generatePlanFromTemplate } from './dietTemplates';
 import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDurationBased, defaultExerciseCustom, normalizeExercise } from './dietCalc';
 import { formatServing, convertToQuantity, normalizeFoodEntry, isConvertible, getUnitsForFood } from './dietUnits';
 import { FOOD_REGIONS } from './dietRegions';
+import { MEAL_TYPES, OPTIONAL_MEAL_TYPES } from './dietMealTypes';
 import { DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
 import { generateDietPlanPDF, buildDietPlanPreviewUrl } from './dietPdfGenerator';
+import Modal from './DietModal';
 
 const STEPS = [
     { id: 1, title: 'Client Info', icon: User },
@@ -33,22 +35,6 @@ const STEPS = [
     { id: 4, title: 'Build Plan', icon: CalendarDays },
     { id: 5, title: 'Export', icon: FileDown },
 ];
-
-const MEAL_TYPES = [
-    { type: 'morningDrink', label: 'Morning Drink' },
-    { type: 'breakfast', label: 'Breakfast' },
-    { type: 'midMorning', label: 'Mid-Morning Snack' },
-    { type: 'lunch', label: 'Lunch' },
-    { type: 'evening', label: 'Evening Snack' },
-    { type: 'dinner', label: 'Dinner' },
-    { type: 'bedtime', label: 'Bedtime Snack' },
-    { type: 'beforeBedDrink', label: 'Before Bed Drink' },
-];
-// A day always has all MEAL_TYPES slots, but an empty "No items" slot in
-// every export/preview would clutter plans that don't use e.g. a morning
-// drink — these are the ones a day starts with 0 foods and just stays out
-// of the way (rendered normally, but never forces itself into view).
-const OPTIONAL_MEAL_TYPES = new Set(['morningDrink', 'beforeBedDrink']);
 
 const emptyDay = (dayNumber) => ({
     dayNumber,
@@ -76,25 +62,6 @@ const defaultTrainer = { name: '', qualification: '', contact: '' };
 
 const card = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' };
 const inputCard = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' };
-
-function Modal({ title, onClose, children, wide }) {
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-                className={`relative w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[85vh] overflow-y-auto rounded-2xl`}
-                style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.1)' }}
-                onClick={(e) => e.stopPropagation()}>
-                <div className="sticky top-0 flex items-center justify-between px-5 py-4 z-10"
-                    style={{ background: 'rgba(14,14,22,0.97)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <h3 className="font-black text-white text-sm">{title}</h3>
-                    <button onClick={onClose}><X className="w-4 h-4 text-white/40" /></button>
-                </div>
-                <div className="p-5">{children}</div>
-            </motion.div>
-        </div>
-    );
-}
 
 export default function DietPlanBuilder() {
     const { id } = useParams();
@@ -1116,28 +1083,28 @@ export default function DietPlanBuilder() {
                                         <ToggleField label="Trainer Notes" checked={exportTrainerNotes} onChange={setExportTrainerNotes} hint="Your notes for this client, printed on the guidelines page" />
                                     )}
                                 </div>
-                            </div>
 
-                            {exportInstructions && (
-                                <div className="rounded-2xl p-5 space-y-2" style={card}>
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm font-black text-white">Guideline Text (this plan)</p>
-                                        <button onClick={() => setGuidelines(defaultGuidelines)}
-                                            className="text-[11px] font-bold text-white/40 hover:text-white/70">
-                                            Reset to Default
-                                        </button>
+                                {exportInstructions && (
+                                    <div className="rounded-2xl p-5 space-y-2" style={card}>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-black text-white">Guideline Text (this plan)</p>
+                                            <button onClick={() => setGuidelines(defaultGuidelines)}
+                                                className="text-[11px] font-bold text-white/40 hover:text-white/70">
+                                                Reset to Default
+                                            </button>
+                                        </div>
+                                        <p className="text-[11px] text-white/25">
+                                            Defaults to the global guidelines (Admin → Site Settings → Diet Plan Guidelines). Edit here to customize just for {client.name || 'this client'} — e.g. an injury or medical note.
+                                        </p>
+                                        <TextArea
+                                            label=""
+                                            value={guidelines.join('\n')}
+                                            onChange={(val) => setGuidelines(val.split('\n'))}
+                                            rows={8}
+                                        />
                                     </div>
-                                    <p className="text-[11px] text-white/25">
-                                        Defaults to the global guidelines (Admin → Site Settings → Diet Plan Guidelines). Edit here to customize just for {client.name || 'this client'} — e.g. an injury or medical note.
-                                    </p>
-                                    <TextArea
-                                        label=""
-                                        value={guidelines.join('\n')}
-                                        onChange={(val) => setGuidelines(val.split('\n'))}
-                                        rows={8}
-                                    />
-                                </div>
-                            )}
+                                )}
+                            </div>
 
                             <div className="rounded-2xl p-3 lg:sticky lg:top-4 flex flex-col" style={{ ...card, height: 'min(85vh, 900px)' }}>
                                 <div className="flex items-center justify-between px-2 pb-2 flex-shrink-0">
@@ -1238,7 +1205,14 @@ export default function DietPlanBuilder() {
                         })}
                         {filteredFoods.length === 0 && (
                             <p className="text-sm text-white/30 text-center py-8 col-span-2">
-                                No foods match{client.cuisine !== 'Any' ? ` for ${client.cuisine} — try "Any" cuisine in Client Info` : ''}.
+                                No foods match{foodSearch.trim() ? ` "${foodSearch.trim()}"` : ''}
+                                {client.cuisine !== 'Any' && client.budgetConscious
+                                    ? ` for ${client.cuisine} cuisine + Budget-Friendly — try turning one off in Client Info`
+                                    : client.cuisine !== 'Any'
+                                        ? ` for ${client.cuisine} — try "Any" cuisine in Client Info`
+                                        : client.budgetConscious
+                                            ? ' — no foods are tagged Budget-Friendly yet (Admin → Diet Foods), or turn off Budget-Conscious Client in Client Info'
+                                            : ''}.
                             </p>
                         )}
                     </div>
