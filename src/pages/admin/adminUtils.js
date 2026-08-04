@@ -86,6 +86,23 @@ export function fmtName(name) {
         .replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 }
 
+// Turns a display name into a URL/id-safe slug — "Paneer Tikka!" -> "paneer-tikka".
+export function slugify(s) {
+    return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
+}
+
+// Appends "-2", "-3"… only if the base id is already taken — used wherever
+// an id auto-generates from a name field (Diet Foods, Diet Exercises, Diet
+// Templates) so ids stay readable in the common case of no collision,
+// instead of always suffixing something the admin never even sees.
+export function uniqueId(base, existingIds) {
+    if (!base) return base;
+    if (!existingIds.has(base)) return base;
+    let n = 2;
+    while (existingIds.has(`${base}-${n}`)) n++;
+    return `${base}-${n}`;
+}
+
 // ── Date Range Presets ────────────────────────────────────────────────────────
 export const DATE_PRESETS = [
     { label: 'Today', days: 0 },

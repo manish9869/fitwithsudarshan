@@ -159,6 +159,14 @@ const DietWorkoutTemplateEditor = lazy(() =>
   lazyRetry(() => import('@/pages/admin/diet/DietWorkoutTemplateEditor'))
 );
 
+const DietFoodList = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietFoodList'))
+);
+
+const DietExerciseList = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/diet/DietExerciseList'))
+);
+
 const AdminRecodeMethod = lazy(() =>
   lazyRetry(() => import('@/pages/admin/content/AdminRecodeMethod'))
 );
@@ -552,6 +560,22 @@ function App() {
                 element={
                   <LazyRoute>
                     <DietPlanBuilder />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="diet-foods"
+                element={
+                  <LazyRoute>
+                    <DietFoodList />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="diet-exercises"
+                element={
+                  <LazyRoute>
+                    <DietExerciseList />
                   </LazyRoute>
                 }
               />

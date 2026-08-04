@@ -7,6 +7,7 @@ import { CMS_CONFIGS } from './cmsConfigs';
 import { listCmsRows, createCmsRow, updateCmsRow, deleteCmsRow } from './cmsApi';
 import { ImageField } from './SettingsFields';
 import { useToast } from '../ToastProvider';
+import { slugify, uniqueId } from '../adminUtils';
 import PaginationBar from '../PaginationBar';
 
 function fieldDefault(field) {
@@ -45,7 +46,10 @@ function formToPayload(config, form) {
     return payload;
 }
 
-function RowModal({ config, editing, onClose, onSaved }) {
+// `rows` is the sibling list already loaded by whichever list page rendered
+// this modal — only needed for config.autoId (collision-safe slug) and
+// config.autoSortOrder (append-after-max); ignored otherwise.
+export function RowModal({ config, editing, rows, onClose, onSaved }) {
     const [form, setForm] = useState(() => rowToForm(config, editing));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -62,9 +66,24 @@ function RowModal({ config, editing, onClose, onSaved }) {
         setSaving(true); setError('');
         try {
             const payload = formToPayload(config, form);
-            const saved = isEdit
-                ? await updateCmsRow(config.table, editing[config.idKey], payload)
-                : await createCmsRow(config.table, payload);
+            let saved;
+            if (isEdit) {
+                saved = await updateCmsRow(config.table, editing[config.idKey], payload);
+            } else {
+                // Both are hidden from the form entirely — id/sort_order are
+                // internal bookkeeping a non-technical admin shouldn't need
+                // to type or understand, so they're derived automatically
+                // instead of shown as fields.
+                if (config.autoId) {
+                    const base = slugify(form[config.autoIdFrom || config.titleField] || '');
+                    if (!base) throw new Error(`Enter a ${(config.autoIdFrom || config.titleField)} first`);
+                    payload[config.idKey] = uniqueId(base, new Set((rows || []).map((r) => r[config.idKey])));
+                }
+                if (config.autoSortOrder) {
+                    payload.sort_order = (rows || []).reduce((max, r) => Math.max(max, r.sort_order || 0), 0) + 1;
+                }
+                saved = await createCmsRow(config.table, payload);
+            }
             toast.success(isEdit ? 'Updated' : 'Created');
             onSaved(saved);
         } catch (err) {
@@ -318,6 +337,7 @@ export default function AdminCMSList() {
                     <RowModal
                         config={config}
                         editing={editing}
+                        rows={rows}
                         onClose={() => { setCreating(false); setEditing(null); }}
                         onSaved={(saved) => {
                             setRows((r) => {

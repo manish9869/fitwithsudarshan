@@ -8,20 +8,27 @@
 import { SERVING_UNITS } from '../diet/dietUnits';
 import { FOOD_REGIONS } from '../diet/dietRegions';
 import { FOOD_CATEGORIES } from '../diet/dietCategories';
-
-const MUSCLE_GROUPS = ['Cardio', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Flexibility'];
-const DIFFICULTY_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-const EXERCISE_LOCATIONS = ['Home', 'Gym', 'Both'];
+import { MUSCLE_GROUPS, DIFFICULTY_LEVELS, EXERCISE_LOCATIONS } from '../diet/dietExerciseOptions';
 
 export const CMS_CONFIGS = {
+    // id and sort_order are intentionally NOT form fields — both are
+    // internal bookkeeping a non-technical admin shouldn't need to type or
+    // understand. autoId slugs the id from Food Name (collision-safe,
+    // silent) and autoSortOrder appends after the current highest value —
+    // see AdminCMSList.jsx's RowModal. This table also has its own richer
+    // list view (DietFoodList.jsx, Admin -> Diet Foods) with filters/columns
+    // beyond what the generic table shows; this config still backs that
+    // page's add/edit modal (the same RowModal component, reused).
     diet_foods: {
         title: 'Diet Plan Foods',
         idKey: 'id',
         titleField: 'name',
         subtitleField: 'category',
         searchFields: ['name', 'category', 'region'],
+        autoId: true,
+        autoIdFrom: 'name',
+        autoSortOrder: true,
         fields: [
-            { key: 'id', label: 'ID (e.g. paneer-tikka)', type: 'text', required: true, lockOnEdit: true },
             { key: 'name', label: 'Food Name', type: 'text', required: true },
             { key: 'category', label: 'Category', type: 'select', options: FOOD_CATEGORIES, default: FOOD_CATEGORIES[0] },
             { key: 'region', label: 'Regional Cuisine', type: 'select', options: FOOD_REGIONS, default: FOOD_REGIONS[0] },
@@ -30,7 +37,6 @@ export const CMS_CONFIGS = {
             // unit instead of a free-text guess like "1 cup".
             { key: 'serving_qty', label: 'Serving Amount', type: 'number', default: 1 },
             { key: 'serving_unit', label: 'Serving Unit', type: 'select', options: SERVING_UNITS, default: SERVING_UNITS[0] },
-            { key: 'serving_size', label: 'Legacy Serving Label (old plans only — leave blank for new foods)', type: 'text' },
             { key: 'calories', label: 'Calories', type: 'number', default: 0 },
             { key: 'protein', label: 'Protein (g)', type: 'number', default: 0 },
             { key: 'carbs', label: 'Carbs (g)', type: 'number', default: 0 },
@@ -45,7 +51,6 @@ export const CMS_CONFIGS = {
             { key: 'is_veg', label: 'Vegetarian', type: 'boolean', default: true },
             { key: 'is_eggetarian', label: 'Eggetarian-Safe', type: 'boolean', default: true },
             { key: 'is_budget_friendly', label: 'Budget-Friendly', type: 'boolean', default: false },
-            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
             { key: 'active', label: 'Active', type: 'boolean', default: true },
         ],
     },
@@ -56,8 +61,10 @@ export const CMS_CONFIGS = {
         titleField: 'name',
         subtitleField: 'muscle_group',
         searchFields: ['name', 'muscle_group'],
+        autoId: true,
+        autoIdFrom: 'name',
+        autoSortOrder: true,
         fields: [
-            { key: 'id', label: 'ID (e.g. bicep-curl)', type: 'text', required: true, lockOnEdit: true },
             { key: 'name', label: 'Exercise Name', type: 'text', required: true },
             { key: 'muscle_group', label: 'Muscle Group', type: 'select', options: MUSCLE_GROUPS, default: MUSCLE_GROUPS[0] },
             { key: 'duration', label: 'Duration (e.g. 5 min)', type: 'text' },
@@ -66,7 +73,6 @@ export const CMS_CONFIGS = {
             { key: 'calories_burned', label: 'Calories Burned', type: 'number', default: 0 },
             { key: 'difficulty', label: 'Difficulty', type: 'select', options: DIFFICULTY_LEVELS, default: DIFFICULTY_LEVELS[0] },
             { key: 'location', label: 'Location', type: 'select', options: EXERCISE_LOCATIONS, default: EXERCISE_LOCATIONS[2] },
-            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
             { key: 'active', label: 'Active', type: 'boolean', default: true },
         ],
     },
