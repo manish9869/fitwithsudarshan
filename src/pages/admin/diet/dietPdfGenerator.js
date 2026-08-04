@@ -240,10 +240,15 @@ function generateFull(doc, plan, opts) {
                         { label: 'CAL', w: 15, align: 'right' }, { label: 'P(g)', w: 15, align: 'right' },
                         { label: 'C(g)', w: 15, align: 'right' }, { label: 'F(g)', w: 15, align: 'right' },
                     ]
+                    // Same total width as the with-serving layout above (174mm,
+                    // leaving CW's usual ~8mm right-margin buffer) — summing
+                    // exactly to CW left the right-aligned F(g) column flush
+                    // against the page edge with no breathing room, which
+                    // read as clipped/cropped.
                     : [
-                        { label: 'MEAL', w: 26 }, { label: 'FOOD ITEM', w: 88 },
-                        { label: 'CAL', w: 17, align: 'right' }, { label: 'P(g)', w: 17, align: 'right' },
-                        { label: 'C(g)', w: 17, align: 'right' }, { label: 'F(g)', w: 17, align: 'right' },
+                        { label: 'MEAL', w: 26 }, { label: 'FOOD ITEM', w: 84 },
+                        { label: 'CAL', w: 16, align: 'right' }, { label: 'P(g)', w: 16, align: 'right' },
+                        { label: 'C(g)', w: 16, align: 'right' }, { label: 'F(g)', w: 16, align: 'right' },
                     ],
                 rows,
             });
@@ -297,8 +302,10 @@ function generateMacrosPerMeal(doc, plan, opts) {
 
         y = drawTable(doc, {
             startY: y,
+            // Totals 174mm, not the full 182mm CW — same right-margin
+            // buffer as generateFull, so F(g) isn't flush against the edge.
             columns: [
-                { label: 'MEAL', w: 28 }, { label: 'FOODS', w: 92 },
+                { label: 'MEAL', w: 28 }, { label: 'FOODS', w: 84 },
                 { label: 'CAL', w: 16, align: 'right' }, { label: 'P(g)', w: 16, align: 'right' },
                 { label: 'C(g)', w: 16, align: 'right' }, { label: 'F(g)', w: 14, align: 'right' },
             ],
@@ -330,10 +337,12 @@ function generateSummary(doc, plan, opts) {
 
     drawTable(doc, {
         startY: y,
+        // Totals 174mm, not the full 182mm CW — same right-margin buffer
+        // pattern as the other tables.
         columns: [
-            { label: 'DAY', w: 24 }, { label: 'CALORIES', w: 26, align: 'right' }, { label: 'PROTEIN(g)', w: 26, align: 'right' },
-            { label: 'CARBS(g)', w: 26, align: 'right' }, { label: 'FATS(g)', w: 24, align: 'right' },
-            { label: 'BURN(kcal)', w: 28, align: 'right' }, { label: 'FOOD ITEMS', w: 28 },
+            { label: 'DAY', w: 24 }, { label: 'CALORIES', w: 26, align: 'right' }, { label: 'PROTEIN(g)', w: 24, align: 'right' },
+            { label: 'CARBS(g)', w: 24, align: 'right' }, { label: 'FATS(g)', w: 22, align: 'right' },
+            { label: 'BURN(kcal)', w: 26, align: 'right' }, { label: 'FOOD ITEMS', w: 28 },
         ],
         rows,
     });
@@ -368,9 +377,12 @@ function generateDietOnly(doc, plan, opts) {
         if (rows.length) {
             y = drawTable(doc, {
                 startY: y,
+                // Both variants total 174mm (not the full 182mm CW) — same
+                // right-margin buffer as generateFull's tables, so the
+                // right-aligned CALORIES column isn't flush against the edge.
                 columns: includeServingColumn
-                    ? [{ label: 'MEAL', w: 30 }, { label: 'FOOD ITEM', w: 82 }, { label: 'SERVING/QTY', w: 44 }, { label: 'CALORIES', w: 26, align: 'right' }]
-                    : [{ label: 'MEAL', w: 30 }, { label: 'FOOD ITEM', w: 126 }, { label: 'CALORIES', w: 26, align: 'right' }],
+                    ? [{ label: 'MEAL', w: 30 }, { label: 'FOOD ITEM', w: 74 }, { label: 'SERVING/QTY', w: 44 }, { label: 'CALORIES', w: 26, align: 'right' }]
+                    : [{ label: 'MEAL', w: 30 }, { label: 'FOOD ITEM', w: 118 }, { label: 'CALORIES', w: 26, align: 'right' }],
                 rows,
             });
             y += 8;
