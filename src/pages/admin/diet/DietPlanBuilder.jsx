@@ -550,7 +550,10 @@ export default function DietPlanBuilder() {
     // shares one centered column so the buttons always land directly under
     // the form instead of drifting off to the far edge of a wide page. Step
     // 4 needs the extra room for its two-column meal/exercise layout.
-    const pageWidthClass = step === 4 ? 'max-w-4xl' : step === 3 ? 'max-w-3xl' : 'max-w-2xl';
+    // Step 5 needs the most room of all — a fixed-width options column next
+    // to a live PDF preview that should grow to fill whatever's left, not
+    // sit cramped in the same narrow single-column width as the plain forms.
+    const pageWidthClass = step === 5 ? 'max-w-7xl' : step === 4 ? 'max-w-4xl' : step === 3 ? 'max-w-3xl' : 'max-w-2xl';
 
     return (
         <div className={`${pageWidthClass} mx-auto space-y-6 pb-10`}>
@@ -942,7 +945,7 @@ export default function DietPlanBuilder() {
 
                     {/* STEP 5: Export */}
                     {step === 5 && (
-                        <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-5 items-start">
+                        <div className="grid lg:grid-cols-[440px_minmax(0,1fr)] gap-5 items-start">
                             <div className="space-y-5 min-w-0">
                                 <div className="rounded-2xl p-5" style={card}>
                                     <p className="text-sm font-black text-white mb-4">Plan Summary</p>
@@ -1000,14 +1003,23 @@ export default function DietPlanBuilder() {
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl p-3 lg:sticky lg:top-4 flex flex-col" style={{ ...card, height: 'min(75vh, 640px)' }}>
+                            <div className="rounded-2xl p-3 lg:sticky lg:top-4 flex flex-col" style={{ ...card, height: 'min(85vh, 900px)' }}>
                                 <div className="flex items-center justify-between px-2 pb-2 flex-shrink-0">
                                     <p className="text-xs font-black text-white/70 uppercase tracking-widest">Live Preview</p>
                                     {previewLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-white/30" />}
                                 </div>
-                                <div className="flex-1 min-h-0 rounded-xl overflow-hidden relative" style={{ background: '#1a1a1a' }}>
+                                <div className="flex-1 min-h-0 rounded-xl overflow-hidden relative" style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.06)' }}>
                                     {previewUrl ? (
-                                        <iframe src={previewUrl} title="PDF preview" className="w-full h-full border-0" style={{ opacity: previewLoading ? 0.4 : 1, transition: 'opacity 150ms' }} />
+                                        <iframe
+                                            // Standard PDF viewer open-parameters (Chromium/PDFium honors these)
+                                            // — hides the browser's own generic PDF toolbar/nav panel/scrollbar
+                                            // chrome so the preview reads as part of this page, not an embedded
+                                            // plugin. Download/print already exist as our own branded actions.
+                                            src={`${previewUrl}#toolbar=0&navpanes=0&statusbar=0&messages=0&scrollbar=0`}
+                                            title="PDF preview"
+                                            className="w-full h-full border-0"
+                                            style={{ opacity: previewLoading ? 0.4 : 1, transition: 'opacity 150ms' }}
+                                        />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center">
                                             <Loader2 className="w-5 h-5 animate-spin text-white/25" />
