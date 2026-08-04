@@ -365,16 +365,17 @@ function DietUnitsForm({ value, onChange }) {
     return (
         <FieldGroup
             title="Diet Serving Units"
-            description="Each unit's approximate gram weight, used to convert quantities in the Diet Plan Builder (e.g. logging '1.5 Cup - Medium' of a food converts to grams, then scales that food's nutrition proportionally). These are estimates shared across all foods, not per-food measurements — tune them to match how your foods are typically portioned, or add new units below."
+            description="Each unit's approximate gram weight, used to convert quantities in the Diet Plan Builder (e.g. logging '1.5 Cup - Medium' of a food converts to grams, then scales that food's nutrition proportionally). These are estimates shared across all foods, not per-food measurements — tune them to match how your foods are typically portioned, or add new units below. Type controls which foods a unit shows up for: solid (e.g. Grams, Piece, Bowl — hidden for Beverages), liquid (e.g. ml, Glass — only shown for Beverages), or both (e.g. Cup, Tablespoon)."
         >
             <Repeater
                 value={v.units}
                 onChange={(val) => onChange({ ...v, units: val })}
-                emptyItem={{ label: '', grams: '' }}
+                emptyItem={{ label: '', grams: '', type: 'both' }}
                 addLabel="Add Unit"
                 fields={[
                     { key: 'label', label: 'Unit Name', placeholder: 'Cup - Medium' },
                     { key: 'grams', label: 'Approx. Grams', placeholder: '150' },
+                    { key: 'type', label: 'Type: solid / liquid / both', placeholder: 'both' },
                 ]}
             />
         </FieldGroup>

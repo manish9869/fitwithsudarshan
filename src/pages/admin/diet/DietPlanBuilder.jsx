@@ -21,7 +21,7 @@ import {
 } from './dietPlanApi';
 import { templates, workoutTemplates, generatePlanFromTemplate } from './dietTemplates';
 import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDurationBased, defaultExerciseCustom, normalizeExercise } from './dietCalc';
-import { formatServing, SERVING_UNITS, convertToQuantity, normalizeFoodEntry } from './dietUnits';
+import { formatServing, convertToQuantity, normalizeFoodEntry, isConvertible, getUnitsForFood } from './dietUnits';
 import { DEFAULT_DIET_UNITS } from '@/utils/siteContentDefaults';
 import { generateDietPlanPDF } from './dietPdfGenerator';
 
@@ -299,10 +299,10 @@ export default function DietPlanBuilder() {
             ...d,
             meals: d.meals.map((m) => m.type !== mealType ? m : {
                 ...m, foods: [...m.foods, {
-                    foodId: food.id, name: food.name, calories: food.calories, protein: food.protein,
+                    foodId: food.id, name: food.name, category: food.category, calories: food.calories, protein: food.protein,
                     carbs: food.carbs, fats: food.fats, fiber: food.fiber, sugar: food.sugar,
                     servingSize: food.serving_size, servingQty: food.serving_qty, servingUnit: food.serving_unit,
-                    amount: food.serving_qty ?? 1, unit: food.serving_unit || SERVING_UNITS[0],
+                    amount: food.serving_qty ?? 1, unit: food.serving_unit || null,
                     quantity: 1,
                 }],
             }),
@@ -792,20 +792,33 @@ export default function DietPlanBuilder() {
                                                                     <button onClick={() => removeFoodFromMeal(meal.type, fi)} className="text-red-400/70 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-1.5">
-                                                                <input type="number" min="0" step="any" value={food.amount ?? ''}
-                                                                    onChange={(e) => updateFoodAmount(meal.type, fi, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
-                                                                    className="w-16 px-2 py-1 rounded text-white outline-none"
-                                                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                                                                <select value={food.unit || ''} onChange={(e) => updateFoodAmount(meal.type, fi, { unit: e.target.value })}
-                                                                    className="flex-1 px-2 py-1 rounded text-white outline-none"
-                                                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                                    {dietUnits.map((u) => <option key={u.label} value={u.label}>{u.label}</option>)}
-                                                                </select>
-                                                                <span className="text-white/25 text-[10px] flex-shrink-0">
-                                                                    base: {formatServing({ serving_qty: food.servingQty, serving_unit: food.servingUnit, serving_size: food.servingSize })}
-                                                                </span>
-                                                            </div>
+                                                            {isConvertible({ serving_unit: food.servingUnit }) ? (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <input type="number" min="0" step="any" value={food.amount ?? ''}
+                                                                        onChange={(e) => updateFoodAmount(meal.type, fi, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
+                                                                        className="w-16 px-2 py-1 rounded text-white outline-none"
+                                                                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                                                    <select value={food.unit || ''} onChange={(e) => updateFoodAmount(meal.type, fi, { unit: e.target.value })}
+                                                                        className="flex-1 px-2 py-1 rounded text-white outline-none"
+                                                                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                                        {getUnitsForFood(dietUnits, food.category, food.servingUnit).map((u) => <option key={u.label} value={u.label}>{u.label}</option>)}
+                                                                    </select>
+                                                                    <span className="text-white/25 text-[10px] flex-shrink-0">
+                                                                        base: {formatServing({ serving_qty: food.servingQty, serving_unit: food.servingUnit })}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-white/35">×</span>
+                                                                    <input type="number" min="0" step="any" value={food.amount ?? ''}
+                                                                        onChange={(e) => updateFoodAmount(meal.type, fi, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
+                                                                        className="w-16 px-2 py-1 rounded text-white outline-none"
+                                                                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                                                    <span className="text-white/25 text-[10px] flex-shrink-0">
+                                                                        {food.servingSize || 'serving'} — no gram weight set, edit in Diet Foods for precise units
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))}
                                                     <button onClick={() => { setFoodPicker(meal.type); setFoodSearch(''); }}
