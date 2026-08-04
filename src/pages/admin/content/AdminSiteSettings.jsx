@@ -6,12 +6,12 @@
 // every field below is a normal text box, toggle, or "Add" list.
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink } from 'lucide-react';
+import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE, DEFAULT_LOGGING } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE, DEFAULT_LOGGING, DEFAULT_DIET_UNITS } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -23,6 +23,7 @@ const DEFAULTS_BY_KEY = {
     floating_whatsapp: DEFAULT_FLOATING_WHATSAPP,
     maintenance: DEFAULT_MAINTENANCE,
     logging: DEFAULT_LOGGING,
+    diet_units: DEFAULT_DIET_UNITS,
 };
 
 const SECTIONS = [
@@ -40,6 +41,7 @@ const SECTIONS = [
     { key: 'floating_whatsapp', label: 'Floating WhatsApp', icon: Smartphone },
     { key: 'maintenance', label: 'Maintenance Mode', icon: Wrench },
     { key: 'logging', label: 'Logging', icon: ScrollText },
+    { key: 'diet_units', label: 'Diet Serving Units', icon: Ruler },
 ];
 
 const WHATSAPP_TEMPLATE_FIELDS = [
@@ -358,6 +360,27 @@ function LoggingForm({ value, onChange }) {
     );
 }
 
+function DietUnitsForm({ value, onChange }) {
+    const v = value || {};
+    return (
+        <FieldGroup
+            title="Diet Serving Units"
+            description="Each unit's approximate gram weight, used to convert quantities in the Diet Plan Builder (e.g. logging '1.5 Cup - Medium' of a food converts to grams, then scales that food's nutrition proportionally). These are estimates shared across all foods, not per-food measurements — tune them to match how your foods are typically portioned, or add new units below."
+        >
+            <Repeater
+                value={v.units}
+                onChange={(val) => onChange({ ...v, units: val })}
+                emptyItem={{ label: '', grams: '' }}
+                addLabel="Add Unit"
+                fields={[
+                    { key: 'label', label: 'Unit Name', placeholder: 'Cup - Medium' },
+                    { key: 'grams', label: 'Approx. Grams', placeholder: '150' },
+                ]}
+            />
+        </FieldGroup>
+    );
+}
+
 const FORM_COMPONENTS = {
     brand: BrandForm,
     coach: CoachForm,
@@ -371,6 +394,7 @@ const FORM_COMPONENTS = {
     floating_whatsapp: FloatingWhatsappForm,
     maintenance: MaintenanceForm,
     logging: LoggingForm,
+    diet_units: DietUnitsForm,
 };
 
 export default function AdminSiteSettings() {

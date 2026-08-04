@@ -6,12 +6,14 @@
 // instead of guessing.
 
 export function calcDayTotals(day) {
-    let calories = 0, protein = 0, carbs = 0, fats = 0, caloriesBurned = 0;
+    let calories = 0, protein = 0, carbs = 0, fats = 0, fiber = 0, sugar = 0, caloriesBurned = 0;
     (day.meals || []).forEach((m) => (m.foods || []).forEach((f) => {
         calories += f.calories * f.quantity;
         protein += f.protein * f.quantity;
         carbs += f.carbs * f.quantity;
         fats += f.fats * f.quantity;
+        fiber += (f.fiber || 0) * f.quantity;
+        sugar += (f.sugar || 0) * f.quantity;
     }));
     (day.exercises || []).forEach((e) => { caloriesBurned += e.caloriesBurned; });
     return {
@@ -19,6 +21,8 @@ export function calcDayTotals(day) {
         protein: Math.round(protein),
         carbs: Math.round(carbs),
         fats: Math.round(fats),
+        fiber: Math.round(fiber),
+        sugar: Math.round(sugar),
         caloriesBurned: Math.round(caloriesBurned),
     };
 }

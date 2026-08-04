@@ -27,6 +27,31 @@ export const DEFAULT_LOGGING = {
     verbose: false,
 };
 
+// Approximate gram weight of each serving unit, used to convert between
+// units in the Diet Planner (e.g. "1.5 Cup - Medium" -> grams -> scaled
+// nutrition) since foods are stored with values per a fixed gram amount.
+// These are estimates, not per-food measurements — deliberately editable
+// here so Sudarshan can tune them (or add new units) without a code change.
+export const DEFAULT_DIET_UNITS = {
+    units: [
+        { label: 'Grams (g)', grams: '1' },
+        { label: 'Milliliters (ml)', grams: '1' },
+        { label: 'Ounce (oz)', grams: '28.35' },
+        { label: 'Tablespoon (tbsp)', grams: '15' },
+        { label: 'Teaspoon (tsp)', grams: '5' },
+        { label: 'Cup - Small', grams: '100' },
+        { label: 'Cup - Medium', grams: '150' },
+        { label: 'Cup - Large', grams: '200' },
+        { label: 'Bowl - Small', grams: '150' },
+        { label: 'Bowl - Medium', grams: '250' },
+        { label: 'Bowl - Large', grams: '350' },
+        { label: 'Katori', grams: '150' },
+        { label: 'Piece', grams: '30' },
+        { label: 'Slice', grams: '25' },
+        { label: 'Glass', grams: '200' },
+    ],
+};
+
 // The original hero banner and coach photo — used whenever an admin hasn't
 // uploaded a custom one (hero.bannerImage / coach.photo are empty). Uploading
 // a custom image overrides these; clearing it reverts back to these exact URLs.
