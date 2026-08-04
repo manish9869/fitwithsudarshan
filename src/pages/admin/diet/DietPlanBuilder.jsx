@@ -280,7 +280,10 @@ export default function DietPlanBuilder() {
     // ── Template application ────────────────────────────────────────────
     const handleApplyTemplate = () => {
         if (!selectedTemplate) { toast.error('Select a template first'); return; }
-        const generated = generatePlanFromTemplate(selectedTemplate, planDuration, includeExercise, includeExercise ? selectedWorkoutTemplate : undefined, foodsById, exercisesById);
+        const generated = generatePlanFromTemplate(
+            selectedTemplate, planDuration, includeExercise, includeExercise ? selectedWorkoutTemplate : undefined,
+            foodsById, exercisesById, client.dietPreference, effectiveTargetCalories
+        );
         if (generated?.length) {
             setDays(generated);
             setCurrentDay(0);
