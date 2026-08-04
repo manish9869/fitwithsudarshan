@@ -60,6 +60,21 @@ function calcPlanAverages(days) {
     };
 }
 
+// Structured serving (new plans: "2 Cup - Medium") falls back to the legacy
+// free-text serving_size for foods saved before this feature existed.
+function formatFoodServing(food) {
+    if (food.servingUnit) return `${food.servingQty ?? 1} ${food.servingUnit}`;
+    return food.servingSize || '';
+}
+
+// Structured sets/reps or duration (new plans) falls back to the legacy
+// free-text `duration` field for exercises saved before this feature existed.
+function formatExerciseVolume(ex) {
+    if (ex.durationMinutes != null) return `${ex.durationMinutes} min`;
+    if (ex.sets != null && ex.reps != null) return `${ex.sets} x ${ex.reps}`;
+    return ex.duration || `${ex.sets || 0} x ${ex.reps || 0}`;
+}
+
 function calcBMI(heightCm, weightKg) {
     if (!heightCm || !weightKg) return null;
     const h = heightCm / 100;
@@ -188,7 +203,7 @@ function generateFull(doc, plan, includeExercise) {
                 rows.push({
                     cells: [
                         fi === 0 ? meal.label : '', food.name,
-                        `${food.servingSize || ''}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
+                        `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
                         String(Math.round(food.calories * food.quantity)), String(Math.round(food.protein * food.quantity)),
                         String(Math.round(food.carbs * food.quantity)), String(Math.round(food.fats * food.quantity)),
                     ],
@@ -220,7 +235,7 @@ function generateFull(doc, plan, includeExercise) {
                     { label: 'VOLUME', w: 50 }, { label: 'BURN', w: 24, align: 'right' },
                 ],
                 rows: day.exercises.map((ex) => ({
-                    cells: [ex.name, ex.muscleGroup, ex.duration || `${ex.sets} x ${ex.reps}`, `~${ex.caloriesBurned}`],
+                    cells: [ex.name, ex.muscleGroup, formatExerciseVolume(ex), `~${ex.caloriesBurned}`],
                 })),
             });
             y += 4;
@@ -312,7 +327,7 @@ function generateDietOnly(doc, plan) {
                 rows.push({
                     cells: [
                         fi === 0 ? meal.label : '', food.name,
-                        `${food.servingSize || ''}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
+                        `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
                         `${Math.round(food.calories * food.quantity)} kcal`,
                     ],
                     bold: fi === 0,
@@ -562,6 +577,7 @@ export async function generateDietPlanPDF(plan, { mode = 'full', includeInstruct
         { label: 'Diet Preference', value: plan.diet_preference || '—' },
         { label: 'Duration', value: `${plan.plan_duration} Days` },
         { label: 'Activity Level', value: plan.activity_level || '—' },
+        { label: 'Target Calories', value: plan.target_calories ? `${plan.target_calories} kcal${plan.target_calories_manual ? ' (Manual)' : ''}` : '—' },
     ]);
     y += 10;
 

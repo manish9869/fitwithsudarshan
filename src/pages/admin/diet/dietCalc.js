@@ -56,3 +56,87 @@ export function estimateCalorieTarget({ gender, age, height, weight, activityLev
         suggestedTarget: Math.round(target / 10) * 10,
     };
 }
+
+// ── Exercise calorie scaling ─────────────────────────────────────────────
+// Each library exercise (diet_exercises) has reference sets/reps/duration +
+// a calories_burned figure for THAT reference amount. When an admin
+// customizes sets/reps/duration for a specific plan, calories scale
+// proportionally from that reference — same model as food quantity scaling
+// calories from a food's per-serving values.
+
+// Pulls the first number out of a free-text field like "12-15" or "30 min".
+// Returns null if the field has no number in it at all.
+export function parseLeadingNumber(text) {
+    if (text == null || text === '') return null;
+    if (typeof text === 'number') return text;
+    const match = String(text).match(/(\d+(\.\d+)?)/);
+    return match ? Number(match[1]) : null;
+}
+
+// Cardio (duration-based) vs strength (sets/reps-based) — inferred from the
+// library exercise's own shape: something with a parseable duration and no
+// sets is cardio; everything else is treated as sets/reps-based.
+export function isDurationBased(ex) {
+    const hasDuration = parseLeadingNumber(ex?.duration) != null;
+    const hasSets = Number(ex?.sets) > 0;
+    return hasDuration && !hasSets;
+}
+
+// baseEx: the library diet_exercises row. custom: { sets, reps, durationMinutes }
+// — whatever the admin has set for this exercise on this specific plan.
+export function scaleExerciseCalories(baseEx, custom) {
+    const baseCalories = Number(baseEx?.calories_burned) || 0;
+    if (!baseEx) return baseCalories;
+
+    if (isDurationBased(baseEx)) {
+        const baseDuration = parseLeadingNumber(baseEx.duration) || 1;
+        const customDuration = Number(custom?.durationMinutes) || 0;
+        return Math.round(baseCalories * (customDuration / baseDuration));
+    }
+
+    const baseSets = Number(baseEx.sets) || 1;
+    const baseReps = parseLeadingNumber(baseEx.reps) || 1;
+    const customSets = Number(custom?.sets) || 0;
+    const customReps = Number(custom?.reps) || 0;
+    const baseVolume = baseSets * baseReps;
+    const customVolume = customSets * customReps;
+    if (baseVolume <= 0) return baseCalories;
+    return Math.round(baseCalories * (customVolume / baseVolume));
+}
+
+// Best-effort starting point for the editable fields when an exercise is
+// first added to a plan — defaults to the library's own reference values so
+// calories start out matching the library figure exactly (ratio = 1)
+// before the admin changes anything.
+export function defaultExerciseCustom(ex) {
+    if (isDurationBased(ex)) {
+        return { sets: null, reps: null, durationMinutes: parseLeadingNumber(ex?.duration) || 0 };
+    }
+    return { sets: Number(ex?.sets) || 1, reps: parseLeadingNumber(ex?.reps) || 1, durationMinutes: null };
+}
+
+// Backfills base*/durationBased/durationMinutes fields on exercise entries
+// saved before this scaling feature existed (old shape: just
+// { exerciseId, name, muscleGroup, caloriesBurned, sets, reps, duration }).
+// Without this, editing sets/reps/duration on an old plan would scale
+// against an undefined base and zero the calories out. Looks the exercise
+// up in the current library for its reference values; if that library item
+// was since deleted, falls back to the plan's own saved snapshot as the
+// base (ratio stays 1 — same displayed number — until the admin changes it).
+export function normalizeExercise(ex, exerciseRows) {
+    if (ex.baseCaloriesBurned != null) return ex; // already new-format
+
+    const lib = (exerciseRows || []).find((e) => e.id === ex.exerciseId);
+    const source = lib || { sets: ex.sets, reps: ex.reps, duration: ex.duration, calories_burned: ex.caloriesBurned };
+    const durationBased = isDurationBased(source);
+
+    return {
+        ...ex,
+        durationBased,
+        baseSets: source.sets, baseReps: source.reps, baseDuration: source.duration, baseCaloriesBurned: source.calories_burned,
+        sets: durationBased ? null : (Number(ex.sets) || Number(source.sets) || 1),
+        reps: durationBased ? null : (parseLeadingNumber(ex.reps) || parseLeadingNumber(source.reps) || 1),
+        durationMinutes: durationBased ? (parseLeadingNumber(ex.duration) || parseLeadingNumber(source.duration) || 0) : null,
+        caloriesBurned: ex.caloriesBurned ?? source.calories_burned ?? 0,
+    };
+}

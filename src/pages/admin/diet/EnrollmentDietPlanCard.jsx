@@ -9,6 +9,7 @@ import { Loader2, Salad, Edit2, FileDown, Trash2, Plus } from 'lucide-react';
 import { getDietPlanByEnrollment, deleteDietPlan } from './dietPlanApi';
 import { buildDietPrefillFromEnrollment } from './dietPrefill';
 import { useToast } from '../ToastProvider';
+import { fmtDateTime } from '../adminUtils';
 
 export default function EnrollmentDietPlanCard({ enrollment }) {
     const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function EnrollmentDietPlanCard({ enrollment }) {
                             </div>
                             <div className="min-w-0">
                                 <p className="text-xs font-bold text-white">{plan.goal} · {plan.plan_duration} Days</p>
-                                <p className="text-[11px] text-white/35">Updated {new Date(plan.updated_at).toLocaleDateString('en-IN')}</p>
+                                <p className="text-[11px] text-white/35">Updated {fmtDateTime(plan.updated_at)}</p>
                             </div>
                         </div>
                         {!confirmDelete ? (

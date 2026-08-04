@@ -1,4 +1,5 @@
 // src/pages/admin/diet/dietTemplates.js
+import { isDurationBased, defaultExerciseCustom } from './dietCalc';
 // Preset day-templates for the "Use Template" quick-start step. Ported from
 // the reference app's templates.ts — but adapted so foods/exercises are
 // looked up from the LIVE diet_foods/diet_exercises library (fetched from
@@ -338,7 +339,9 @@ export function generatePlanFromTemplate(templateId, duration, includeExercise, 
                 if (!food) return null;
                 return {
                     foodId: id, name: food.name, calories: food.calories, protein: food.protein,
-                    carbs: food.carbs, fats: food.fats, servingSize: food.serving_size, quantity: 1,
+                    carbs: food.carbs, fats: food.fats,
+                    servingSize: food.serving_size, servingQty: food.serving_qty, servingUnit: food.serving_unit,
+                    quantity: 1,
                 };
             }).filter(Boolean),
         }));
@@ -347,9 +350,13 @@ export function generatePlanFromTemplate(templateId, duration, includeExercise, 
             ? exerciseDayTemplate.map((id) => {
                 const ex = exercisesById.get(id);
                 if (!ex) return null;
+                const custom = defaultExerciseCustom(ex);
                 return {
-                    exerciseId: id, name: ex.name, muscleGroup: ex.muscle_group, caloriesBurned: ex.calories_burned,
-                    sets: ex.sets, reps: ex.reps, duration: ex.duration,
+                    exerciseId: id, name: ex.name, muscleGroup: ex.muscle_group,
+                    durationBased: isDurationBased(ex),
+                    baseSets: ex.sets, baseReps: ex.reps, baseDuration: ex.duration, baseCaloriesBurned: ex.calories_burned,
+                    sets: custom.sets, reps: custom.reps, durationMinutes: custom.durationMinutes,
+                    caloriesBurned: ex.calories_burned,
                 };
             }).filter(Boolean)
             : [];
