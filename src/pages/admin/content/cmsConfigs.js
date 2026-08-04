@@ -7,8 +7,8 @@
 // non-technical user (this is why FAQ rows used to show a UUID).
 import { SERVING_UNITS } from '../diet/dietUnits';
 import { FOOD_REGIONS } from '../diet/dietRegions';
+import { FOOD_CATEGORIES } from '../diet/dietCategories';
 
-const FOOD_CATEGORIES = ['Breakfast', 'Grains & Roti', 'Rice & Dal', 'Vegetables', 'Dairy & Paneer', 'Proteins', 'Snacks', 'Fruits', 'Beverages', 'Supplements', 'Desserts', 'Soups', 'Condiments'];
 const MUSCLE_GROUPS = ['Cardio', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Flexibility'];
 const DIFFICULTY_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 const EXERCISE_LOCATIONS = ['Home', 'Gym', 'Both'];
