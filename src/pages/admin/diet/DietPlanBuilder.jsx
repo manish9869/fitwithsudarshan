@@ -24,6 +24,8 @@ import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDuration
 import { formatServing, convertToQuantity, normalizeFoodEntry, isConvertible, getUnitsForFood } from './dietUnits';
 import { FOOD_REGIONS } from './dietRegions';
 import { MEAL_TYPES, OPTIONAL_MEAL_TYPES } from './dietMealTypes';
+import { filterFoodPicker } from './dietFoodFilters';
+import FoodFilterBar from './FoodFilterBar';
 import { DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
 import { generateDietPlanPDF, buildDietPlanPreviewUrl } from './dietPdfGenerator';
 import Modal from './DietModal';
@@ -136,6 +138,9 @@ export default function DietPlanBuilder() {
 
     const [foodPicker, setFoodPicker] = useState(null); // meal type string, or null
     const [foodSearch, setFoodSearch] = useState('');
+    const [foodCategoryFilter, setFoodCategoryFilter] = useState('All');
+    const [foodCuisineFilter, setFoodCuisineFilter] = useState('Any');
+    const [foodBudgetFilter, setFoodBudgetFilter] = useState(false);
     const [exercisePicker, setExercisePicker] = useState(false);
     const [exerciseSearch, setExerciseSearch] = useState('');
 
@@ -584,21 +589,13 @@ export default function DietPlanBuilder() {
         return counts;
     }, [activeDay]);
 
-    const filteredFoods = useMemo(() => {
-        let list = foods;
-        if (client.dietPreference === 'Vegetarian') list = list.filter((f) => f.is_veg);
-        else if (client.dietPreference === 'Eggetarian') list = list.filter((f) => f.is_veg || f.is_eggetarian);
-        else if (client.dietPreference === 'Vegan') list = list.filter((f) => f.is_veg && !/milk|curd|paneer|cheese|lassi|buttermilk/i.test(f.name));
-        // A cuisine preference narrows to that region PLUS generic/pan-Indian
-        // staples (dal, rice, roti…) — a Gujarati client still eats plenty
-        // of those, so it's not a hard exclusive filter to only-Gujarati.
-        if (client.cuisine && client.cuisine !== 'Any') {
-            list = list.filter((f) => f.region === client.cuisine || f.region === 'Generic / Pan-Indian' || !f.region);
-        }
-        if (client.budgetConscious) list = list.filter((f) => f.is_budget_friendly);
-        if (foodSearch.trim()) list = list.filter((f) => f.name.toLowerCase().includes(foodSearch.trim().toLowerCase()));
-        return list;
-    }, [foods, client.dietPreference, client.cuisine, client.budgetConscious, foodSearch]);
+    // Category/cuisine/budget start out matching the client's own settings
+    // (set below whenever the picker opens) but are freely adjustable per
+    // meal without leaving the modal — e.g. narrow to just "Beverages" for
+    // Morning Drink, or peek outside the client's usual cuisine for one item.
+    const filteredFoods = useMemo(() => filterFoodPicker(foods, {
+        dietPreference: client.dietPreference, category: foodCategoryFilter, cuisine: foodCuisineFilter, budgetOnly: foodBudgetFilter, search: foodSearch,
+    }), [foods, client.dietPreference, foodCategoryFilter, foodCuisineFilter, foodBudgetFilter, foodSearch]);
 
     const filteredExercises = useMemo(() => {
         if (!exerciseSearch.trim()) return exercises;
@@ -957,7 +954,10 @@ export default function DietPlanBuilder() {
                                                             )}
                                                         </div>
                                                     ))}
-                                                    <button onClick={() => { setFoodPicker(meal.type); setFoodSearch(''); }}
+                                                    <button onClick={() => {
+                                                        setFoodPicker(meal.type); setFoodSearch(''); setFoodCategoryFilter('All');
+                                                        setFoodCuisineFilter(client.cuisine || 'Any'); setFoodBudgetFilter(client.budgetConscious);
+                                                    }}
                                                         className="w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
                                                         style={{ border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}>
                                                         <Plus className="w-3 h-3" /> Add Food
@@ -1165,11 +1165,12 @@ export default function DietPlanBuilder() {
             {/* Food picker modal */}
             {foodPicker && (
                 <Modal title={`Add Food — ${MEAL_TYPES.find((m) => m.type === foodPicker)?.label}`} onClose={() => setFoodPicker(null)} wide>
-                    <div className="relative mb-4">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                        <input value={foodSearch} onChange={(e) => setFoodSearch(e.target.value)} autoFocus
-                            placeholder="Search foods…" className="w-full rounded-lg pl-9 pr-4 py-2.5 text-sm text-white bg-white/5 border border-white/10" />
-                    </div>
+                    <FoodFilterBar
+                        search={foodSearch} onSearch={setFoodSearch}
+                        category={foodCategoryFilter} onCategory={setFoodCategoryFilter}
+                        cuisine={foodCuisineFilter} onCuisine={setFoodCuisineFilter}
+                        budgetOnly={foodBudgetFilter} onBudgetOnly={setFoodBudgetFilter}
+                    />
                     <div className="grid sm:grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto">
                         {filteredFoods.map((food) => {
                             const addedCount = mealFoodCounts.get(food.id) || 0;
@@ -1206,13 +1207,13 @@ export default function DietPlanBuilder() {
                         {filteredFoods.length === 0 && (
                             <p className="text-sm text-white/30 text-center py-8 col-span-2">
                                 No foods match{foodSearch.trim() ? ` "${foodSearch.trim()}"` : ''}
-                                {client.cuisine !== 'Any' && client.budgetConscious
-                                    ? ` for ${client.cuisine} cuisine + Budget-Friendly — try turning one off in Client Info`
-                                    : client.cuisine !== 'Any'
-                                        ? ` for ${client.cuisine} — try "Any" cuisine in Client Info`
-                                        : client.budgetConscious
-                                            ? ' — no foods are tagged Budget-Friendly yet (Admin → Diet Foods), or turn off Budget-Conscious Client in Client Info'
-                                            : ''}.
+                                {[
+                                    foodCategoryFilter !== 'All' ? foodCategoryFilter : null,
+                                    foodCuisineFilter !== 'Any' ? foodCuisineFilter : null,
+                                    foodBudgetFilter ? 'Budget-Friendly' : null,
+                                ].filter(Boolean).length > 0
+                                    ? ` for ${[foodCategoryFilter !== 'All' ? foodCategoryFilter : null, foodCuisineFilter !== 'Any' ? foodCuisineFilter : null, foodBudgetFilter ? 'Budget-Friendly' : null].filter(Boolean).join(' + ')} — try widening a filter above`
+                                    : ''}.
                             </p>
                         )}
                     </div>
