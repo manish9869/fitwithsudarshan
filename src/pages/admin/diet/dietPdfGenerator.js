@@ -153,7 +153,7 @@ function drawTable(doc, { startY, columns, rows }) {
     return y;
 }
 
-function dayBanner(doc, y, label, tot, includeExercise) {
+function dayBanner(doc, y, label, tot, includeExercise, includeFiberSugar) {
     doc.setFillColor(...DARK_GRAY);
     doc.roundedRect(ML, y, CW, 10, 2, 2, 'F');
     doc.setFillColor(...BRAND_PINK);
@@ -166,7 +166,7 @@ function dayBanner(doc, y, label, tot, includeExercise) {
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...LIGHT_GRAY);
-    const summary = `${tot.calories} kcal | P: ${tot.protein}g | C: ${tot.carbs}g | F: ${tot.fats}g | Fiber: ${tot.fiber}g${includeExercise ? ` | Burn: ~${tot.caloriesBurned} kcal` : ''}`;
+    const summary = `${tot.calories} kcal | P: ${tot.protein}g | C: ${tot.carbs}g | F: ${tot.fats}g${includeFiberSugar ? ` | Fiber: ${tot.fiber}g` : ''}${includeExercise ? ` | Burn: ~${tot.caloriesBurned} kcal` : ''}`;
     doc.text(summary, ML + CW - 2, y + 6.8, { align: 'right' });
 
     return y + 14;
@@ -183,12 +183,13 @@ function sectionTitle(doc, text, y) {
 }
 
 // ── Export modes ─────────────────────────────────────────────────────────
-function generateFull(doc, plan, includeExercise) {
+function generateFull(doc, plan, opts) {
+    const { includeExercises, includeFiberSugar, includeServingColumn } = opts;
     let y = CONTENT_TOP;
     plan.days.forEach((day) => {
         y = ensureSpace(doc, y, 30);
         const tot = calcDayTotals(day);
-        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, tot, includeExercise);
+        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, tot, includeExercises, includeFiberSugar);
 
         if (day.restDay) {
             doc.setTextColor(...MID_GRAY);
@@ -207,33 +208,49 @@ function generateFull(doc, plan, includeExercise) {
                 c: s.c + f.carbs * f.quantity, fat: s.fat + f.fats * f.quantity,
             }), { cal: 0, p: 0, c: 0, fat: 0 });
             meal.foods.forEach((food, fi) => {
+                const nameCell = includeServingColumn ? food.name : `${food.name}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`;
                 rows.push({
-                    cells: [
-                        fi === 0 ? meal.label : '', food.name,
-                        `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
-                        String(Math.round(food.calories * food.quantity)), String(Math.round(food.protein * food.quantity)),
-                        String(Math.round(food.carbs * food.quantity)), String(Math.round(food.fats * food.quantity)),
-                    ],
+                    cells: includeServingColumn
+                        ? [
+                            fi === 0 ? meal.label : '', nameCell,
+                            `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
+                            String(Math.round(food.calories * food.quantity)), String(Math.round(food.protein * food.quantity)),
+                            String(Math.round(food.carbs * food.quantity)), String(Math.round(food.fats * food.quantity)),
+                        ]
+                        : [
+                            fi === 0 ? meal.label : '', nameCell,
+                            String(Math.round(food.calories * food.quantity)), String(Math.round(food.protein * food.quantity)),
+                            String(Math.round(food.carbs * food.quantity)), String(Math.round(food.fats * food.quantity)),
+                        ],
                     bold: fi === 0,
                 });
             });
-            rows.push({ cells: ['', 'Meal Total', '', String(Math.round(mTot.cal)), String(Math.round(mTot.p)), String(Math.round(mTot.c)), String(Math.round(mTot.fat))], isTotal: true });
+            const totalRow = includeServingColumn
+                ? ['', 'Meal Total', '', String(Math.round(mTot.cal)), String(Math.round(mTot.p)), String(Math.round(mTot.c)), String(Math.round(mTot.fat))]
+                : ['', 'Meal Total', String(Math.round(mTot.cal)), String(Math.round(mTot.p)), String(Math.round(mTot.c)), String(Math.round(mTot.fat))];
+            rows.push({ cells: totalRow, isTotal: true });
         });
 
         if (rows.length) {
             y = drawTable(doc, {
                 startY: y,
-                columns: [
-                    { label: 'MEAL', w: 26 }, { label: 'FOOD ITEM', w: 58 }, { label: 'SERVING', w: 30 },
-                    { label: 'CAL', w: 15, align: 'right' }, { label: 'P(g)', w: 15, align: 'right' },
-                    { label: 'C(g)', w: 15, align: 'right' }, { label: 'F(g)', w: 15, align: 'right' },
-                ],
+                columns: includeServingColumn
+                    ? [
+                        { label: 'MEAL', w: 26 }, { label: 'FOOD ITEM', w: 58 }, { label: 'SERVING', w: 30 },
+                        { label: 'CAL', w: 15, align: 'right' }, { label: 'P(g)', w: 15, align: 'right' },
+                        { label: 'C(g)', w: 15, align: 'right' }, { label: 'F(g)', w: 15, align: 'right' },
+                    ]
+                    : [
+                        { label: 'MEAL', w: 26 }, { label: 'FOOD ITEM', w: 88 },
+                        { label: 'CAL', w: 17, align: 'right' }, { label: 'P(g)', w: 17, align: 'right' },
+                        { label: 'C(g)', w: 17, align: 'right' }, { label: 'F(g)', w: 17, align: 'right' },
+                    ],
                 rows,
             });
             y += 4;
         }
 
-        if (includeExercise && day.exercises?.length) {
+        if (includeExercises && day.exercises?.length) {
             y = ensureSpace(doc, y, 20);
             y = drawTable(doc, {
                 startY: y,
@@ -259,12 +276,13 @@ function generateFull(doc, plan, includeExercise) {
     });
 }
 
-function generateMacrosPerMeal(doc, plan) {
+function generateMacrosPerMeal(doc, plan, opts) {
+    const { includeFiberSugar } = opts;
     let y = CONTENT_TOP;
     plan.days.forEach((day) => {
         y = ensureSpace(doc, y, 30);
         const tot = calcDayTotals(day);
-        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, tot, false);
+        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, tot, false, includeFiberSugar);
         if (day.restDay) { y += 8; return; }
 
         const rows = (day.meals || []).filter((m) => m.foods?.length).map((meal) => {
@@ -290,7 +308,8 @@ function generateMacrosPerMeal(doc, plan) {
     });
 }
 
-function generateSummary(doc, plan, includeExercise) {
+function generateSummary(doc, plan, opts) {
+    const { includeExercises } = opts;
     let y = sectionTitle(doc, 'Weekly / Plan Overview', CONTENT_TOP);
 
     const rows = plan.days.map((day) => {
@@ -303,7 +322,7 @@ function generateSummary(doc, plan, includeExercise) {
                 day.restDay ? '-' : String(tot.protein),
                 day.restDay ? '-' : String(tot.carbs),
                 day.restDay ? '-' : String(tot.fats),
-                includeExercise ? (day.restDay ? '-' : `~${tot.caloriesBurned}`) : '-',
+                includeExercises ? (day.restDay ? '-' : `~${tot.caloriesBurned}`) : '-',
                 day.restDay ? 'Rest' : `${mealCount} items`,
             ],
         };
@@ -320,23 +339,27 @@ function generateSummary(doc, plan, includeExercise) {
     });
 }
 
-function generateDietOnly(doc, plan) {
+function generateDietOnly(doc, plan, opts) {
+    const { includeFiberSugar, includeServingColumn } = opts;
     let y = CONTENT_TOP;
     plan.days.forEach((day) => {
         y = ensureSpace(doc, y, 25);
-        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, calcDayTotals(day), false);
+        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, calcDayTotals(day), false, includeFiberSugar);
         if (day.restDay) { y += 8; return; }
 
         const rows = [];
         (day.meals || []).forEach((meal) => {
             if (!meal.foods?.length) return;
             meal.foods.forEach((food, fi) => {
+                const nameCell = includeServingColumn ? food.name : `${food.name}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`;
                 rows.push({
-                    cells: [
-                        fi === 0 ? meal.label : '', food.name,
-                        `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
-                        `${Math.round(food.calories * food.quantity)} kcal`,
-                    ],
+                    cells: includeServingColumn
+                        ? [
+                            fi === 0 ? meal.label : '', nameCell,
+                            `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
+                            `${Math.round(food.calories * food.quantity)} kcal`,
+                        ]
+                        : [fi === 0 ? meal.label : '', nameCell, `${Math.round(food.calories * food.quantity)} kcal`],
                     bold: fi === 0,
                 });
             });
@@ -345,7 +368,9 @@ function generateDietOnly(doc, plan) {
         if (rows.length) {
             y = drawTable(doc, {
                 startY: y,
-                columns: [{ label: 'MEAL', w: 30 }, { label: 'FOOD ITEM', w: 82 }, { label: 'SERVING/QTY', w: 44 }, { label: 'CALORIES', w: 26, align: 'right' }],
+                columns: includeServingColumn
+                    ? [{ label: 'MEAL', w: 30 }, { label: 'FOOD ITEM', w: 82 }, { label: 'SERVING/QTY', w: 44 }, { label: 'CALORIES', w: 26, align: 'right' }]
+                    : [{ label: 'MEAL', w: 30 }, { label: 'FOOD ITEM', w: 126 }, { label: 'CALORIES', w: 26, align: 'right' }],
                 rows,
             });
             y += 8;
@@ -536,7 +561,24 @@ function addHeaderFooter(doc, plan, pageNum, totalPages, logoDataUri) {
     doc.text(trainerLine, PW / 2, PH - 4.5, { align: 'center' });
 }
 
-export async function generateDietPlanPDF(plan, { mode = 'full', includeInstructions = true } = {}) {
+// Builds the full jsPDF document without saving it — used both by the
+// actual "Download PDF" flow and by the Export step's live preview panel
+// (which renders the returned doc's blob URL in an iframe, regenerated as
+// the admin toggles options, so they see exactly what they're about to get
+// before committing to a download).
+export async function buildDietPlanDoc(plan, options = {}) {
+    const {
+        mode = 'full',
+        includeInstructions = true,
+        includeExercises = !!plan.include_exercise,
+        includeCoverSnapshot = true,
+        includeFiberSugar = true,
+        includeAllergies = true,
+        includeTrainerNotes = true,
+        includeServingColumn = true,
+    } = options;
+    const sectionOpts = { includeExercises, includeFiberSugar, includeServingColumn };
+
     const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
     const logoDataUri = await loadLogoDataUri();
 
@@ -588,29 +630,31 @@ export async function generateDietPlanPDF(plan, { mode = 'full', includeInstruct
     ]);
     y += 10;
 
-    y = sectionLabel(doc, 'Health Snapshot', y);
-    y = bmiCard(doc, y, plan);
-    y += 12;
-
-    const avg = calcPlanAverages(plan.days);
-    if (avg) {
-        y = sectionLabel(doc, `Daily Average · ${avg.activeDayCount} Active Day${avg.activeDayCount === 1 ? '' : 's'}${avg.restDayCount ? `, ${avg.restDayCount} Rest` : ''}`, y);
-        const avgItems = [
-            { label: 'Calories', value: `${avg.calories} kcal` },
-            { label: 'Protein', value: `${avg.protein} g` },
-            { label: 'Carbs', value: `${avg.carbs} g` },
-            { label: 'Fats', value: `${avg.fats} g` },
-            { label: 'Fiber', value: `${avg.fiber} g` },
-        ];
-        if (plan.include_exercise) avgItems.push({ label: 'Burn', value: `~${avg.caloriesBurned} kcal` });
-        y = statRow(doc, y, avgItems);
+    if (includeCoverSnapshot) {
+        y = sectionLabel(doc, 'Health Snapshot', y);
+        y = bmiCard(doc, y, plan);
         y += 12;
 
-        y = sectionLabel(doc, 'Macro Ratio', y);
-        y = macroRatioBar(doc, y, avg);
+        const avg = calcPlanAverages(plan.days);
+        if (avg) {
+            y = sectionLabel(doc, `Daily Average · ${avg.activeDayCount} Active Day${avg.activeDayCount === 1 ? '' : 's'}${avg.restDayCount ? `, ${avg.restDayCount} Rest` : ''}`, y);
+            const avgItems = [
+                { label: 'Calories', value: `${avg.calories} kcal` },
+                { label: 'Protein', value: `${avg.protein} g` },
+                { label: 'Carbs', value: `${avg.carbs} g` },
+                { label: 'Fats', value: `${avg.fats} g` },
+            ];
+            if (includeFiberSugar) avgItems.push({ label: 'Fiber', value: `${avg.fiber} g` });
+            if (includeExercises) avgItems.push({ label: 'Burn', value: `~${avg.caloriesBurned} kcal` });
+            y = statRow(doc, y, avgItems);
+            y += 12;
+
+            y = sectionLabel(doc, 'Macro Ratio', y);
+            y = macroRatioBar(doc, y, avg);
+        }
     }
 
-    if (plan.allergies) {
+    if (includeAllergies && plan.allergies) {
         y += 6;
         doc.setFillColor(255, 247, 250);
         doc.roundedRect(ML, y, CW, 14, 2, 2, 'F');
@@ -627,32 +671,36 @@ export async function generateDietPlanPDF(plan, { mode = 'full', includeInstruct
     doc.addPage();
 
     switch (mode) {
-        case 'full': generateFull(doc, plan, plan.include_exercise); break;
-        case 'macros-per-meal': generateMacrosPerMeal(doc, plan); break;
-        case 'summary': generateSummary(doc, plan, plan.include_exercise); break;
-        case 'diet-only': generateDietOnly(doc, plan); break;
-        default: generateFull(doc, plan, plan.include_exercise);
+        case 'full': generateFull(doc, plan, sectionOpts); break;
+        case 'macros-per-meal': generateMacrosPerMeal(doc, plan, sectionOpts); break;
+        case 'summary': generateSummary(doc, plan, sectionOpts); break;
+        case 'diet-only': generateDietOnly(doc, plan, sectionOpts); break;
+        default: generateFull(doc, plan, sectionOpts);
     }
 
-    if (includeInstructions) {
+    const showTrainerNotes = includeTrainerNotes && !!plan.client_notes;
+    if (includeInstructions || showTrainerNotes) {
         doc.addPage();
         let iy = sectionTitle(doc, 'General Guidelines', CONTENT_TOP);
-        const tips = [
-            '1. Drink 8-10 glasses of water daily.',
-            '2. Stick to meal timings as closely as possible.',
-            '3. Avoid processed foods, sugary drinks, and fried snacks.',
-            '4. Aim for 7-8 hours of quality sleep each night.',
-            '5. Warm up before every workout; cool down and stretch after.',
-            '6. Track your progress every week (weight + measurements).',
-            '7. Consult your coach before making any modifications.',
-            '8. Stay consistent — results take time and dedication.',
-        ];
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...DARK_GRAY);
-        tips.forEach((tip) => { doc.text(tip, ML + 4, iy); iy += 7.5; });
 
-        if (plan.client_notes) {
+        if (includeInstructions) {
+            const tips = [
+                '1. Drink 8-10 glasses of water daily.',
+                '2. Stick to meal timings as closely as possible.',
+                '3. Avoid processed foods, sugary drinks, and fried snacks.',
+                '4. Aim for 7-8 hours of quality sleep each night.',
+                '5. Warm up before every workout; cool down and stretch after.',
+                '6. Track your progress every week (weight + measurements).',
+                '7. Consult your coach before making any modifications.',
+                '8. Stay consistent — results take time and dedication.',
+            ];
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...DARK_GRAY);
+            tips.forEach((tip) => { doc.text(tip, ML + 4, iy); iy += 7.5; });
+        }
+
+        if (showTrainerNotes) {
             iy += 4;
             doc.setFillColor(248, 248, 248);
             doc.roundedRect(ML, iy, CW, 22, 2, 2, 'F');
@@ -673,7 +721,21 @@ export async function generateDietPlanPDF(plan, { mode = 'full', includeInstruct
         addHeaderFooter(doc, plan, p, totalPages, logoDataUri);
     }
 
-    const fileName = `${(plan.client_name || 'Client').replace(/\s+/g, '_')}_${MODE_SUFFIX[mode] || 'Plan'}.pdf`;
+    return doc;
+}
+
+export async function generateDietPlanPDF(plan, options = {}) {
+    const doc = await buildDietPlanDoc(plan, options);
+    const fileName = `${(plan.client_name || 'Client').replace(/\s+/g, '_')}_${MODE_SUFFIX[options.mode || 'full'] || 'Plan'}.pdf`;
     doc.save(fileName);
     return fileName;
+}
+
+// For the Export step's live preview — returns a blob: URL an <iframe> can
+// render directly. Caller is responsible for revoking the previous URL
+// (URL.revokeObjectURL) before requesting a new one, so regenerating on
+// every option change doesn't leak memory.
+export async function buildDietPlanPreviewUrl(plan, options = {}) {
+    const doc = await buildDietPlanDoc(plan, options);
+    return doc.output('bloburl');
 }

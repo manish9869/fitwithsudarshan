@@ -131,6 +131,13 @@ export async function fetchLiveUsers() {
     return request('/analytics/live-users');
 }
 
+// { configured: false } if GA4 isn't set up yet, otherwise
+// { configured: true, totals, series, topPages, channels, devices, countries, fetchedAt }
+// or { configured: true, error }. days must be one of 7 | 30 | 90.
+export async function fetchAnalyticsOverview(days = 30) {
+    return request('/analytics/overview', { params: { days } });
+}
+
 // ── Enrollments ────────────────────────────────────────────────────────────────
 export async function fetchEnrollments(filters) {
     return request('/enrollments', { params: filters });

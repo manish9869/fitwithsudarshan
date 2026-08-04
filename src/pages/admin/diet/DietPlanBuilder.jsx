@@ -23,7 +23,7 @@ import { templates, workoutTemplates, generatePlanFromTemplate } from './dietTem
 import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDurationBased, defaultExerciseCustom, normalizeExercise } from './dietCalc';
 import { formatServing, convertToQuantity, normalizeFoodEntry, isConvertible, getUnitsForFood } from './dietUnits';
 import { DEFAULT_DIET_UNITS } from '@/utils/siteContentDefaults';
-import { generateDietPlanPDF } from './dietPdfGenerator';
+import { generateDietPlanPDF, buildDietPlanPreviewUrl } from './dietPdfGenerator';
 
 const STEPS = [
     { id: 1, title: 'Client Info', icon: User },
@@ -122,6 +122,14 @@ export default function DietPlanBuilder() {
 
     const [exportMode, setExportMode] = useState('full');
     const [exportInstructions, setExportInstructions] = useState(true);
+    const [exportExercises, setExportExercises] = useState(true);
+    const [exportCoverSnapshot, setExportCoverSnapshot] = useState(true);
+    const [exportFiberSugar, setExportFiberSugar] = useState(true);
+    const [exportAllergies, setExportAllergies] = useState(true);
+    const [exportTrainerNotes, setExportTrainerNotes] = useState(true);
+    const [exportServingColumn, setExportServingColumn] = useState(true);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
 
     const [foodPicker, setFoodPicker] = useState(null); // meal type string, or null
     const [foodSearch, setFoodSearch] = useState('');
@@ -420,9 +428,53 @@ export default function DietPlanBuilder() {
         } catch {
             return; // handleSave already showed the real error — don't download an unsaved plan
         }
-        await generateDietPlanPDF(buildPayload(), { mode: exportMode, includeInstructions: exportInstructions });
+        await generateDietPlanPDF(buildPayload(), buildExportOptions());
         navigate('/admin/diet-plans');
     };
+
+    const buildExportOptions = () => ({
+        mode: exportMode,
+        includeInstructions: exportInstructions,
+        includeExercises: includeExercise && exportExercises,
+        includeCoverSnapshot: exportCoverSnapshot,
+        includeFiberSugar: exportFiberSugar,
+        includeAllergies: exportAllergies,
+        includeTrainerNotes: exportTrainerNotes,
+        includeServingColumn: exportServingColumn,
+    });
+
+    // Live PDF preview for the Export step — regenerates (debounced, so
+    // rapid toggle clicks don't fire a build per click) whenever the format
+    // or any customization option changes, so the admin sees exactly what
+    // they're about to download before committing to it. Only runs on Step
+    // 5 — no point building a preview while still editing earlier steps.
+    useEffect(() => {
+        if (step !== 5) return;
+        setPreviewLoading(true);
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            try {
+                const url = await buildDietPlanPreviewUrl(buildPayload(), buildExportOptions());
+                if (!cancelled) setPreviewUrl(url);
+            } catch {
+                // non-blocking — the preview is a nicety; Save/Download still works independently
+            } finally {
+                if (!cancelled) setPreviewLoading(false);
+            }
+        }, 500);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [
+        step, exportMode, exportInstructions, exportExercises, exportCoverSnapshot,
+        exportFiberSugar, exportAllergies, exportTrainerNotes, exportServingColumn,
+        days, client, trainer, planDuration, includeExercise, targetCaloriesManual, targetCalories,
+    ]);
+
+    // Revokes the previous blob URL whenever a new preview replaces it (and
+    // the final one on unmount) — blob URLs otherwise leak for the life of
+    // the tab, and a new one is minted on every regeneration above.
+    useEffect(() => {
+        return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+    }, [previewUrl]);
 
     // Tab clicks can only revisit steps already validated through — they
     // can't skip ahead of data that was never filled in. Only advanceTo()
@@ -890,44 +942,78 @@ export default function DietPlanBuilder() {
 
                     {/* STEP 5: Export */}
                     {step === 5 && (
-                        <div className="max-w-2xl space-y-5">
-                            <div className="rounded-2xl p-5" style={card}>
-                                <p className="text-sm font-black text-white mb-4">Plan Summary</p>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-5 items-start">
+                            <div className="space-y-5 min-w-0">
+                                <div className="rounded-2xl p-5" style={card}>
+                                    <p className="text-sm font-black text-white mb-4">Plan Summary</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        {[
+                                            { label: 'Client', value: client.name || 'Not set' },
+                                            { label: 'Goal', value: client.goal },
+                                            { label: 'Duration', value: `${planDuration} Days` },
+                                            { label: 'Diet', value: client.dietPreference },
+                                            { label: 'Target Calories', value: effectiveTargetCalories > 0 ? `${effectiveTargetCalories}${targetCaloriesManual ? ' (manual)' : ' (auto)'}` : 'Not set' },
+                                        ].map((it) => (
+                                            <div key={it.label} className="p-3 rounded-xl text-center" style={inputCard}>
+                                                <p className="text-[10px] text-white/30 mb-1">{it.label}</p>
+                                                <p className="text-xs font-bold text-white">{it.value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl p-5 space-y-3" style={card}>
+                                    <p className="text-sm font-black text-white mb-1">Choose PDF Format</p>
                                     {[
-                                        { label: 'Client', value: client.name || 'Not set' },
-                                        { label: 'Goal', value: client.goal },
-                                        { label: 'Duration', value: `${planDuration} Days` },
-                                        { label: 'Diet', value: client.dietPreference },
-                                        { label: 'Target Calories', value: effectiveTargetCalories > 0 ? `${effectiveTargetCalories}${targetCaloriesManual ? ' (manual)' : ' (auto)'}` : 'Not set' },
-                                    ].map((it) => (
-                                        <div key={it.label} className="p-3 rounded-xl text-center" style={inputCard}>
-                                            <p className="text-[10px] text-white/30 mb-1">{it.label}</p>
-                                            <p className="text-xs font-bold text-white">{it.value}</p>
-                                        </div>
+                                        { id: 'full', title: 'Full Plan', desc: 'Every food item with macros, meal totals, and exercises.' },
+                                        { id: 'macros-per-meal', title: 'Macros Per Meal', desc: 'Foods listed per meal with totals per meal and per day.' },
+                                        { id: 'summary', title: 'Summary Only', desc: 'One row per day — quick overview table.' },
+                                        { id: 'diet-only', title: 'Diet Plan Only', desc: 'Food names, servings, calories — no macro breakdown.' },
+                                    ].map((m) => (
+                                        <button key={m.id} onClick={() => setExportMode(m.id)}
+                                            className="w-full p-3.5 rounded-xl text-left flex items-center justify-between"
+                                            style={exportMode === m.id ? { background: 'rgba(231,23,99,0.15)', border: '2px solid #e71763' } : inputCard}>
+                                            <div>
+                                                <p className="text-sm font-bold text-white">{m.title}</p>
+                                                <p className="text-xs text-white/35 mt-0.5">{m.desc}</p>
+                                            </div>
+                                            {exportMode === m.id && <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#e71763' }} />}
+                                        </button>
                                     ))}
+                                </div>
+
+                                <div className="rounded-2xl p-5 space-y-1" style={card}>
+                                    <p className="text-sm font-black text-white mb-2">Customize What's Included</p>
+                                    {includeExercise && (
+                                        <ToggleField label="Exercise Tables" checked={exportExercises} onChange={setExportExercises} hint="Per-day exercise volume + calories burned" />
+                                    )}
+                                    <ToggleField label="Cover Page Health Snapshot" checked={exportCoverSnapshot} onChange={setExportCoverSnapshot} hint="BMI card, macro ratio bar, daily average stats" />
+                                    <ToggleField label="Fiber & Sugar Figures" checked={exportFiberSugar} onChange={setExportFiberSugar} hint="Alongside calories/protein/carbs/fat in day summaries" />
+                                    {client.allergies && (
+                                        <ToggleField label="Allergies / Restrictions Note" checked={exportAllergies} onChange={setExportAllergies} hint="Callout box on the cover page" />
+                                    )}
+                                    <ToggleField label="Serving / Quantity Column" checked={exportServingColumn} onChange={setExportServingColumn} hint="Show each food's serving size and quantity, not just its name" />
+                                    <ToggleField label="General Guidelines" checked={exportInstructions} onChange={setExportInstructions} hint="Hydration/sleep/consistency tips page" />
+                                    {client.notes && (
+                                        <ToggleField label="Trainer Notes" checked={exportTrainerNotes} onChange={setExportTrainerNotes} hint="Your notes for this client, printed on the guidelines page" />
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl p-5 space-y-3" style={card}>
-                                <p className="text-sm font-black text-white mb-1">Choose PDF Format</p>
-                                {[
-                                    { id: 'full', title: 'Full Plan', desc: 'Every food item with macros, meal totals, and exercises.' },
-                                    { id: 'macros-per-meal', title: 'Macros Per Meal', desc: 'Foods listed per meal with totals per meal and per day.' },
-                                    { id: 'summary', title: 'Summary Only', desc: 'One row per day — quick overview table.' },
-                                    { id: 'diet-only', title: 'Diet Plan Only', desc: 'Food names, servings, calories — no macro breakdown.' },
-                                ].map((m) => (
-                                    <button key={m.id} onClick={() => setExportMode(m.id)}
-                                        className="w-full p-3.5 rounded-xl text-left flex items-center justify-between"
-                                        style={exportMode === m.id ? { background: 'rgba(231,23,99,0.15)', border: '2px solid #e71763' } : inputCard}>
-                                        <div>
-                                            <p className="text-sm font-bold text-white">{m.title}</p>
-                                            <p className="text-xs text-white/35 mt-0.5">{m.desc}</p>
+                            <div className="rounded-2xl p-3 lg:sticky lg:top-4 flex flex-col" style={{ ...card, height: 'min(75vh, 640px)' }}>
+                                <div className="flex items-center justify-between px-2 pb-2 flex-shrink-0">
+                                    <p className="text-xs font-black text-white/70 uppercase tracking-widest">Live Preview</p>
+                                    {previewLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-white/30" />}
+                                </div>
+                                <div className="flex-1 min-h-0 rounded-xl overflow-hidden relative" style={{ background: '#1a1a1a' }}>
+                                    {previewUrl ? (
+                                        <iframe src={previewUrl} title="PDF preview" className="w-full h-full border-0" style={{ opacity: previewLoading ? 0.4 : 1, transition: 'opacity 150ms' }} />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <Loader2 className="w-5 h-5 animate-spin text-white/25" />
                                         </div>
-                                        {exportMode === m.id && <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#e71763' }} />}
-                                    </button>
-                                ))}
-                                <ToggleField label="Include General Guidelines" checked={exportInstructions} onChange={setExportInstructions} hint="Hydration/sleep tips + trainer notes page" />
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}

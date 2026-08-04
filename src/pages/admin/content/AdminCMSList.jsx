@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, Loader2, AlertCircle, Search, ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Loader2, AlertCircle, Search, ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CMS_CONFIGS } from './cmsConfigs';
 import { listCmsRows, createCmsRow, updateCmsRow, deleteCmsRow } from './cmsApi';
 import { ImageField } from './SettingsFields';
@@ -129,12 +129,15 @@ function RowModal({ config, editing, onClose, onSaved }) {
     );
 }
 
+const PAGE_SIZE = 50;
+
 export default function AdminCMSList() {
     const { table } = useParams();
     const config = { ...CMS_CONFIGS[table], table };
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
     const [editing, setEditing] = useState(null);
     const [creating, setCreating] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -146,7 +149,8 @@ export default function AdminCMSList() {
         catch (e) { toast.error(e.message); }
         finally { setLoading(false); }
     };
-    useEffect(() => { load(); setSearch(''); }, [table]);
+    useEffect(() => { load(); setSearch(''); setPage(1); }, [table]);
+    useEffect(() => { setPage(1); }, [search]);
 
     const hasActiveField = config.fields?.some((f) => f.key === 'active');
 
@@ -158,6 +162,18 @@ export default function AdminCMSList() {
             fields.some((f) => String(row[f] ?? '').toLowerCase().includes(q))
         );
     }, [rows, search, config.searchFields, config.titleField, config.subtitleField]);
+
+    // Fetching everything in one shot and paginating client-side (rather
+    // than teaching every CMS table's list endpoint limit/offset) is enough
+    // headroom for how big these tables actually get — even diet_foods'
+    // 1000+ rows is a sub-second JSON fetch, the DOM render is what needed
+    // capping.
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const pageSafe = Math.min(page, totalPages);
+    const paged = useMemo(() => {
+        const start = (pageSafe - 1) * PAGE_SIZE;
+        return filtered.slice(start, start + PAGE_SIZE);
+    }, [filtered, pageSafe]);
 
     if (!config.fields) return <div className="text-white/40">Unknown content type: {table}</div>;
 
@@ -211,7 +227,7 @@ export default function AdminCMSList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map((row) => (
+                                {paged.map((row) => (
                                     <tr key={row[config.idKey]} className="transition-colors"
                                         style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                                         onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
@@ -269,6 +285,27 @@ export default function AdminCMSList() {
                             {rows.length === 0 ? 'No records yet.' : 'No results match your search.'}
                         </p>
                     )}
+                </div>
+            )}
+
+            {!loading && filtered.length > PAGE_SIZE && (
+                <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
+                    <p className="text-xs text-white/30">
+                        Showing {(pageSafe - 1) * PAGE_SIZE + 1}–{Math.min(pageSafe * PAGE_SIZE, filtered.length)} of {filtered.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pageSafe === 1}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 disabled:opacity-25"
+                            style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-xs font-bold text-white/60 px-2">Page {pageSafe} of {totalPages}</span>
+                        <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={pageSafe === totalPages}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 disabled:opacity-25"
+                            style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
                 </div>
             )}
 
