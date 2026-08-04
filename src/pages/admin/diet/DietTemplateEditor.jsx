@@ -25,6 +25,7 @@ import {
 import { listCmsRows, createCmsRow, updateCmsRow } from '../content/cmsApi';
 import { TextInput, TextArea, ToggleField, SelectField } from '../content/SettingsFields';
 import { useToast } from '../ToastProvider';
+import { slugify, uniqueId } from '../adminUtils';
 import { formatServing } from './dietUnits';
 import { FOOD_REGIONS } from './dietRegions';
 import { MEAL_TYPES, OPTIONAL_MEAL_TYPES } from './dietMealTypes';
@@ -38,19 +39,6 @@ const DAY_COUNT_PRESETS = [7, 10, 15, 30];
 
 const card = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' };
 const inputCard = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' };
-
-const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
-
-// Appends "-2", "-3"… only if the base id is already taken — keeps ids
-// human-readable for the common case (no collision) instead of always
-// suffixing something the admin never sees anyway.
-function uniqueId(base, existingIds) {
-    if (!base) return base;
-    if (!existingIds.has(base)) return base;
-    let n = 2;
-    while (existingIds.has(`${base}-${n}`)) n++;
-    return `${base}-${n}`;
-}
 
 const emptyDay = () => ({
     restDay: false,

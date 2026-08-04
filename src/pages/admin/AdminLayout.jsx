@@ -56,8 +56,8 @@ const NAV_GROUPS = [
     {
         title: 'Master Data',
         items: [
-            { to: '/admin/content/diet_foods', icon: Apple, label: 'Diet Foods' },
-            { to: '/admin/content/diet_exercises', icon: Dumbbell, label: 'Diet Exercises' },
+            { to: '/admin/diet-foods', icon: Apple, label: 'Diet Foods' },
+            { to: '/admin/diet-exercises', icon: Dumbbell, label: 'Diet Exercises' },
             { to: '/admin/diet-templates', icon: CalendarRange, label: 'Diet Templates' },
             { to: '/admin/workout-templates', icon: Repeat2, label: 'Workout Templates' },
         ],
