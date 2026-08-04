@@ -11,7 +11,7 @@ import {
     Loader2, ChevronLeft, ChevronRight, Plus, Trash2, Search, X, Save,
     User, Target, Sparkles, CalendarDays, FileDown, Check, Dumbbell, Salad, Edit2,
 } from 'lucide-react';
-import { listCmsRows } from '../content/cmsApi';
+import { listCmsRows, getSiteContentKey } from '../content/cmsApi';
 import { fmtName } from '../adminUtils';
 import { fetchAdminProfile } from '../adminApi';
 import { TextInput, TextArea, ToggleField, SelectField } from '../content/SettingsFields';
@@ -21,7 +21,8 @@ import {
 } from './dietPlanApi';
 import { templates, workoutTemplates, generatePlanFromTemplate } from './dietTemplates';
 import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDurationBased, defaultExerciseCustom, normalizeExercise } from './dietCalc';
-import { formatServing } from './dietUnits';
+import { formatServing, SERVING_UNITS, convertToQuantity, normalizeFoodEntry } from './dietUnits';
+import { DEFAULT_DIET_UNITS } from '@/utils/siteContentDefaults';
 import { generateDietPlanPDF } from './dietPdfGenerator';
 
 const STEPS = [
@@ -95,6 +96,7 @@ export default function DietPlanBuilder() {
 
     const [foods, setFoods] = useState([]);
     const [exercises, setExercises] = useState([]);
+    const [dietUnits, setDietUnits] = useState(DEFAULT_DIET_UNITS.units);
     const foodsById = useMemo(() => new Map(foods.map((f) => [f.id, f])), [foods]);
     const exercisesById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
 
@@ -136,12 +138,14 @@ export default function DietPlanBuilder() {
         (async () => {
             setLoading(true);
             try {
-                const [foodRows, exerciseRows] = await Promise.all([
+                const [foodRows, exerciseRows, unitsSetting] = await Promise.all([
                     listCmsRows('diet_foods'),
                     listCmsRows('diet_exercises'),
+                    getSiteContentKey('diet_units').catch(() => null),
                 ]);
                 setFoods(foodRows.filter((f) => f.active));
                 setExercises(exerciseRows.filter((e) => e.active));
+                setDietUnits(unitsSetting?.units?.length ? unitsSetting.units : DEFAULT_DIET_UNITS.units);
 
                 if (!isNew) {
                     const plan = await getDietPlan(id);
@@ -159,7 +163,11 @@ export default function DietPlanBuilder() {
                     setTargetCalories(plan.target_calories ?? '');
                     if (plan.days?.length) {
                         setDays(plan.days.map((d) => ({
-                            dayNumber: d.day_number, meals: d.meals,
+                            dayNumber: d.day_number,
+                            // Plans saved before the amount/unit control existed only
+                            // have `quantity` — backfill amount/unit so the controls
+                            // show a value consistent with what's already on screen.
+                            meals: (d.meals || []).map((m) => ({ ...m, foods: (m.foods || []).map(normalizeFoodEntry) })),
                             // Plans saved before the sets/reps/duration scaling feature
                             // existed are missing base*/durationBased fields — backfill
                             // them from the current library so editing an old plan's
@@ -281,14 +289,20 @@ export default function DietPlanBuilder() {
     };
 
     // ── Food / exercise mutation ────────────────────────────────────────
+    // amount/unit default to the food's own base serving (ratio = 1, so
+    // calories start out matching the library figure exactly) but are fully
+    // editable per meal-entry — pick any unit from the diet_units setting
+    // and type any quantity; updateFoodAmount below converts both sides
+    // through grams to work out the actual scaling ratio.
     const addFoodToMeal = (mealType, food) => {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : {
             ...d,
             meals: d.meals.map((m) => m.type !== mealType ? m : {
                 ...m, foods: [...m.foods, {
                     foodId: food.id, name: food.name, calories: food.calories, protein: food.protein,
-                    carbs: food.carbs, fats: food.fats,
+                    carbs: food.carbs, fats: food.fats, fiber: food.fiber, sugar: food.sugar,
                     servingSize: food.serving_size, servingQty: food.serving_qty, servingUnit: food.serving_unit,
+                    amount: food.serving_qty ?? 1, unit: food.serving_unit || SERVING_UNITS[0],
                     quantity: 1,
                 }],
             }),
@@ -300,9 +314,19 @@ export default function DietPlanBuilder() {
             ...d, meals: d.meals.map((m) => m.type !== mealType ? m : { ...m, foods: m.foods.filter((_, fi) => fi !== idx) }),
         }));
     };
-    const updateFoodQty = (mealType, idx, qty) => {
+    const updateFoodAmount = (mealType, idx, patch) => {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : {
-            ...d, meals: d.meals.map((m) => m.type !== mealType ? m : { ...m, foods: m.foods.map((f, fi) => fi !== idx ? f : { ...f, quantity: qty }) }),
+            ...d, meals: d.meals.map((m) => m.type !== mealType ? m : {
+                ...m, foods: m.foods.map((f, fi) => {
+                    if (fi !== idx) return f;
+                    const next = { ...f, ...patch };
+                    const quantity = convertToQuantity(
+                        { serving_qty: f.servingQty, serving_unit: f.servingUnit },
+                        next.amount, next.unit, dietUnits
+                    );
+                    return { ...next, quantity };
+                }),
+            }),
         }));
     };
     // Snapshots the library exercise's OWN reference sets/reps/duration/
@@ -738,7 +762,7 @@ export default function DietPlanBuilder() {
                                 <div>
                                     <p className="text-sm font-black text-white">Day {activeDay.dayNumber} of {planDuration}</p>
                                     <p className="text-xs text-white/35 mt-0.5">
-                                        {dayTotals.calories} kcal · P {dayTotals.protein}g · C {dayTotals.carbs}g · F {dayTotals.fats}g{includeExercise ? ` · Burn ~${dayTotals.caloriesBurned}` : ''}
+                                        {dayTotals.calories} kcal · P {dayTotals.protein}g · C {dayTotals.carbs}g · F {dayTotals.fats}g · Fiber {dayTotals.fiber}g{includeExercise ? ` · Burn ~${dayTotals.caloriesBurned}` : ''}
                                         {effectiveTargetCalories > 0 && <span className="text-white/25"> · Target {effectiveTargetCalories}{targetCaloriesManual ? ' (manual)' : ''}</span>}
                                     </p>
                                 </div>
@@ -760,18 +784,27 @@ export default function DietPlanBuilder() {
                                                     {meal.foods.length === 0 ? (
                                                         <p className="text-xs text-white/25 italic">No items</p>
                                                     ) : meal.foods.map((food, fi) => (
-                                                        <div key={fi} className="flex items-center justify-between p-2 rounded-lg text-xs" style={inputCard}>
-                                                            <div>
-                                                                <span className="text-white/80">{food.name}</span>
-                                                                <p className="text-white/30 text-[10px] mt-0.5">
-                                                                    {food.quantity} × {food.servingUnit ? `${food.servingQty ?? 1} ${food.servingUnit}` : (food.servingSize || 'serving')}
-                                                                </p>
+                                                        <div key={fi} className="p-2.5 rounded-lg text-xs space-y-1.5" style={inputCard}>
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span className="text-white/80 font-semibold truncate">{food.name}</span>
+                                                                <div className="flex items-center gap-2 flex-shrink-0">
+                                                                    <span style={{ color: '#e71763' }} className="font-bold">~{Math.round(food.calories * food.quantity)} kcal</span>
+                                                                    <button onClick={() => removeFoodFromMeal(meal.type, fi)} className="text-red-400/70 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <button onClick={() => updateFoodQty(meal.type, fi, Math.max(0.5, food.quantity - 0.5))} className="w-5 h-5 text-white/40">-</button>
-                                                                <span className="text-white/60 w-6 text-center">{food.quantity}</span>
-                                                                <button onClick={() => updateFoodQty(meal.type, fi, food.quantity + 0.5)} className="w-5 h-5 text-white/40">+</button>
-                                                                <button onClick={() => removeFoodFromMeal(meal.type, fi)} className="text-red-400/70 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <input type="number" min="0" step="any" value={food.amount ?? ''}
+                                                                    onChange={(e) => updateFoodAmount(meal.type, fi, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
+                                                                    className="w-16 px-2 py-1 rounded text-white outline-none"
+                                                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                                                <select value={food.unit || ''} onChange={(e) => updateFoodAmount(meal.type, fi, { unit: e.target.value })}
+                                                                    className="flex-1 px-2 py-1 rounded text-white outline-none"
+                                                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                                    {dietUnits.map((u) => <option key={u.label} value={u.label}>{u.label}</option>)}
+                                                                </select>
+                                                                <span className="text-white/25 text-[10px] flex-shrink-0">
+                                                                    base: {formatServing({ serving_qty: food.servingQty, serving_unit: food.servingUnit, serving_size: food.servingSize })}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     ))}

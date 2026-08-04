@@ -32,15 +32,20 @@ const TOTAL_ROW_BG = [252, 234, 242];
 const TOTAL_ROW_TEXT = [180, 10, 90];
 
 function calcDayTotals(day) {
-    let calories = 0, protein = 0, carbs = 0, fats = 0, caloriesBurned = 0;
+    let calories = 0, protein = 0, carbs = 0, fats = 0, fiber = 0, sugar = 0, caloriesBurned = 0;
     (day.meals || []).forEach((m) => (m.foods || []).forEach((f) => {
         calories += f.calories * f.quantity;
         protein += f.protein * f.quantity;
         carbs += f.carbs * f.quantity;
         fats += f.fats * f.quantity;
+        fiber += (f.fiber || 0) * f.quantity;
+        sugar += (f.sugar || 0) * f.quantity;
     }));
     (day.exercises || []).forEach((e) => { caloriesBurned += e.caloriesBurned; });
-    return { calories: Math.round(calories), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats), caloriesBurned: Math.round(caloriesBurned) };
+    return {
+        calories: Math.round(calories), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats),
+        fiber: Math.round(fiber), sugar: Math.round(sugar), caloriesBurned: Math.round(caloriesBurned),
+    };
 }
 
 function calcPlanAverages(days) {
@@ -48,13 +53,15 @@ function calcPlanAverages(days) {
     if (!activeDays.length) return null;
     const totals = activeDays.reduce((acc, d) => {
         const t = calcDayTotals(d);
-        acc.calories += t.calories; acc.protein += t.protein; acc.carbs += t.carbs; acc.fats += t.fats; acc.caloriesBurned += t.caloriesBurned;
+        acc.calories += t.calories; acc.protein += t.protein; acc.carbs += t.carbs; acc.fats += t.fats;
+        acc.fiber += t.fiber; acc.sugar += t.sugar; acc.caloriesBurned += t.caloriesBurned;
         return acc;
-    }, { calories: 0, protein: 0, carbs: 0, fats: 0, caloriesBurned: 0 });
+    }, { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, caloriesBurned: 0 });
     const n = activeDays.length;
     return {
         calories: Math.round(totals.calories / n), protein: Math.round(totals.protein / n),
         carbs: Math.round(totals.carbs / n), fats: Math.round(totals.fats / n),
+        fiber: Math.round(totals.fiber / n), sugar: Math.round(totals.sugar / n),
         caloriesBurned: Math.round(totals.caloriesBurned / n),
         activeDayCount: n, restDayCount: (days || []).length - n,
     };
@@ -159,7 +166,7 @@ function dayBanner(doc, y, label, tot, includeExercise) {
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...LIGHT_GRAY);
-    const summary = `${tot.calories} kcal | P: ${tot.protein}g | C: ${tot.carbs}g | F: ${tot.fats}g${includeExercise ? ` | Burn: ~${tot.caloriesBurned} kcal` : ''}`;
+    const summary = `${tot.calories} kcal | P: ${tot.protein}g | C: ${tot.carbs}g | F: ${tot.fats}g | Fiber: ${tot.fiber}g${includeExercise ? ` | Burn: ~${tot.caloriesBurned} kcal` : ''}`;
     doc.text(summary, ML + CW - 2, y + 6.8, { align: 'right' });
 
     return y + 14;
@@ -593,6 +600,7 @@ export async function generateDietPlanPDF(plan, { mode = 'full', includeInstruct
             { label: 'Protein', value: `${avg.protein} g` },
             { label: 'Carbs', value: `${avg.carbs} g` },
             { label: 'Fats', value: `${avg.fats} g` },
+            { label: 'Fiber', value: `${avg.fiber} g` },
         ];
         if (plan.include_exercise) avgItems.push({ label: 'Burn', value: `~${avg.caloriesBurned} kcal` });
         y = statRow(doc, y, avgItems);

@@ -7,7 +7,7 @@
 // non-technical user (this is why FAQ rows used to show a UUID).
 import { SERVING_UNITS } from '../diet/dietUnits';
 
-const FOOD_CATEGORIES = ['Breakfast', 'Grains & Roti', 'Rice & Dal', 'Vegetables', 'Dairy & Paneer', 'Proteins', 'Snacks', 'Fruits', 'Beverages', 'Supplements'];
+const FOOD_CATEGORIES = ['Breakfast', 'Grains & Roti', 'Rice & Dal', 'Vegetables', 'Dairy & Paneer', 'Proteins', 'Snacks', 'Fruits', 'Beverages', 'Supplements', 'Desserts', 'Soups', 'Condiments'];
 const MUSCLE_GROUPS = ['Cardio', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Flexibility'];
 const DIFFICULTY_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 const EXERCISE_LOCATIONS = ['Home', 'Gym', 'Both'];
@@ -33,6 +33,13 @@ export const CMS_CONFIGS = {
             { key: 'protein', label: 'Protein (g)', type: 'number', default: 0 },
             { key: 'carbs', label: 'Carbs (g)', type: 'number', default: 0 },
             { key: 'fats', label: 'Fats (g)', type: 'number', default: 0 },
+            { key: 'fiber', label: 'Fiber (g)', type: 'number', default: 0 },
+            { key: 'sugar', label: 'Sugar (g)', type: 'number', default: 0 },
+            { key: 'sodium', label: 'Sodium (mg)', type: 'number', default: 0 },
+            { key: 'calcium', label: 'Calcium (mg)', type: 'number', default: 0 },
+            { key: 'iron', label: 'Iron (mg)', type: 'number', default: 0 },
+            { key: 'vitamin_c', label: 'Vitamin C (mg)', type: 'number', default: 0 },
+            { key: 'folate', label: 'Folate (mcg)', type: 'number', default: 0 },
             { key: 'is_veg', label: 'Vegetarian', type: 'boolean', default: true },
             { key: 'is_eggetarian', label: 'Eggetarian-Safe', type: 'boolean', default: true },
             { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },

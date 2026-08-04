@@ -22,6 +22,8 @@ import {
     Settings,
     Salad,
     ScrollText,
+    Apple,
+    Dumbbell,
 } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
@@ -45,6 +47,8 @@ const NAV_GROUPS = [
             { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
             { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
             { to: '/admin/diet-plans', icon: Salad, label: 'Diet Plans' },
+            { to: '/admin/content/diet_foods', icon: Apple, label: 'Diet Foods' },
+            { to: '/admin/content/diet_exercises', icon: Dumbbell, label: 'Diet Exercises' },
         ],
     },
     {
