@@ -71,54 +71,13 @@ export const CMS_CONFIGS = {
         ],
     },
 
-    // Powers the Diet Plan Builder's "Use a Template" quick-start step —
-    // any active row here shows up there immediately, no code change
-    // needed. `days` is hand-edited as JSON (same pattern as legal_pages'
-    // `sections`): an array of { meals: [{type,label,foodIds:[...]}],
-    // restDay?:true }, one entry per day-in-rotation (a 30-day plan reuses
-    // entry 0 after the array runs out). Food ids must exist in Diet Foods.
-    diet_templates: {
-        title: 'Diet Plan Templates',
-        idKey: 'id',
-        titleField: 'name',
-        subtitleField: 'goal',
-        searchFields: ['name', 'description', 'goal', 'diet_preference', 'region'],
-        fields: [
-            { key: 'id', label: 'ID (e.g. fat-loss-veg)', type: 'text', required: true, lockOnEdit: true },
-            { key: 'name', label: 'Template Name', type: 'text', required: true },
-            { key: 'description', label: 'Description', type: 'text' },
-            { key: 'goal', label: 'Goal', type: 'select', options: ['Fat Loss', 'Muscle Gain', 'Weight Maintenance', 'General Fitness'] },
-            { key: 'diet_preference', label: 'Diet Preference', type: 'select', options: ['Vegetarian', 'Eggetarian', 'Non-Vegetarian', 'Vegan'] },
-            { key: 'region', label: 'Regional Cuisine', type: 'select', options: FOOD_REGIONS, default: FOOD_REGIONS[0] },
-            {
-                key: 'days', label: 'Days (JSON) — [{ "meals": [{ "type": "breakfast", "label": "Breakfast", "foodIds": ["idli","curd"] }], "restDay": false }, ...]',
-                type: 'json', required: true, big: true, default: '[]',
-            },
-            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
-            { key: 'active', label: 'Active', type: 'boolean', default: true },
-        ],
-    },
-
-    // The exercise-rotation half of a template, picked separately in Step 3
-    // ("Workout Template") from the diet template itself.
-    diet_workout_templates: {
-        title: 'Diet Plan Workout Templates',
-        idKey: 'id',
-        titleField: 'name',
-        subtitleField: 'description',
-        searchFields: ['name', 'description'],
-        fields: [
-            { key: 'id', label: 'ID (e.g. home-workout)', type: 'text', required: true, lockOnEdit: true },
-            { key: 'name', label: 'Template Name', type: 'text', required: true },
-            { key: 'description', label: 'Description', type: 'text' },
-            {
-                key: 'exercise_days', label: 'Exercise Days (JSON) — [["push-ups","squats"], ["lunges"], ...]',
-                type: 'json', required: true, big: true, default: '[]',
-            },
-            { key: 'sort_order', label: 'Sort Order', type: 'number', default: 0 },
-            { key: 'active', label: 'Active', type: 'boolean', default: true },
-        ],
-    },
+    // diet_templates / diet_workout_templates have their own dedicated,
+    // visual editors — see DietTemplateList/Editor.jsx and
+    // DietWorkoutTemplateList/Editor.jsx (Admin -> Diet Templates / Workout
+    // Templates) — since hand-editing their `days`/`exercise_days` JSON
+    // shape isn't realistic for a non-technical admin. Powers the Diet Plan
+    // Builder's "Use a Template" quick-start step — any active row there
+    // shows up there immediately, no code change needed.
 
     testimonials: {
         title: 'Testimonials',

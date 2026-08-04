@@ -58,8 +58,8 @@ const NAV_GROUPS = [
         items: [
             { to: '/admin/content/diet_foods', icon: Apple, label: 'Diet Foods' },
             { to: '/admin/content/diet_exercises', icon: Dumbbell, label: 'Diet Exercises' },
-            { to: '/admin/content/diet_templates', icon: CalendarRange, label: 'Diet Templates' },
-            { to: '/admin/content/diet_workout_templates', icon: Repeat2, label: 'Workout Templates' },
+            { to: '/admin/diet-templates', icon: CalendarRange, label: 'Diet Templates' },
+            { to: '/admin/workout-templates', icon: Repeat2, label: 'Workout Templates' },
         ],
     },
     {
