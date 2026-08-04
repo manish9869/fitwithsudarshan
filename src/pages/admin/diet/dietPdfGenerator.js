@@ -183,13 +183,26 @@ function sectionTitle(doc, text, y) {
 }
 
 // ── Export modes ─────────────────────────────────────────────────────────
+// A repeating plan still stores plan_duration identical day entries (kept
+// mirrored by the builder) so calcPlanAverages/etc. all work unchanged —
+// only the day-by-day PRINTOUT needs to collapse to the one day instead of
+// showing plan_duration copies of the same thing.
+function exportDays(plan) {
+    if (plan.repeat_daily && plan.days?.length) return [plan.days[0]];
+    return plan.days || [];
+}
+function dayLabel(plan, day) {
+    if (plan.repeat_daily) return `Daily Plan — repeats for all ${plan.plan_duration} days`;
+    return `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`;
+}
+
 function generateFull(doc, plan, opts) {
     const { includeExercises, includeFiberSugar, includeServingColumn } = opts;
     let y = CONTENT_TOP;
-    plan.days.forEach((day) => {
+    exportDays(plan).forEach((day) => {
         y = ensureSpace(doc, y, 30);
         const tot = calcDayTotals(day);
-        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, tot, includeExercises, includeFiberSugar);
+        y = dayBanner(doc, y, dayLabel(plan, day), tot, includeExercises, includeFiberSugar);
 
         if (day.restDay) {
             doc.setTextColor(...MID_GRAY);
@@ -284,10 +297,10 @@ function generateFull(doc, plan, opts) {
 function generateMacrosPerMeal(doc, plan, opts) {
     const { includeFiberSugar } = opts;
     let y = CONTENT_TOP;
-    plan.days.forEach((day) => {
+    exportDays(plan).forEach((day) => {
         y = ensureSpace(doc, y, 30);
         const tot = calcDayTotals(day);
-        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, tot, false, includeFiberSugar);
+        y = dayBanner(doc, y, dayLabel(plan, day), tot, false, includeFiberSugar);
         if (day.restDay) { y += 8; return; }
 
         const rows = (day.meals || []).filter((m) => m.foods?.length).map((meal) => {
@@ -319,12 +332,12 @@ function generateSummary(doc, plan, opts) {
     const { includeExercises } = opts;
     let y = sectionTitle(doc, 'Weekly / Plan Overview', CONTENT_TOP);
 
-    const rows = plan.days.map((day) => {
+    const rows = exportDays(plan).map((day) => {
         const tot = calcDayTotals(day);
         const mealCount = (day.meals || []).reduce((s, m) => s + (m.foods?.length || 0), 0);
         return {
             cells: [
-                `Day ${day.dayNumber}`,
+                plan.repeat_daily ? `Every day (×${plan.plan_duration})` : `Day ${day.dayNumber}`,
                 day.restDay ? 'Rest Day' : String(tot.calories),
                 day.restDay ? '-' : String(tot.protein),
                 day.restDay ? '-' : String(tot.carbs),
@@ -351,9 +364,9 @@ function generateSummary(doc, plan, opts) {
 function generateDietOnly(doc, plan, opts) {
     const { includeFiberSugar, includeServingColumn } = opts;
     let y = CONTENT_TOP;
-    plan.days.forEach((day) => {
+    exportDays(plan).forEach((day) => {
         y = ensureSpace(doc, y, 25);
-        y = dayBanner(doc, y, `Day ${day.dayNumber}${day.restDay ? ' — Rest Day' : ''}`, calcDayTotals(day), false, includeFiberSugar);
+        y = dayBanner(doc, y, dayLabel(plan, day), calcDayTotals(day), false, includeFiberSugar);
         if (day.restDay) { y += 8; return; }
 
         const rows = [];
@@ -388,6 +401,58 @@ function generateDietOnly(doc, plan, opts) {
             y += 8;
         }
     });
+}
+
+// Aggregates every food across the plan's FULL actual duration (plan.days
+// already has one entry per real day — repeat-daily plans have it mirrored,
+// template rotations have it expanded — so this sums real grocery needs,
+// not just the unique template days). Grouped by category, one line per
+// distinct food+unit, so "2 Chapati/Roti x7 days" becomes "14 Piece".
+function generateShoppingList(doc, plan) {
+    let y = sectionTitle(doc, `Shopping List — ${plan.plan_duration} Day${plan.plan_duration === 1 ? '' : 's'}`, CONTENT_TOP);
+
+    const totals = new Map();
+    (plan.days || []).forEach((day) => {
+        if (day.restDay) return;
+        (day.meals || []).forEach((meal) => {
+            (meal.foods || []).forEach((food) => {
+                const unitLabel = formatFoodServing(food);
+                const key = `${food.name}|${unitLabel}`;
+                if (!totals.has(key)) totals.set(key, { name: food.name, unitLabel, qty: 0, category: food.category || 'Other' });
+                totals.get(key).qty += food.quantity;
+            });
+        });
+    });
+
+    if (!totals.size) {
+        doc.setTextColor(...MID_GRAY);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.text('No foods added to this plan yet.', ML + 4, y + 4);
+        return;
+    }
+
+    const byCategory = new Map();
+    for (const item of totals.values()) {
+        if (!byCategory.has(item.category)) byCategory.set(item.category, []);
+        byCategory.get(item.category).push(item);
+    }
+
+    for (const category of [...byCategory.keys()].sort()) {
+        y = ensureSpace(doc, y, 20);
+        const items = byCategory.get(category).sort((a, b) => a.name.localeCompare(b.name));
+        doc.setTextColor(...BRAND_PINK);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(category.toUpperCase(), ML, y);
+        y += 6;
+        y = drawTable(doc, {
+            startY: y,
+            columns: [{ label: '', w: 10 }, { label: 'ITEM', w: 110 }, { label: 'QUANTITY NEEDED', w: 62 }],
+            rows: items.map((it) => ({ cells: ['[ ]', it.name, `${Math.round(it.qty * 100) / 100} × ${it.unitLabel}`] })),
+        });
+        y += 6;
+    }
 }
 
 // ── Cover page building blocks ──────────────────────────────────────────
@@ -502,10 +567,25 @@ const MODE_LABELS = {
     'macros-per-meal': 'Macros Per Meal Plan',
     'summary': 'Plan Summary Overview',
     'diet-only': 'Diet Plan',
+    'shopping-list': 'Shopping List',
 };
 const MODE_SUFFIX = {
-    'full': 'Full_Plan', 'macros-per-meal': 'Macros_Per_Meal', 'summary': 'Summary', 'diet-only': 'Diet_Only',
+    'full': 'Full_Plan', 'macros-per-meal': 'Macros_Per_Meal', 'summary': 'Summary', 'diet-only': 'Diet_Only', 'shopping-list': 'Shopping_List',
 };
+
+// Only used if a caller invokes buildDietPlanDoc without a guidelines list
+// at all — normal calls always pass the live one (global default or this
+// plan's override), see DietPlanBuilder.jsx's buildExportOptions.
+const FALLBACK_GUIDELINES = [
+    '1. Drink 8-10 glasses of water daily.',
+    '2. Stick to meal timings as closely as possible.',
+    '3. Avoid processed foods, sugary drinks, and fried snacks.',
+    '4. Aim for 7-8 hours of quality sleep each night.',
+    '5. Warm up before every workout; cool down and stretch after.',
+    '6. Track your progress every week (weight + measurements).',
+    '7. Consult your coach before making any modifications.',
+    '8. Stay consistent — results take time and dedication.',
+];
 
 // Fetches the site's actual logo (public/logo.png, same origin — no CORS
 // issue) and converts it to a data URI jsPDF's addImage() can embed
@@ -588,6 +668,10 @@ export async function buildDietPlanDoc(plan, options = {}) {
         includeAllergies = true,
         includeTrainerNotes = true,
         includeServingColumn = true,
+        // Callers normally pass the live, resolved guidelines list (see
+        // DietPlanBuilder.jsx's buildExportOptions) — this fallback only
+        // matters if buildDietPlanDoc is ever invoked without it.
+        guidelines = FALLBACK_GUIDELINES,
     } = options;
     const sectionOpts = { includeExercises, includeFiberSugar, includeServingColumn };
 
@@ -636,7 +720,7 @@ export async function buildDietPlanDoc(plan, options = {}) {
     y += 4;
     y = statRow(doc, y, [
         { label: 'Diet Preference', value: plan.diet_preference || '—' },
-        { label: 'Duration', value: `${plan.plan_duration} Days` },
+        { label: 'Duration', value: plan.repeat_daily ? `${plan.plan_duration} Days (same plan repeats)` : `${plan.plan_duration} Days` },
         { label: 'Activity Level', value: plan.activity_level || '—' },
         { label: 'Target Calories', value: plan.target_calories ? `${plan.target_calories} kcal${plan.target_calories_manual ? ' (Manual)' : ''}` : '—' },
     ]);
@@ -687,6 +771,7 @@ export async function buildDietPlanDoc(plan, options = {}) {
         case 'macros-per-meal': generateMacrosPerMeal(doc, plan, sectionOpts); break;
         case 'summary': generateSummary(doc, plan, sectionOpts); break;
         case 'diet-only': generateDietOnly(doc, plan, sectionOpts); break;
+        case 'shopping-list': generateShoppingList(doc, plan); break;
         default: generateFull(doc, plan, sectionOpts);
     }
 
@@ -696,20 +781,11 @@ export async function buildDietPlanDoc(plan, options = {}) {
         let iy = sectionTitle(doc, 'General Guidelines', CONTENT_TOP);
 
         if (includeInstructions) {
-            const tips = [
-                '1. Drink 8-10 glasses of water daily.',
-                '2. Stick to meal timings as closely as possible.',
-                '3. Avoid processed foods, sugary drinks, and fried snacks.',
-                '4. Aim for 7-8 hours of quality sleep each night.',
-                '5. Warm up before every workout; cool down and stretch after.',
-                '6. Track your progress every week (weight + measurements).',
-                '7. Consult your coach before making any modifications.',
-                '8. Stay consistent — results take time and dedication.',
-            ];
+            const tips = (guidelines?.length ? guidelines : FALLBACK_GUIDELINES).filter((t) => t.trim());
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(...DARK_GRAY);
-            tips.forEach((tip) => { doc.text(tip, ML + 4, iy); iy += 7.5; });
+            tips.forEach((tip) => { doc.text(tip, ML + 4, iy, { maxWidth: CW - 8 }); iy += 7.5; });
         }
 
         if (showTrainerNotes) {

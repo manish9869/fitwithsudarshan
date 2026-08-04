@@ -9,7 +9,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Loader2, ChevronLeft, ChevronRight, Plus, Trash2, Search, X, Save,
-    User, Target, Sparkles, CalendarDays, FileDown, Check, Dumbbell, Salad, Edit2,
+    User, Target, Sparkles, CalendarDays, FileDown, Check, Dumbbell, Salad, Edit2, Repeat2,
 } from 'lucide-react';
 import { listCmsRows, getSiteContentKey } from '../content/cmsApi';
 import { fmtName } from '../adminUtils';
@@ -19,10 +19,11 @@ import { useToast } from '../ToastProvider';
 import {
     getDietPlan, createDietPlan, updateDietPlan, searchEnrollments, getDietPlanByEnrollment,
 } from './dietPlanApi';
-import { templates, workoutTemplates, generatePlanFromTemplate } from './dietTemplates';
+import { generatePlanFromTemplate } from './dietTemplates';
 import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDurationBased, defaultExerciseCustom, normalizeExercise } from './dietCalc';
 import { formatServing, convertToQuantity, normalizeFoodEntry, isConvertible, getUnitsForFood } from './dietUnits';
-import { DEFAULT_DIET_UNITS } from '@/utils/siteContentDefaults';
+import { FOOD_REGIONS } from './dietRegions';
+import { DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
 import { generateDietPlanPDF, buildDietPlanPreviewUrl } from './dietPdfGenerator';
 
 const STEPS = [
@@ -34,13 +35,20 @@ const STEPS = [
 ];
 
 const MEAL_TYPES = [
+    { type: 'morningDrink', label: 'Morning Drink' },
     { type: 'breakfast', label: 'Breakfast' },
     { type: 'midMorning', label: 'Mid-Morning Snack' },
     { type: 'lunch', label: 'Lunch' },
     { type: 'evening', label: 'Evening Snack' },
     { type: 'dinner', label: 'Dinner' },
     { type: 'bedtime', label: 'Bedtime Snack' },
+    { type: 'beforeBedDrink', label: 'Before Bed Drink' },
 ];
+// A day always has all MEAL_TYPES slots, but an empty "No items" slot in
+// every export/preview would clutter plans that don't use e.g. a morning
+// drink — these are the ones a day starts with 0 foods and just stays out
+// of the way (rendered normally, but never forces itself into view).
+const OPTIONAL_MEAL_TYPES = new Set(['morningDrink', 'beforeBedDrink']);
 
 const emptyDay = (dayNumber) => ({
     dayNumber,
@@ -50,9 +58,19 @@ const emptyDay = (dayNumber) => ({
     notes: '',
 });
 
+// Guarantees every current MEAL_TYPES slot exists on a day, adding any
+// missing ones empty — needed for days that came from a source that
+// predates a slot type (a template's own meal list, or a plan saved
+// before Morning Drink/Before Bed Drink existed), not just brand-new days.
+const normalizeDayMeals = (day) => ({
+    ...day,
+    meals: MEAL_TYPES.map((mt) => day.meals.find((m) => m.type === mt.type) || { type: mt.type, label: mt.label, foods: [] }),
+});
+
 const defaultClient = {
     name: '', age: 25, gender: 'Male', height: 170, weight: 70, targetWeight: 65,
     goal: 'Fat Loss', dietPreference: 'Vegetarian', activityLevel: 'Moderately Active', allergies: '', notes: '',
+    cuisine: 'Any', budgetConscious: false,
 };
 const defaultTrainer = { name: '', qualification: '', contact: '' };
 
@@ -96,7 +114,18 @@ export default function DietPlanBuilder() {
 
     const [foods, setFoods] = useState([]);
     const [exercises, setExercises] = useState([]);
+    // DB-backed (diet_templates / diet_workout_templates) — any template an
+    // admin adds there shows up here immediately, no code change needed.
+    const [templates, setTemplates] = useState([]);
+    const [workoutTemplates, setWorkoutTemplates] = useState([]);
     const [dietUnits, setDietUnits] = useState(DEFAULT_DIET_UNITS.units);
+    const [defaultGuidelines, setDefaultGuidelines] = useState(DEFAULT_DIET_GUIDELINES.tips);
+    // Starts as a copy of the (site-wide or plan-saved) guidelines and is
+    // freely editable in the Export step; buildPayload() only persists it
+    // as a per-plan override if it actually diverges from the current
+    // global default — otherwise this plan keeps following the global
+    // setting even if that setting changes again later.
+    const [guidelines, setGuidelines] = useState(DEFAULT_DIET_GUIDELINES.tips);
     const foodsById = useMemo(() => new Map(foods.map((f) => [f.id, f])), [foods]);
     const exercisesById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
 
@@ -107,6 +136,13 @@ export default function DietPlanBuilder() {
     const [includeExercise, setIncludeExercise] = useState(true);
     const [targetCaloriesManual, setTargetCaloriesManual] = useState(false);
     const [targetCalories, setTargetCalories] = useState('');
+    // For clients who can't cook fresh every day (hostel/PG students, tight
+    // work schedules) — one day's meals/exercises apply to every day of the
+    // plan instead of planning each day individually. Internally `days`
+    // still holds planDuration entries (kept mirrored, below) so averages/
+    // saving/loading all work unchanged; only Build Plan's UI and the PDF's
+    // day-by-day sections special-case it to show/print just the one day.
+    const [repeatDaily, setRepeatDaily] = useState(false);
     const [days, setDays] = useState([emptyDay(1)]);
     const [currentDay, setCurrentDay] = useState(0);
 
@@ -146,14 +182,22 @@ export default function DietPlanBuilder() {
         (async () => {
             setLoading(true);
             try {
-                const [foodRows, exerciseRows, unitsSetting] = await Promise.all([
+                const [foodRows, exerciseRows, templateRows, workoutTemplateRows, unitsSetting, guidelinesSetting] = await Promise.all([
                     listCmsRows('diet_foods'),
                     listCmsRows('diet_exercises'),
+                    listCmsRows('diet_templates'),
+                    listCmsRows('diet_workout_templates'),
                     getSiteContentKey('diet_units').catch(() => null),
+                    getSiteContentKey('diet_guidelines').catch(() => null),
                 ]);
                 setFoods(foodRows.filter((f) => f.active));
                 setExercises(exerciseRows.filter((e) => e.active));
+                setTemplates(templateRows.filter((t) => t.active));
+                setWorkoutTemplates(workoutTemplateRows.filter((t) => t.active));
                 setDietUnits(unitsSetting?.units?.length ? unitsSetting.units : DEFAULT_DIET_UNITS.units);
+                const globalGuidelines = guidelinesSetting?.tips?.length ? guidelinesSetting.tips : DEFAULT_DIET_GUIDELINES.tips;
+                setDefaultGuidelines(globalGuidelines);
+                setGuidelines(globalGuidelines);
 
                 if (!isNew) {
                     const plan = await getDietPlan(id);
@@ -163,19 +207,30 @@ export default function DietPlanBuilder() {
                         height: plan.client_height || 170, weight: plan.client_weight || 70, targetWeight: plan.target_weight || 65,
                         goal: plan.goal || 'Fat Loss', dietPreference: plan.diet_preference || 'Vegetarian',
                         activityLevel: plan.activity_level || 'Moderately Active', allergies: plan.allergies || '', notes: plan.client_notes || '',
+                        cuisine: plan.client_cuisine || 'Any', budgetConscious: !!plan.client_budget_conscious,
                     });
                     setTrainer({ name: plan.trainer_name || '', qualification: plan.trainer_qualification || '', contact: plan.trainer_contact || '' });
                     setPlanDuration(plan.plan_duration || 7);
                     setIncludeExercise(!!plan.include_exercise);
+                    setRepeatDaily(!!plan.repeat_daily);
                     setTargetCaloriesManual(!!plan.target_calories_manual);
                     setTargetCalories(plan.target_calories ?? '');
+                    if (plan.guidelines?.length) setGuidelines(plan.guidelines);
                     if (plan.days?.length) {
                         setDays(plan.days.map((d) => ({
                             dayNumber: d.day_number,
                             // Plans saved before the amount/unit control existed only
                             // have `quantity` — backfill amount/unit so the controls
                             // show a value consistent with what's already on screen.
-                            meals: (d.meals || []).map((m) => ({ ...m, foods: (m.foods || []).map(normalizeFoodEntry) })),
+                            // Plans saved before Morning Drink/Before Bed Drink existed
+                            // are missing those meal slots entirely — add them (empty)
+                            // so they're editable here too, not just on brand-new plans.
+                            meals: MEAL_TYPES.map((mt) => {
+                                const existing = (d.meals || []).find((m) => m.type === mt.type);
+                                return existing
+                                    ? { ...existing, foods: (existing.foods || []).map(normalizeFoodEntry) }
+                                    : { type: mt.type, label: mt.label, foods: [] };
+                            }),
                             // Plans saved before the sets/reps/duration scaling feature
                             // existed are missing base*/durationBased fields — backfill
                             // them from the current library so editing an old plan's
@@ -241,6 +296,23 @@ export default function DietPlanBuilder() {
         if (currentDay >= d) setCurrentDay(d - 1);
     };
 
+    // Keeps every day slot an exact mirror of Day 1 whenever repeat-daily is
+    // on — edits always happen on Day 1 (currentDay is pinned to 0 below),
+    // this just fans that out to the rest of `days` so save/load/averages/
+    // PDF all keep working against a normal planDuration-length array
+    // without special-casing every one of them.
+    useEffect(() => {
+        if (!repeatDaily) return;
+        setCurrentDay(0);
+        setDays((prev) => {
+            if (prev.length <= 1) return prev;
+            const template = prev[0];
+            const mirrored = prev.map((d, i) => (i === 0 ? d : { ...template, dayNumber: i + 1 }));
+            const changed = mirrored.some((d, i) => d !== prev[i] && JSON.stringify(d) !== JSON.stringify(prev[i]));
+            return changed ? mirrored : prev;
+        });
+    }, [repeatDaily, days]);
+
     // ── Enrollment autofill ─────────────────────────────────────────────
     const runEnrollSearch = useCallback(async (q) => {
         if (!q.trim()) { setEnrollResults([]); return; }
@@ -282,13 +354,15 @@ export default function DietPlanBuilder() {
         if (!selectedTemplate) { toast.error('Select a template first'); return; }
         const generated = generatePlanFromTemplate(
             selectedTemplate, planDuration, includeExercise, includeExercise ? selectedWorkoutTemplate : undefined,
-            foodsById, exercisesById, client.dietPreference, effectiveTargetCalories
+            foodsById, exercisesById, client.dietPreference, effectiveTargetCalories, templates, workoutTemplates
         );
         if (generated?.length) {
-            setDays(generated);
+            setDays(generated.map(normalizeDayMeals));
             setCurrentDay(0);
             toast.success(`Generated ${generated.length} days — customize in the next step`);
             advanceTo(4);
+        } else {
+            toast.error('This template has no days defined — edit it from Admin → Diet Templates, or pick a different one.');
         }
     };
     const handleCustomPlan = () => {
@@ -392,10 +466,16 @@ export default function DietPlanBuilder() {
         client_height: Number(client.height) || null, client_weight: Number(client.weight) || null,
         target_weight: Number(client.targetWeight) || null, goal: client.goal, diet_preference: client.dietPreference,
         activity_level: client.activityLevel, allergies: client.allergies, client_notes: client.notes,
+        client_cuisine: client.cuisine && client.cuisine !== 'Any' ? client.cuisine : null,
+        client_budget_conscious: client.budgetConscious,
         trainer_name: trainer.name, trainer_qualification: trainer.qualification, trainer_contact: trainer.contact,
-        plan_duration: planDuration, include_exercise: includeExercise, status: 'draft',
+        plan_duration: planDuration, include_exercise: includeExercise, repeat_daily: repeatDaily, status: 'draft',
         target_calories: targetCaloriesManual ? (Number(targetCalories) || null) : (calorieEstimate?.suggestedTarget ?? null),
         target_calories_manual: targetCaloriesManual,
+        // Only saved as a per-plan override when it actually diverges from
+        // the current global default — otherwise stays null, so this plan
+        // keeps following Site Settings if the global tips are edited later.
+        guidelines: JSON.stringify(guidelines) === JSON.stringify(defaultGuidelines) ? null : guidelines,
         days,
     });
 
@@ -444,6 +524,11 @@ export default function DietPlanBuilder() {
         includeAllergies: exportAllergies,
         includeTrainerNotes: exportTrainerNotes,
         includeServingColumn: exportServingColumn,
+        // Always the live, fully-resolved list (never null) — buildPayload's
+        // own `guidelines` can be null (meaning "still following the global
+        // default" for storage purposes), but the PDF always needs an
+        // actual array of lines to print regardless of that distinction.
+        guidelines,
     });
 
     // Live PDF preview for the Export step — regenerates (debounced, so
@@ -468,7 +553,7 @@ export default function DietPlanBuilder() {
         return () => { cancelled = true; clearTimeout(timer); };
     }, [
         step, exportMode, exportInstructions, exportExercises, exportCoverSnapshot,
-        exportFiberSugar, exportAllergies, exportTrainerNotes, exportServingColumn,
+        exportFiberSugar, exportAllergies, exportTrainerNotes, exportServingColumn, guidelines,
         days, client, trainer, planDuration, includeExercise, targetCaloriesManual, targetCalories,
     ]);
 
@@ -537,9 +622,16 @@ export default function DietPlanBuilder() {
         if (client.dietPreference === 'Vegetarian') list = list.filter((f) => f.is_veg);
         else if (client.dietPreference === 'Eggetarian') list = list.filter((f) => f.is_veg || f.is_eggetarian);
         else if (client.dietPreference === 'Vegan') list = list.filter((f) => f.is_veg && !/milk|curd|paneer|cheese|lassi|buttermilk/i.test(f.name));
+        // A cuisine preference narrows to that region PLUS generic/pan-Indian
+        // staples (dal, rice, roti…) — a Gujarati client still eats plenty
+        // of those, so it's not a hard exclusive filter to only-Gujarati.
+        if (client.cuisine && client.cuisine !== 'Any') {
+            list = list.filter((f) => f.region === client.cuisine || f.region === 'Generic / Pan-Indian' || !f.region);
+        }
+        if (client.budgetConscious) list = list.filter((f) => f.is_budget_friendly);
         if (foodSearch.trim()) list = list.filter((f) => f.name.toLowerCase().includes(foodSearch.trim().toLowerCase()));
         return list;
-    }, [foods, client.dietPreference, foodSearch]);
+    }, [foods, client.dietPreference, client.cuisine, client.budgetConscious, foodSearch]);
 
     const filteredExercises = useMemo(() => {
         if (!exerciseSearch.trim()) return exercises;
@@ -651,6 +743,12 @@ export default function DietPlanBuilder() {
                                     <TextInput label="Target (kg)" value={String(client.targetWeight)} onChange={setClientField('targetWeight')} />
                                 </div>
                                 <TextInput label="Allergies / Restrictions" value={client.allergies} onChange={setClientField('allergies')} placeholder="e.g. Nuts, Dairy" />
+                                <div>
+                                    <SelectField label="Regional Cuisine Preference" value={client.cuisine} onChange={setClientField('cuisine')} options={['Any', ...FOOD_REGIONS]} />
+                                    <p className="text-[11px] text-white/25 mt-1.5">Narrows the food picker in Build Plan to this cuisine (plus generic staples) — e.g. pick Gujarati and mostly Gujarati food shows up. "Any" shows the full library.</p>
+                                </div>
+                                <ToggleField label="Budget-Conscious Client" checked={client.budgetConscious} onChange={setClientField('budgetConscious')}
+                                    hint="e.g. a hostel/PG student — narrows the food picker to foods marked Budget-Friendly (Admin → Diet Foods)" />
 
                                 <div className="pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                                     <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Trainer Info</p>
@@ -695,6 +793,8 @@ export default function DietPlanBuilder() {
                                 </div>
 
                                 <ToggleField label="Include Exercise Plan" checked={includeExercise} onChange={setIncludeExercise} hint="Add a workout routine alongside the diet plan" />
+                                <ToggleField label="Repeat Same Plan Every Day" checked={repeatDaily} onChange={setRepeatDaily}
+                                    hint="For clients who can't cook fresh daily (hostel/PG students, tight schedules) — build one day once, it applies to the whole duration, and the export prints just that one day instead of repeating it." />
                                 <TextArea label="Additional Notes" value={client.notes} onChange={setClientField('notes')} rows={3} placeholder="Special instructions or preferences…" />
                             </div>
 
@@ -802,29 +902,37 @@ export default function DietPlanBuilder() {
                     {/* STEP 4: Build Plan */}
                     {step === 4 && activeDay && (
                         <div className="space-y-5">
-                            <div className="flex items-center justify-center gap-2 flex-wrap">
-                                <button onClick={() => setCurrentDay((d) => Math.max(0, d - 1))} disabled={currentDay === 0}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
-                                {days.slice(0, 31).map((d, i) => (
-                                    <button key={i} onClick={() => setCurrentDay(i)}
-                                        className="w-9 h-9 rounded-lg text-xs font-bold flex-shrink-0"
-                                        style={currentDay === i ? { background: '#e71763', color: 'white' } : d.restDay ? { border: '1px dashed rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.4)' } : { ...inputCard, color: 'rgba(255,255,255,0.6)' }}>
-                                        {i + 1}
-                                    </button>
-                                ))}
-                                <button onClick={() => setCurrentDay((d) => Math.min(days.length - 1, d + 1))} disabled={currentDay === days.length - 1}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 disabled:opacity-20"><ChevronRight className="w-4 h-4" /></button>
-                            </div>
+                            {repeatDaily ? (
+                                <div className="flex items-center gap-2 justify-center px-4 py-2.5 rounded-xl text-xs font-bold"
+                                    style={{ background: 'rgba(231,23,99,0.08)', border: '1px solid rgba(231,23,99,0.25)', color: '#e71763' }}>
+                                    <Repeat2 className="w-3.5 h-3.5 flex-shrink-0" />
+                                    This plan repeats every day — build it once below, it applies to all {planDuration} days
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center gap-2 flex-wrap">
+                                    <button onClick={() => setCurrentDay((d) => Math.max(0, d - 1))} disabled={currentDay === 0}
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 disabled:opacity-20"><ChevronLeft className="w-4 h-4" /></button>
+                                    {days.slice(0, 31).map((d, i) => (
+                                        <button key={i} onClick={() => setCurrentDay(i)}
+                                            className="w-9 h-9 rounded-lg text-xs font-bold flex-shrink-0"
+                                            style={currentDay === i ? { background: '#e71763', color: 'white' } : d.restDay ? { border: '1px dashed rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.4)' } : { ...inputCard, color: 'rgba(255,255,255,0.6)' }}>
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                    <button onClick={() => setCurrentDay((d) => Math.min(days.length - 1, d + 1))} disabled={currentDay === days.length - 1}
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 disabled:opacity-20"><ChevronRight className="w-4 h-4" /></button>
+                                </div>
+                            )}
 
                             <div className="flex items-center justify-between rounded-2xl p-4" style={card}>
                                 <div>
-                                    <p className="text-sm font-black text-white">Day {activeDay.dayNumber} of {planDuration}</p>
+                                    <p className="text-sm font-black text-white">{repeatDaily ? 'Daily Plan' : `Day ${activeDay.dayNumber} of ${planDuration}`}</p>
                                     <p className="text-xs text-white/35 mt-0.5">
                                         {dayTotals.calories} kcal · P {dayTotals.protein}g · C {dayTotals.carbs}g · F {dayTotals.fats}g · Fiber {dayTotals.fiber}g{includeExercise ? ` · Burn ~${dayTotals.caloriesBurned}` : ''}
                                         {effectiveTargetCalories > 0 && <span className="text-white/25"> · Target {effectiveTargetCalories}{targetCaloriesManual ? ' (manual)' : ''}</span>}
                                     </p>
                                 </div>
-                                <ToggleField label="Rest Day" checked={activeDay.restDay} onChange={toggleRestDay} />
+                                {!repeatDaily && <ToggleField label="Rest Day" checked={activeDay.restDay} onChange={toggleRestDay} />}
                             </div>
 
                             {!activeDay.restDay && (
@@ -836,7 +944,10 @@ export default function DietPlanBuilder() {
                                             return (
                                                 <div key={meal.type} className="space-y-2">
                                                     <div className="flex items-center justify-between">
-                                                        <p className="text-xs font-bold text-white/70">{meal.label}</p>
+                                                        <p className="text-xs font-bold text-white/70">
+                                                            {meal.label}
+                                                            {OPTIONAL_MEAL_TYPES.has(meal.type) && <span className="text-white/25 font-normal"> (optional)</span>}
+                                                        </p>
                                                         <span className="text-[11px] text-white/30">{Math.round(mealCal)} kcal</span>
                                                     </div>
                                                     {meal.foods.length === 0 ? (
@@ -975,6 +1086,7 @@ export default function DietPlanBuilder() {
                                         { id: 'macros-per-meal', title: 'Macros Per Meal', desc: 'Foods listed per meal with totals per meal and per day.' },
                                         { id: 'summary', title: 'Summary Only', desc: 'One row per day — quick overview table.' },
                                         { id: 'diet-only', title: 'Diet Plan Only', desc: 'Food names, servings, calories — no macro breakdown.' },
+                                        { id: 'shopping-list', title: 'Shopping List', desc: 'Every food needed for the full plan, totaled and grouped by category — for clients doing their own groceries.' },
                                     ].map((m) => (
                                         <button key={m.id} onClick={() => setExportMode(m.id)}
                                             className="w-full p-3.5 rounded-xl text-left flex items-center justify-between"
@@ -1005,6 +1117,27 @@ export default function DietPlanBuilder() {
                                     )}
                                 </div>
                             </div>
+
+                            {exportInstructions && (
+                                <div className="rounded-2xl p-5 space-y-2" style={card}>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-black text-white">Guideline Text (this plan)</p>
+                                        <button onClick={() => setGuidelines(defaultGuidelines)}
+                                            className="text-[11px] font-bold text-white/40 hover:text-white/70">
+                                            Reset to Default
+                                        </button>
+                                    </div>
+                                    <p className="text-[11px] text-white/25">
+                                        Defaults to the global guidelines (Admin → Site Settings → Diet Plan Guidelines). Edit here to customize just for {client.name || 'this client'} — e.g. an injury or medical note.
+                                    </p>
+                                    <TextArea
+                                        label=""
+                                        value={guidelines.join('\n')}
+                                        onChange={(val) => setGuidelines(val.split('\n'))}
+                                        rows={8}
+                                    />
+                                </div>
+                            )}
 
                             <div className="rounded-2xl p-3 lg:sticky lg:top-4 flex flex-col" style={{ ...card, height: 'min(85vh, 900px)' }}>
                                 <div className="flex items-center justify-between px-2 pb-2 flex-shrink-0">
@@ -1086,7 +1219,15 @@ export default function DietPlanBuilder() {
                                                 </span>
                                             )}
                                         </p>
-                                        <p className="text-xs text-white/35">{formatServing(food)}</p>
+                                        <p className="text-xs text-white/35">
+                                            {formatServing(food)}
+                                            {food.region && food.region !== 'Generic / Pan-Indian' && (
+                                                <span className="ml-1.5" style={{ color: '#9085e9' }}>· {food.region}</span>
+                                            )}
+                                            {food.is_budget_friendly && (
+                                                <span className="ml-1.5" style={{ color: '#34d399' }}>· ₹ Budget</span>
+                                            )}
+                                        </p>
                                     </div>
                                     <div className="text-right flex-shrink-0 ml-2">
                                         <p className="text-sm font-bold" style={{ color: '#e71763' }}>{food.calories}</p>
@@ -1095,7 +1236,11 @@ export default function DietPlanBuilder() {
                                 </button>
                             );
                         })}
-                        {filteredFoods.length === 0 && <p className="text-sm text-white/30 text-center py-8 col-span-2">No foods match.</p>}
+                        {filteredFoods.length === 0 && (
+                            <p className="text-sm text-white/30 text-center py-8 col-span-2">
+                                No foods match{client.cuisine !== 'Any' ? ` for ${client.cuisine} — try "Any" cuisine in Client Info` : ''}.
+                            </p>
+                        )}
                     </div>
                 </Modal>
             )}

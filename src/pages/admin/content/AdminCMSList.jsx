@@ -13,6 +13,7 @@ function fieldDefault(field) {
     if (field.type === 'boolean') return field.default ?? false;
     if (field.type === 'number') return field.default ?? 0;
     if (field.type === 'list') return '';
+    if (field.type === 'json') return field.default ?? '[]';
     return field.default ?? '';
 }
 
@@ -21,6 +22,10 @@ function rowToForm(config, row) {
     for (const f of config.fields) {
         if (!row) { form[f.key] = fieldDefault(f); continue; }
         if (f.type === 'list') form[f.key] = Array.isArray(row[f.key]) ? row[f.key].join(', ') : '';
+        // JSONB columns come back from Supabase already parsed (array/object)
+        // — pretty-print to a string for the textarea, falling back to the
+        // field's default (also a JSON string) when the row has no value yet.
+        else if (f.type === 'json') form[f.key] = row[f.key] != null ? JSON.stringify(row[f.key], null, 2) : fieldDefault(f);
         else form[f.key] = row[f.key] ?? fieldDefault(f);
     }
     return form;
@@ -31,6 +36,10 @@ function formToPayload(config, form) {
     for (const f of config.fields) {
         if (f.type === 'list') payload[f.key] = form[f.key].split(',').map((s) => s.trim()).filter(Boolean);
         else if (f.type === 'number') payload[f.key] = Number(form[f.key]) || 0;
+        else if (f.type === 'json') {
+            try { payload[f.key] = JSON.parse(form[f.key]); }
+            catch { throw new Error(`"${f.label}" is not valid JSON — check for a missing comma or bracket.`); }
+        }
         else payload[f.key] = form[f.key];
     }
     return payload;
@@ -99,6 +108,11 @@ function RowModal({ config, editing, onClose, onSaved }) {
                                 <textarea rows={f.big ? 8 : 3} value={form[f.key]} onChange={set(f.key)}
                                     disabled={isEdit && f.lockOnEdit}
                                     className="w-full rounded-lg px-3 py-2.5 text-sm text-white bg-white/5 border border-white/10 resize-none" />
+                            ) : f.type === 'json' ? (
+                                <textarea rows={f.big ? 16 : 6} value={form[f.key]} onChange={set(f.key)}
+                                    disabled={isEdit && f.lockOnEdit}
+                                    spellCheck={false}
+                                    className="w-full rounded-lg px-3 py-2.5 text-xs text-white bg-white/5 border border-white/10 resize-y font-mono" />
                             ) : f.type === 'select' ? (
                                 <select value={form[f.key]} onChange={set(f.key)}
                                     disabled={isEdit && f.lockOnEdit}
