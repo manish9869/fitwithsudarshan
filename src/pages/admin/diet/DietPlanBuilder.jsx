@@ -20,7 +20,8 @@ import {
     getDietPlan, createDietPlan, updateDietPlan, searchEnrollments, getDietPlanByEnrollment,
 } from './dietPlanApi';
 import { templates, workoutTemplates, generatePlanFromTemplate } from './dietTemplates';
-import { calcDayTotals, estimateCalorieTarget } from './dietCalc';
+import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDurationBased, defaultExerciseCustom, normalizeExercise } from './dietCalc';
+import { formatServing } from './dietUnits';
 import { generateDietPlanPDF } from './dietPdfGenerator';
 
 const STEPS = [
@@ -102,6 +103,8 @@ export default function DietPlanBuilder() {
     const [trainer, setTrainer] = useState(defaultTrainer);
     const [planDuration, setPlanDuration] = useState(7);
     const [includeExercise, setIncludeExercise] = useState(true);
+    const [targetCaloriesManual, setTargetCaloriesManual] = useState(false);
+    const [targetCalories, setTargetCalories] = useState('');
     const [days, setDays] = useState([emptyDay(1)]);
     const [currentDay, setCurrentDay] = useState(0);
 
@@ -152,9 +155,16 @@ export default function DietPlanBuilder() {
                     setTrainer({ name: plan.trainer_name || '', qualification: plan.trainer_qualification || '', contact: plan.trainer_contact || '' });
                     setPlanDuration(plan.plan_duration || 7);
                     setIncludeExercise(!!plan.include_exercise);
+                    setTargetCaloriesManual(!!plan.target_calories_manual);
+                    setTargetCalories(plan.target_calories ?? '');
                     if (plan.days?.length) {
                         setDays(plan.days.map((d) => ({
-                            dayNumber: d.day_number, meals: d.meals, exercises: d.exercises,
+                            dayNumber: d.day_number, meals: d.meals,
+                            // Plans saved before the sets/reps/duration scaling feature
+                            // existed are missing base*/durationBased fields — backfill
+                            // them from the current library so editing an old plan's
+                            // exercise doesn't scale against an undefined base.
+                            exercises: (d.exercises || []).map((ex) => normalizeExercise(ex, exerciseRows)),
                             restDay: d.rest_day, notes: d.notes || '',
                         })));
                     }
@@ -277,7 +287,9 @@ export default function DietPlanBuilder() {
             meals: d.meals.map((m) => m.type !== mealType ? m : {
                 ...m, foods: [...m.foods, {
                     foodId: food.id, name: food.name, calories: food.calories, protein: food.protein,
-                    carbs: food.carbs, fats: food.fats, servingSize: food.serving_size, quantity: 1,
+                    carbs: food.carbs, fats: food.fats,
+                    servingSize: food.serving_size, servingQty: food.serving_qty, servingUnit: food.serving_unit,
+                    quantity: 1,
                 }],
             }),
         }));
@@ -293,14 +305,46 @@ export default function DietPlanBuilder() {
             ...d, meals: d.meals.map((m) => m.type !== mealType ? m : { ...m, foods: m.foods.map((f, fi) => fi !== idx ? f : { ...f, quantity: qty }) }),
         }));
     };
+    // Snapshots the library exercise's OWN reference sets/reps/duration/
+    // calories as base* fields — scaling always happens against these, not
+    // against whatever the library item looks like later (it could be
+    // edited or deactivated after this plan was saved). custom* fields start
+    // equal to the base (ratio = 1, so calories start matching the library
+    // figure exactly) and are what the sets/reps/duration controls below edit.
     const addExercise = (ex) => {
+        const custom = defaultExerciseCustom(ex);
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : {
-            ...d, exercises: [...d.exercises, { exerciseId: ex.id, name: ex.name, muscleGroup: ex.muscle_group, caloriesBurned: ex.calories_burned, sets: ex.sets, reps: ex.reps, duration: ex.duration }],
+            ...d, exercises: [...d.exercises, {
+                exerciseId: ex.id, name: ex.name, muscleGroup: ex.muscle_group,
+                durationBased: isDurationBased(ex),
+                baseSets: ex.sets, baseReps: ex.reps, baseDuration: ex.duration, baseCaloriesBurned: ex.calories_burned,
+                sets: custom.sets, reps: custom.reps, durationMinutes: custom.durationMinutes,
+                caloriesBurned: ex.calories_burned,
+            }],
         }));
         toast.success(`Added ${ex.name}`);
     };
     const removeExercise = (idx) => {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : { ...d, exercises: d.exercises.filter((_, ei) => ei !== idx) }));
+    };
+    // Recomputes caloriesBurned proportionally from the exercise's own base
+    // (library reference) values every time sets/reps/duration change here —
+    // same "scale from a reference amount" model as food quantity.
+    const updateExerciseParams = (idx, patch) => {
+        setDays((prev) => prev.map((d, i) => {
+            if (i !== currentDay) return d;
+            return {
+                ...d, exercises: d.exercises.map((ex, ei) => {
+                    if (ei !== idx) return ex;
+                    const next = { ...ex, ...patch };
+                    const caloriesBurned = scaleExerciseCalories(
+                        { sets: ex.baseSets, reps: ex.baseReps, duration: ex.baseDuration, calories_burned: ex.baseCaloriesBurned },
+                        { sets: next.sets, reps: next.reps, durationMinutes: next.durationMinutes }
+                    );
+                    return { ...next, caloriesBurned };
+                }),
+            };
+        }));
     };
     const toggleRestDay = () => {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : { ...d, restDay: !d.restDay }));
@@ -315,6 +359,8 @@ export default function DietPlanBuilder() {
         activity_level: client.activityLevel, allergies: client.allergies, client_notes: client.notes,
         trainer_name: trainer.name, trainer_qualification: trainer.qualification, trainer_contact: trainer.contact,
         plan_duration: planDuration, include_exercise: includeExercise, status: 'draft',
+        target_calories: targetCaloriesManual ? (Number(targetCalories) || null) : (calorieEstimate?.suggestedTarget ?? null),
+        target_calories_manual: targetCaloriesManual,
         days,
     });
 
@@ -380,6 +426,10 @@ export default function DietPlanBuilder() {
         gender: client.gender, age: Number(client.age), height: Number(client.height),
         weight: Number(client.weight), activityLevel: client.activityLevel, goal: client.goal,
     }), [client.gender, client.age, client.height, client.weight, client.activityLevel, client.goal]);
+
+    // What the plan is actually aiming for — the admin's manual override
+    // when set, otherwise the live auto-estimate above.
+    const effectiveTargetCalories = targetCaloriesManual ? (Number(targetCalories) || 0) : (calorieEstimate?.suggestedTarget ?? 0);
 
     const planHasContent = days.some((d) => d.meals?.some((m) => m.foods?.length) || d.exercises?.length);
     const activeDay = days[currentDay];
@@ -575,6 +625,25 @@ export default function DietPlanBuilder() {
                                         <div><p className="text-xl font-black" style={{ color: '#e71763' }}>{calorieEstimate.suggestedTarget}</p><p className="text-[10px] text-white/35 mt-0.5">Suggested (for {client.goal})</p></div>
                                     </div>
                                     <p className="text-[10px] text-white/25 mt-3">Estimate only — use it as a reference when building the plan, not a hard rule.</p>
+
+                                    <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                                        <ToggleField label="Manually Set Target Calories" checked={targetCaloriesManual}
+                                            onChange={(v) => {
+                                                setTargetCaloriesManual(v);
+                                                if (v && !targetCalories) setTargetCalories(calorieEstimate.suggestedTarget);
+                                            }}
+                                            hint="Off = auto-calculated from BMR/TDEE above" />
+                                        {targetCaloriesManual && (
+                                            <div className="mt-3">
+                                                <input type="number" value={targetCalories}
+                                                    onChange={(e) => setTargetCalories(e.target.value)}
+                                                    placeholder={String(calorieEstimate.suggestedTarget)}
+                                                    className="w-full px-3 py-2.5 rounded-xl text-sm font-bold text-white outline-none"
+                                                    style={inputCard} />
+                                                <p className="text-[10px] text-white/25 mt-1.5">This target replaces the auto-estimate everywhere the plan shows a calorie goal.</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -668,7 +737,10 @@ export default function DietPlanBuilder() {
                             <div className="flex items-center justify-between rounded-2xl p-4" style={card}>
                                 <div>
                                     <p className="text-sm font-black text-white">Day {activeDay.dayNumber} of {planDuration}</p>
-                                    <p className="text-xs text-white/35 mt-0.5">{dayTotals.calories} kcal · P {dayTotals.protein}g · C {dayTotals.carbs}g · F {dayTotals.fats}g{includeExercise ? ` · Burn ~${dayTotals.caloriesBurned}` : ''}</p>
+                                    <p className="text-xs text-white/35 mt-0.5">
+                                        {dayTotals.calories} kcal · P {dayTotals.protein}g · C {dayTotals.carbs}g · F {dayTotals.fats}g{includeExercise ? ` · Burn ~${dayTotals.caloriesBurned}` : ''}
+                                        {effectiveTargetCalories > 0 && <span className="text-white/25"> · Target {effectiveTargetCalories}{targetCaloriesManual ? ' (manual)' : ''}</span>}
+                                    </p>
                                 </div>
                                 <ToggleField label="Rest Day" checked={activeDay.restDay} onChange={toggleRestDay} />
                             </div>
@@ -689,7 +761,12 @@ export default function DietPlanBuilder() {
                                                         <p className="text-xs text-white/25 italic">No items</p>
                                                     ) : meal.foods.map((food, fi) => (
                                                         <div key={fi} className="flex items-center justify-between p-2 rounded-lg text-xs" style={inputCard}>
-                                                            <span className="text-white/80">{food.name}</span>
+                                                            <div>
+                                                                <span className="text-white/80">{food.name}</span>
+                                                                <p className="text-white/30 text-[10px] mt-0.5">
+                                                                    {food.quantity} × {food.servingUnit ? `${food.servingQty ?? 1} ${food.servingUnit}` : (food.servingSize || 'serving')}
+                                                                </p>
+                                                            </div>
                                                             <div className="flex items-center gap-2">
                                                                 <button onClick={() => updateFoodQty(meal.type, fi, Math.max(0.5, food.quantity - 0.5))} className="w-5 h-5 text-white/40">-</button>
                                                                 <span className="text-white/60 w-6 text-center">{food.quantity}</span>
@@ -714,15 +791,39 @@ export default function DietPlanBuilder() {
                                             {activeDay.exercises.length === 0 ? (
                                                 <p className="text-xs text-white/25 italic">No exercises added</p>
                                             ) : activeDay.exercises.map((ex, ei) => (
-                                                <div key={ei} className="flex items-center justify-between p-3 rounded-lg text-xs" style={inputCard}>
-                                                    <div>
+                                                <div key={ei} className="p-3 rounded-lg text-xs space-y-2" style={inputCard}>
+                                                    <div className="flex items-center justify-between">
                                                         <p className="text-white/80 font-bold">{ex.name}</p>
-                                                        <p className="text-white/35 mt-0.5">{ex.duration || `${ex.sets} x ${ex.reps}`}</p>
+                                                        <div className="flex items-center gap-3">
+                                                            <span style={{ color: '#e71763' }} className="font-bold">~{ex.caloriesBurned} kcal</span>
+                                                            <button onClick={() => removeExercise(ei)} className="text-red-400/70 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span style={{ color: '#e71763' }}>~{ex.caloriesBurned}</span>
-                                                        <button onClick={() => removeExercise(ei)} className="text-red-400/70 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
-                                                    </div>
+                                                    {ex.durationBased ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-white/35">Duration:</span>
+                                                            <button onClick={() => updateExerciseParams(ei, { durationMinutes: Math.max(1, (ex.durationMinutes || 0) - 1) })} className="w-5 h-5 text-white/40">-</button>
+                                                            <span className="text-white/60 w-14 text-center">{ex.durationMinutes || 0} min</span>
+                                                            <button onClick={() => updateExerciseParams(ei, { durationMinutes: (ex.durationMinutes || 0) + 1 })} className="w-5 h-5 text-white/40">+</button>
+                                                            <span className="text-white/25 text-[10px] ml-auto">library ref: {ex.baseDuration || '—'}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-3 flex-wrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-white/35">Sets:</span>
+                                                                <button onClick={() => updateExerciseParams(ei, { sets: Math.max(1, (ex.sets || 0) - 1) })} className="w-5 h-5 text-white/40">-</button>
+                                                                <span className="text-white/60 w-5 text-center">{ex.sets || 0}</span>
+                                                                <button onClick={() => updateExerciseParams(ei, { sets: (ex.sets || 0) + 1 })} className="w-5 h-5 text-white/40">+</button>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-white/35">Reps:</span>
+                                                                <button onClick={() => updateExerciseParams(ei, { reps: Math.max(1, (ex.reps || 0) - 1) })} className="w-5 h-5 text-white/40">-</button>
+                                                                <span className="text-white/60 w-5 text-center">{ex.reps || 0}</span>
+                                                                <button onClick={() => updateExerciseParams(ei, { reps: (ex.reps || 0) + 1 })} className="w-5 h-5 text-white/40">+</button>
+                                                            </div>
+                                                            <span className="text-white/25 text-[10px] ml-auto">library ref: {ex.baseSets} × {ex.baseReps}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                             <button onClick={() => { setExercisePicker(true); setExerciseSearch(''); }}
@@ -752,6 +853,7 @@ export default function DietPlanBuilder() {
                                         { label: 'Goal', value: client.goal },
                                         { label: 'Duration', value: `${planDuration} Days` },
                                         { label: 'Diet', value: client.dietPreference },
+                                        { label: 'Target Calories', value: effectiveTargetCalories > 0 ? `${effectiveTargetCalories}${targetCaloriesManual ? ' (manual)' : ' (auto)'}` : 'Not set' },
                                     ].map((it) => (
                                         <div key={it.label} className="p-3 rounded-xl text-center" style={inputCard}>
                                             <p className="text-[10px] text-white/30 mb-1">{it.label}</p>
@@ -837,7 +939,7 @@ export default function DietPlanBuilder() {
                                                 </span>
                                             )}
                                         </p>
-                                        <p className="text-xs text-white/35">{food.serving_size}</p>
+                                        <p className="text-xs text-white/35">{formatServing(food)}</p>
                                     </div>
                                     <div className="text-right flex-shrink-0 ml-2">
                                         <p className="text-sm font-bold" style={{ color: '#e71763' }}>{food.calories}</p>

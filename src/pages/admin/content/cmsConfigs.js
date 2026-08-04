@@ -5,6 +5,7 @@
 // label, its secondary line, and its thumbnail. Without these, the list
 // falls back to showing the raw database id, which means nothing to a
 // non-technical user (this is why FAQ rows used to show a UUID).
+import { SERVING_UNITS } from '../diet/dietUnits';
 
 const FOOD_CATEGORIES = ['Breakfast', 'Grains & Roti', 'Rice & Dal', 'Vegetables', 'Dairy & Paneer', 'Proteins', 'Snacks', 'Fruits', 'Beverages', 'Supplements'];
 const MUSCLE_GROUPS = ['Cardio', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Flexibility'];
@@ -22,7 +23,12 @@ export const CMS_CONFIGS = {
             { key: 'id', label: 'ID (e.g. paneer-tikka)', type: 'text', required: true, lockOnEdit: true },
             { key: 'name', label: 'Food Name', type: 'text', required: true },
             { key: 'category', label: 'Category', type: 'select', options: FOOD_CATEGORIES, default: FOOD_CATEGORIES[0] },
-            { key: 'serving_size', label: 'Serving Size (e.g. 1 bowl)', type: 'text' },
+            // Nutrition values below (calories/protein/carbs/fats) are "per
+            // this amount" — e.g. 1 × "Cup - Medium". Precise, structured
+            // unit instead of a free-text guess like "1 cup".
+            { key: 'serving_qty', label: 'Serving Amount', type: 'number', default: 1 },
+            { key: 'serving_unit', label: 'Serving Unit', type: 'select', options: SERVING_UNITS, default: SERVING_UNITS[0] },
+            { key: 'serving_size', label: 'Legacy Serving Label (old plans only — leave blank for new foods)', type: 'text' },
             { key: 'calories', label: 'Calories', type: 'number', default: 0 },
             { key: 'protein', label: 'Protein (g)', type: 'number', default: 0 },
             { key: 'carbs', label: 'Carbs (g)', type: 'number', default: 0 },

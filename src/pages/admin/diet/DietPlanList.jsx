@@ -7,7 +7,7 @@ import { Plus, Search, Loader2, Edit2, Copy, Trash2, FileDown, Salad } from 'luc
 import { listDietPlans, getDietPlan, createDietPlan, deleteDietPlan } from './dietPlanApi';
 import { generateDietPlanPDF } from './dietPdfGenerator';
 import { useToast } from '../ToastProvider';
-import { fmtName } from '../adminUtils';
+import { fmtName, fmtDateTime } from '../adminUtils';
 
 export default function DietPlanList() {
     const navigate = useNavigate();
@@ -133,7 +133,7 @@ export default function DietPlanList() {
                                             <span className="text-xs text-white/50">{p.goal} · {p.diet_preference}</span>
                                         </td>
                                         <td className="px-4 py-3 hidden md:table-cell"><span className="text-xs text-white/50">{p.plan_duration} days</span></td>
-                                        <td className="px-4 py-3 hidden md:table-cell"><span className="text-xs text-white/35">{new Date(p.updated_at).toLocaleDateString('en-IN')}</span></td>
+                                        <td className="px-4 py-3 hidden md:table-cell"><span className="text-xs text-white/35">{fmtDateTime(p.updated_at)}</span></td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-1 justify-end">
                                                 {busyId === p.id ? <Loader2 className="w-4 h-4 animate-spin text-white/30 mr-1" /> : (
