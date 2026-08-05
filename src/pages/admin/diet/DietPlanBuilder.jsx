@@ -22,6 +22,7 @@ import {
 import { generatePlanFromTemplate } from './dietTemplates';
 import { calcDayTotals, estimateCalorieTarget, scaleExerciseCalories, isDurationBased, defaultExerciseCustom, normalizeExercise } from './dietCalc';
 import { formatServing, convertToQuantity, normalizeFoodEntry, isConvertible, getUnitsForFood } from './dietUnits';
+import { makeAltGroupId, groupMealFoods, resolveMealForTotals } from './dietAlternatives';
 import { FOOD_REGIONS } from './dietRegions';
 import { MEAL_TYPES, OPTIONAL_MEAL_TYPES } from './dietMealTypes';
 import { filterFoodPicker } from './dietFoodFilters';
@@ -64,6 +65,57 @@ const defaultTrainer = { name: '', qualification: '', contact: '' };
 
 const card = { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' };
 const inputCard = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' };
+
+// One food entry inside a meal's food list — used both for a plain
+// (standalone, additive) item and for each option inside an OR-alternative
+// choice group (isAlt just tints it to match the group's container).
+// `onAddAlt` opens the food picker to add another OR-option starting from
+// this specific entry.
+function FoodEntryRow({ food, dietUnits, onAmountChange, onRemove, onAddAlt, isAlt }) {
+    return (
+        <div className="p-2.5 rounded-lg text-xs space-y-1.5" style={isAlt ? { background: 'rgba(144,133,233,0.05)', border: '1px solid rgba(144,133,233,0.18)' } : inputCard}>
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-white/80 font-semibold truncate">{food.name}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    <span style={{ color: '#e71763' }} className="font-bold">~{Math.round(food.calories * food.quantity)} kcal</span>
+                    <button onClick={onAddAlt} title="Add an OR alternative to this item"
+                        className="text-[10px] font-black px-1.5 py-0.5 rounded"
+                        style={{ color: '#9085e9', border: '1px solid rgba(144,133,233,0.35)' }}>
+                        + OR
+                    </button>
+                    <button onClick={onRemove} className="text-red-400/70 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                </div>
+            </div>
+            {isConvertible({ serving_unit: food.servingUnit }) ? (
+                <div className="flex items-center gap-1.5">
+                    <input type="number" min="0" step="any" value={food.amount ?? ''}
+                        onChange={(e) => onAmountChange({ amount: e.target.value === '' ? '' : Number(e.target.value) })}
+                        className="w-16 px-2 py-1 rounded text-white outline-none"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                    <select value={food.unit || ''} onChange={(e) => onAmountChange({ unit: e.target.value })}
+                        className="flex-1 px-2 py-1 rounded text-white outline-none"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        {getUnitsForFood(dietUnits, food.category, food.servingUnit).map((u) => <option key={u.label} value={u.label}>{u.label}</option>)}
+                    </select>
+                    <span className="text-white/25 text-[10px] flex-shrink-0">
+                        base: {formatServing({ serving_qty: food.servingQty, serving_unit: food.servingUnit })}
+                    </span>
+                </div>
+            ) : (
+                <div className="flex items-center gap-1.5">
+                    <span className="text-white/35">×</span>
+                    <input type="number" min="0" step="any" value={food.amount ?? ''}
+                        onChange={(e) => onAmountChange({ amount: e.target.value === '' ? '' : Number(e.target.value) })}
+                        className="w-16 px-2 py-1 rounded text-white outline-none"
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                    <span className="text-white/25 text-[10px] flex-shrink-0">
+                        {food.servingSize || 'serving'} — no gram weight set, edit in Diet Foods for precise units
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function DietPlanBuilder() {
     const { id } = useParams();
@@ -136,7 +188,10 @@ export default function DietPlanBuilder() {
     const [previewUrl, setPreviewUrl] = useState(null);
     const [previewLoading, setPreviewLoading] = useState(false);
 
-    const [foodPicker, setFoodPicker] = useState(null); // meal type string, or null
+    // { mealType, altFor } | null. altFor is null for a plain "Add Food",
+    // or the index (within that meal's foods[]) of the entry a newly-picked
+    // food should become an OR-alternative to.
+    const [foodPicker, setFoodPicker] = useState(null);
     const [foodSearch, setFoodSearch] = useState('');
     const [foodCategoryFilter, setFoodCategoryFilter] = useState('All');
     const [foodCuisineFilter, setFoodCuisineFilter] = useState('Any');
@@ -366,9 +421,48 @@ export default function DietPlanBuilder() {
         }));
         toast.success(`Added ${food.name}`);
     };
+    // Adds `food` as an OR-alternative to the entry already at `targetIdx`
+    // in this meal — both end up sharing an altGroup id (minted here if the
+    // target wasn't already part of a choice), so the Build Plan UI and PDF
+    // render them as "pick one" instead of both being eaten together.
+    const addAlternativeToFood = (mealType, targetIdx, food) => {
+        setDays((prev) => prev.map((d, i) => i !== currentDay ? d : {
+            ...d,
+            meals: d.meals.map((m) => {
+                if (m.type !== mealType) return m;
+                const target = m.foods[targetIdx];
+                if (!target) return m;
+                const altGroup = target.altGroup || makeAltGroupId();
+                const foods = m.foods.map((f, fi) => (fi === targetIdx ? { ...f, altGroup } : f));
+                foods.push({
+                    foodId: food.id, name: food.name, category: food.category, calories: food.calories, protein: food.protein,
+                    carbs: food.carbs, fats: food.fats, fiber: food.fiber, sugar: food.sugar,
+                    servingSize: food.serving_size, servingQty: food.serving_qty, servingUnit: food.serving_unit,
+                    amount: food.serving_qty ?? 1, unit: food.serving_unit || null,
+                    quantity: 1, altGroup,
+                });
+                return { ...m, foods };
+            }),
+        }));
+        toast.success(`Added ${food.name} as an alternative`);
+    };
     const removeFoodFromMeal = (mealType, idx) => {
         setDays((prev) => prev.map((d, i) => i !== currentDay ? d : {
-            ...d, meals: d.meals.map((m) => m.type !== mealType ? m : { ...m, foods: m.foods.filter((_, fi) => fi !== idx) }),
+            ...d, meals: d.meals.map((m) => {
+                if (m.type !== mealType) return m;
+                const removed = m.foods[idx];
+                let foods = m.foods.filter((_, fi) => fi !== idx);
+                // A choice group of one option isn't a choice anymore —
+                // ungroup the last remaining sibling so it renders (and
+                // counts toward totals) as a plain standalone item again.
+                if (removed?.altGroup) {
+                    const siblings = foods.filter((f) => f.altGroup === removed.altGroup);
+                    if (siblings.length === 1) {
+                        foods = foods.map((f) => (f.altGroup === removed.altGroup ? { ...f, altGroup: null } : f));
+                    }
+                }
+                return { ...m, foods };
+            }),
         }));
     };
     const updateFoodAmount = (mealType, idx, patch) => {
@@ -385,6 +479,14 @@ export default function DietPlanBuilder() {
                 }),
             }),
         }));
+    };
+    // Opens the food picker modal — either a plain "Add Food" (altFor
+    // omitted) or, when opened from a food row's "+ OR" action, adding an
+    // OR-alternative to the entry at that index within this meal.
+    const openFoodPicker = (mealType, altFor = null) => {
+        setFoodPicker({ mealType, altFor });
+        setFoodSearch(''); setFoodCategoryFilter('All');
+        setFoodCuisineFilter(client.cuisine || 'Any'); setFoodBudgetFilter(client.budgetConscious);
     };
     // Snapshots the library exercise's OWN reference sets/reps/duration/
     // calories as base* fields — scaling always happens against these, not
@@ -578,7 +680,7 @@ export default function DietPlanBuilder() {
     const mealFoodCounts = useMemo(() => {
         const counts = new Map();
         if (!foodPicker || !activeDay) return counts;
-        const meal = activeDay.meals.find((m) => m.type === foodPicker);
+        const meal = activeDay.meals.find((m) => m.type === foodPicker.mealType);
         (meal?.foods || []).forEach((f) => counts.set(f.foodId, (counts.get(f.foodId) || 0) + 1));
         return counts;
     }, [foodPicker, activeDay]);
@@ -904,7 +1006,10 @@ export default function DietPlanBuilder() {
                                     <div className="rounded-2xl p-5 space-y-4" style={card}>
                                         <p className="text-sm font-black text-white flex items-center gap-2"><Salad className="w-4 h-4" style={{ color: '#e71763' }} /> Diet Plan</p>
                                         {activeDay.meals.map((meal) => {
-                                            const mealCal = meal.foods.reduce((s, f) => s + f.calories * f.quantity, 0);
+                                            // Only the default option per OR-group counts toward the badge —
+                                            // matches how dietCalc's calcDayTotals resolves the day total.
+                                            const mealCal = resolveMealForTotals(meal).reduce((s, f) => s + f.calories * f.quantity, 0);
+                                            const slots = groupMealFoods(meal.foods);
                                             return (
                                                 <div key={meal.type} className="space-y-2">
                                                     <div className="flex items-center justify-between">
@@ -914,50 +1019,35 @@ export default function DietPlanBuilder() {
                                                         </p>
                                                         <span className="text-[11px] text-white/30">{Math.round(mealCal)} kcal</span>
                                                     </div>
-                                                    {meal.foods.length === 0 ? (
+                                                    {slots.length === 0 ? (
                                                         <p className="text-xs text-white/25 italic">No items</p>
-                                                    ) : meal.foods.map((food, fi) => (
-                                                        <div key={fi} className="p-2.5 rounded-lg text-xs space-y-1.5" style={inputCard}>
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <span className="text-white/80 font-semibold truncate">{food.name}</span>
-                                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                                    <span style={{ color: '#e71763' }} className="font-bold">~{Math.round(food.calories * food.quantity)} kcal</span>
-                                                                    <button onClick={() => removeFoodFromMeal(meal.type, fi)} className="text-red-400/70 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                                    ) : slots.map((slot) => slot.type === 'single' ? (
+                                                        <FoodEntryRow key={slot.idx} food={slot.food} dietUnits={dietUnits}
+                                                            onAmountChange={(patch) => updateFoodAmount(meal.type, slot.idx, patch)}
+                                                            onRemove={() => removeFoodFromMeal(meal.type, slot.idx)}
+                                                            onAddAlt={() => openFoodPicker(meal.type, slot.idx)} />
+                                                    ) : (
+                                                        <div key={slot.altGroup} className="rounded-lg p-2 space-y-1.5"
+                                                            style={{ border: '1px dashed rgba(144,133,233,0.35)', background: 'rgba(144,133,233,0.03)' }}>
+                                                            <p className="text-[9px] font-black uppercase tracking-widest px-0.5" style={{ color: '#9085e9' }}>Choose One</p>
+                                                            {slot.options.map((opt, oi) => (
+                                                                <div key={opt.idx}>
+                                                                    {oi > 0 && (
+                                                                        <div className="flex items-center gap-2 py-0.5">
+                                                                            <div className="flex-1 h-px" style={{ background: 'rgba(144,133,233,0.25)' }} />
+                                                                            <span className="text-[10px] font-black" style={{ color: '#9085e9' }}>OR</span>
+                                                                            <div className="flex-1 h-px" style={{ background: 'rgba(144,133,233,0.25)' }} />
+                                                                        </div>
+                                                                    )}
+                                                                    <FoodEntryRow food={opt.food} dietUnits={dietUnits} isAlt
+                                                                        onAmountChange={(patch) => updateFoodAmount(meal.type, opt.idx, patch)}
+                                                                        onRemove={() => removeFoodFromMeal(meal.type, opt.idx)}
+                                                                        onAddAlt={() => openFoodPicker(meal.type, opt.idx)} />
                                                                 </div>
-                                                            </div>
-                                                            {isConvertible({ serving_unit: food.servingUnit }) ? (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <input type="number" min="0" step="any" value={food.amount ?? ''}
-                                                                        onChange={(e) => updateFoodAmount(meal.type, fi, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
-                                                                        className="w-16 px-2 py-1 rounded text-white outline-none"
-                                                                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                                                                    <select value={food.unit || ''} onChange={(e) => updateFoodAmount(meal.type, fi, { unit: e.target.value })}
-                                                                        className="flex-1 px-2 py-1 rounded text-white outline-none"
-                                                                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                                        {getUnitsForFood(dietUnits, food.category, food.servingUnit).map((u) => <option key={u.label} value={u.label}>{u.label}</option>)}
-                                                                    </select>
-                                                                    <span className="text-white/25 text-[10px] flex-shrink-0">
-                                                                        base: {formatServing({ serving_qty: food.servingQty, serving_unit: food.servingUnit })}
-                                                                    </span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-white/35">×</span>
-                                                                    <input type="number" min="0" step="any" value={food.amount ?? ''}
-                                                                        onChange={(e) => updateFoodAmount(meal.type, fi, { amount: e.target.value === '' ? '' : Number(e.target.value) })}
-                                                                        className="w-16 px-2 py-1 rounded text-white outline-none"
-                                                                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                                                                    <span className="text-white/25 text-[10px] flex-shrink-0">
-                                                                        {food.servingSize || 'serving'} — no gram weight set, edit in Diet Foods for precise units
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                            ))}
                                                         </div>
                                                     ))}
-                                                    <button onClick={() => {
-                                                        setFoodPicker(meal.type); setFoodSearch(''); setFoodCategoryFilter('All');
-                                                        setFoodCuisineFilter(client.cuisine || 'Any'); setFoodBudgetFilter(client.budgetConscious);
-                                                    }}
+                                                    <button onClick={() => openFoodPicker(meal.type)}
                                                         className="w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
                                                         style={{ border: '1px dashed rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}>
                                                         <Plus className="w-3 h-3" /> Add Food
@@ -1164,7 +1254,14 @@ export default function DietPlanBuilder() {
 
             {/* Food picker modal */}
             {foodPicker && (
-                <Modal title={`Add Food — ${MEAL_TYPES.find((m) => m.type === foodPicker)?.label}`} onClose={() => setFoodPicker(null)} wide>
+                <Modal
+                    title={`${foodPicker.altFor != null ? 'Add Alternative (OR)' : 'Add Food'} — ${MEAL_TYPES.find((m) => m.type === foodPicker.mealType)?.label}`}
+                    onClose={() => setFoodPicker(null)} wide>
+                    {foodPicker.altFor != null && (
+                        <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(144,133,233,0.08)', border: '1px solid rgba(144,133,233,0.25)', color: '#c4bdf5' }}>
+                            The client will be shown this as an OR option — they pick one, not both.
+                        </p>
+                    )}
                     <FoodFilterBar
                         search={foodSearch} onSearch={setFoodSearch}
                         category={foodCategoryFilter} onCategory={setFoodCategoryFilter}
@@ -1175,7 +1272,10 @@ export default function DietPlanBuilder() {
                         {filteredFoods.map((food) => {
                             const addedCount = mealFoodCounts.get(food.id) || 0;
                             return (
-                                <button key={food.id} onClick={() => addFoodToMeal(foodPicker, food)}
+                                <button key={food.id}
+                                    onClick={() => (foodPicker.altFor != null
+                                        ? addAlternativeToFood(foodPicker.mealType, foodPicker.altFor, food)
+                                        : addFoodToMeal(foodPicker.mealType, food))}
                                     className="flex items-center justify-between p-3 rounded-lg text-left hover:border-pink-500/40 transition-colors"
                                     style={addedCount > 0 ? { background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.35)' } : inputCard}>
                                     <div className="min-w-0">

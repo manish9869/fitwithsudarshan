@@ -13,6 +13,7 @@
 // dark admin theme.
 import jsPDF from 'jspdf';
 import { fmtName } from '../adminUtils';
+import { groupMealFoods, resolveMealForTotals, planHasAlternatives } from './dietAlternatives';
 
 const PW = 210, PH = 297; // A4 portrait, mm
 const ML = 14, MR = 14;
@@ -33,7 +34,9 @@ const TOTAL_ROW_TEXT = [180, 10, 90];
 
 function calcDayTotals(day) {
     let calories = 0, protein = 0, carbs = 0, fats = 0, fiber = 0, sugar = 0, caloriesBurned = 0;
-    (day.meals || []).forEach((m) => (m.foods || []).forEach((f) => {
+    // Only the default (first-listed) option in each OR-alternative group
+    // counts toward totals — see dietAlternatives.js.
+    (day.meals || []).forEach((m) => resolveMealForTotals(m).forEach((f) => {
         calories += f.calories * f.quantity;
         protein += f.protein * f.quantity;
         carbs += f.carbs * f.quantity;
@@ -134,9 +137,13 @@ function drawTable(doc, { startY, columns, rows }) {
         if (isTotal) { doc.setFillColor(...TOTAL_ROW_BG); doc.rect(ML, y, CW, rowH, 'F'); }
         else if (i % 2 === 1) { doc.setFillColor(...ALT_ROW); doc.rect(ML, y, CW, rowH, 'F'); }
 
-        doc.setFont('helvetica', isTotal || row.bold ? 'bold' : 'normal');
+        // `italic`/`muted` mark an OR-alternative row (a non-default option
+        // inside a choice group) — visually distinct from the plain items
+        // around it so it reads as "or this instead", not "also eat this".
+        const style = isTotal || row.bold ? 'bold' : row.italic ? 'italic' : 'normal';
+        doc.setFont('helvetica', style);
         doc.setFontSize(7.5);
-        doc.setTextColor(...(isTotal ? TOTAL_ROW_TEXT : ROW_TEXT));
+        doc.setTextColor(...(isTotal ? TOTAL_ROW_TEXT : row.muted ? MID_GRAY : ROW_TEXT));
         let cx = ML + 2;
         columns.forEach((col, ci) => {
             const val = String(row.cells[ci] ?? '');
@@ -172,6 +179,19 @@ function dayBanner(doc, y, label, tot, includeExercise, includeFiberSugar) {
     return y + 14;
 }
 
+// Printed once, right before the first day's table, only for plans that
+// actually use OR-alternatives — explains what the "OR" rows in the tables
+// below mean, and that totals are computed from the first-listed option.
+function altLegend(doc, y) {
+    doc.setFillColor(255, 247, 250);
+    doc.roundedRect(ML, y, CW, 9, 1.5, 1.5, 'F');
+    doc.setTextColor(...BRAND_PINK);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bolditalic');
+    doc.text('Items marked "OR" are alternatives — pick whichever suits you that day. Totals below use the first-listed option.', ML + 4, y + 6);
+    return y + 13;
+}
+
 function sectionTitle(doc, text, y) {
     doc.setFillColor(...BRAND_PINK);
     doc.roundedRect(ML, y, CW, 9, 1.5, 1.5, 'F');
@@ -199,6 +219,7 @@ function dayLabel(plan, day) {
 function generateFull(doc, plan, opts) {
     const { includeExercises, includeFiberSugar, includeServingColumn } = opts;
     let y = CONTENT_TOP;
+    if (planHasAlternatives(plan)) y = altLegend(doc, y);
     exportDays(plan).forEach((day) => {
         y = ensureSpace(doc, y, 30);
         const tot = calcDayTotals(day);
@@ -216,28 +237,41 @@ function generateFull(doc, plan, opts) {
         const rows = [];
         (day.meals || []).forEach((meal) => {
             if (!meal.foods?.length) return;
-            const mTot = meal.foods.reduce((s, f) => ({
+            // Meal total is calculated from the default (first-listed)
+            // option per OR-group, not every option — see resolveMealForTotals.
+            const mTot = resolveMealForTotals(meal).reduce((s, f) => ({
                 cal: s.cal + f.calories * f.quantity, p: s.p + f.protein * f.quantity,
                 c: s.c + f.carbs * f.quantity, fat: s.fat + f.fats * f.quantity,
             }), { cal: 0, p: 0, c: 0, fat: 0 });
-            meal.foods.forEach((food, fi) => {
-                const nameCell = includeServingColumn ? food.name : `${food.name}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`;
+
+            let firstRow = true;
+            const pushFoodRow = (food, isAlt) => {
+                const nameCell = `${isAlt ? 'OR  ' : ''}${food.name}${!includeServingColumn && food.quantity !== 1 ? ` x${food.quantity}` : ''}`;
+                const label = firstRow ? meal.label : '';
                 rows.push({
                     cells: includeServingColumn
                         ? [
-                            fi === 0 ? meal.label : '', nameCell,
+                            label, nameCell,
                             `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
                             String(Math.round(food.calories * food.quantity)), String(Math.round(food.protein * food.quantity)),
                             String(Math.round(food.carbs * food.quantity)), String(Math.round(food.fats * food.quantity)),
                         ]
                         : [
-                            fi === 0 ? meal.label : '', nameCell,
+                            label, nameCell,
                             String(Math.round(food.calories * food.quantity)), String(Math.round(food.protein * food.quantity)),
                             String(Math.round(food.carbs * food.quantity)), String(Math.round(food.fats * food.quantity)),
                         ],
-                    bold: fi === 0,
+                    bold: firstRow && !isAlt,
+                    italic: isAlt,
+                    muted: isAlt,
                 });
+                firstRow = false;
+            };
+            groupMealFoods(meal.foods).forEach((slot) => {
+                if (slot.type === 'single') pushFoodRow(slot.food, false);
+                else slot.options.forEach((opt, oi) => pushFoodRow(opt.food, oi > 0));
             });
+
             const totalRow = includeServingColumn
                 ? ['', 'Meal Total', '', String(Math.round(mTot.cal)), String(Math.round(mTot.p)), String(Math.round(mTot.c)), String(Math.round(mTot.fat))]
                 : ['', 'Meal Total', String(Math.round(mTot.cal)), String(Math.round(mTot.p)), String(Math.round(mTot.c)), String(Math.round(mTot.fat))];
@@ -297,6 +331,7 @@ function generateFull(doc, plan, opts) {
 function generateMacrosPerMeal(doc, plan, opts) {
     const { includeFiberSugar } = opts;
     let y = CONTENT_TOP;
+    if (planHasAlternatives(plan)) y = altLegend(doc, y);
     exportDays(plan).forEach((day) => {
         y = ensureSpace(doc, y, 30);
         const tot = calcDayTotals(day);
@@ -304,11 +339,14 @@ function generateMacrosPerMeal(doc, plan, opts) {
         if (day.restDay) { y += 8; return; }
 
         const rows = (day.meals || []).filter((m) => m.foods?.length).map((meal) => {
-            const mTot = meal.foods.reduce((s, f) => ({
+            const mTot = resolveMealForTotals(meal).reduce((s, f) => ({
                 cal: s.cal + f.calories * f.quantity, p: s.p + f.protein * f.quantity,
                 c: s.c + f.carbs * f.quantity, fat: s.fat + f.fats * f.quantity,
             }), { cal: 0, p: 0, c: 0, fat: 0 });
-            const items = meal.foods.map((f) => `${f.name}${f.quantity !== 1 ? ` x${f.quantity}` : ''}`).join(', ');
+            const foodLabel = (f) => `${f.name}${f.quantity !== 1 ? ` x${f.quantity}` : ''}`;
+            const items = groupMealFoods(meal.foods)
+                .map((slot) => (slot.type === 'single' ? foodLabel(slot.food) : slot.options.map((o) => foodLabel(o.food)).join(' OR ')))
+                .join(', ');
             return { cells: [meal.label, items, String(Math.round(mTot.cal)), String(Math.round(mTot.p)), String(Math.round(mTot.c)), String(Math.round(mTot.fat))] };
         });
         rows.push({ cells: ['DAILY TOTAL', '', String(tot.calories), String(tot.protein), String(tot.carbs), String(tot.fats)], isTotal: true });
@@ -334,7 +372,8 @@ function generateSummary(doc, plan, opts) {
 
     const rows = exportDays(plan).map((day) => {
         const tot = calcDayTotals(day);
-        const mealCount = (day.meals || []).reduce((s, m) => s + (m.foods?.length || 0), 0);
+        // Counts each OR-choice group as one item (a choice, not two foods).
+        const mealCount = (day.meals || []).reduce((s, m) => s + groupMealFoods(m.foods).length, 0);
         return {
             cells: [
                 plan.repeat_daily ? `Every day (×${plan.plan_duration})` : `Day ${day.dayNumber}`,
@@ -364,6 +403,7 @@ function generateSummary(doc, plan, opts) {
 function generateDietOnly(doc, plan, opts) {
     const { includeFiberSugar, includeServingColumn } = opts;
     let y = CONTENT_TOP;
+    if (planHasAlternatives(plan)) y = altLegend(doc, y);
     exportDays(plan).forEach((day) => {
         y = ensureSpace(doc, y, 25);
         y = dayBanner(doc, y, dayLabel(plan, day), calcDayTotals(day), false, includeFiberSugar);
@@ -372,17 +412,25 @@ function generateDietOnly(doc, plan, opts) {
         const rows = [];
         (day.meals || []).forEach((meal) => {
             if (!meal.foods?.length) return;
-            meal.foods.forEach((food, fi) => {
-                const nameCell = includeServingColumn ? food.name : `${food.name}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`;
-                rows.push({
-                    cells: includeServingColumn
-                        ? [
-                            fi === 0 ? meal.label : '', nameCell,
-                            `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
-                            `${Math.round(food.calories * food.quantity)} kcal`,
-                        ]
-                        : [fi === 0 ? meal.label : '', nameCell, `${Math.round(food.calories * food.quantity)} kcal`],
-                    bold: fi === 0,
+            let firstRow = true;
+            groupMealFoods(meal.foods).forEach((slot) => {
+                const options = slot.type === 'single' ? [{ food: slot.food, isAlt: false }] : slot.options.map((o, oi) => ({ food: o.food, isAlt: oi > 0 }));
+                options.forEach(({ food, isAlt }) => {
+                    const nameCell = `${isAlt ? 'OR  ' : ''}${food.name}${!includeServingColumn && food.quantity !== 1 ? ` x${food.quantity}` : ''}`;
+                    const label = firstRow ? meal.label : '';
+                    rows.push({
+                        cells: includeServingColumn
+                            ? [
+                                label, nameCell,
+                                `${formatFoodServing(food)}${food.quantity !== 1 ? ` x${food.quantity}` : ''}`,
+                                `${Math.round(food.calories * food.quantity)} kcal`,
+                            ]
+                            : [label, nameCell, `${Math.round(food.calories * food.quantity)} kcal`],
+                        bold: firstRow && !isAlt,
+                        italic: isAlt,
+                        muted: isAlt,
+                    });
+                    firstRow = false;
                 });
             });
         });
