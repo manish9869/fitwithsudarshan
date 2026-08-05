@@ -4,10 +4,13 @@
 // gender/height/weight/activity-level, so showing a suggested calorie
 // target costs nothing and gives Sudarshan a real number to plan around
 // instead of guessing.
+import { resolveMealForTotals } from './dietAlternatives';
 
 export function calcDayTotals(day) {
     let calories = 0, protein = 0, carbs = 0, fats = 0, fiber = 0, sugar = 0, caloriesBurned = 0;
-    (day.meals || []).forEach((m) => (m.foods || []).forEach((f) => {
+    // Only one food per OR-alternative slot counts toward totals (the
+    // default/first-listed option) — see resolveMealForTotals.
+    (day.meals || []).forEach((m) => resolveMealForTotals(m).forEach((f) => {
         calories += f.calories * f.quantity;
         protein += f.protein * f.quantity;
         carbs += f.carbs * f.quantity;
