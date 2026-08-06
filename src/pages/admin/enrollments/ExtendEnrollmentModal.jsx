@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Loader2, AlertCircle, X, Users, RefreshCw } from 'lucide-react';
 import { useSiteData } from '@/contexts/SiteDataContext';
 import { extendEnrollment } from '../adminApi';
-import { toISTDatetimeLocal, istDatetimeLocalToISO, fmtName } from '../adminUtils';
+import { toISTDatetimeLocal, istDatetimeLocalToISO, fmtName, fmtDate } from '../adminUtils';
 import { useToast } from '../ToastProvider';
 
 const PAYMENT_METHODS = [
@@ -39,9 +39,7 @@ export default function ExtendEnrollmentModal({ sourceEnrollment, onClose, onExt
         coachingType: sourceEnrollment.coaching_type || 'online',
         planType: sourceEnrollment.plan_type || 'individual',
         durationMonths: sourceEnrollment.duration_months || '3',
-        programName: '',
         totalAmount: '',
-        originalAmount: '',
         initialPaymentAmount: '',
         paymentMethod: 'razorpay_link',
         paymentReference: '',
@@ -62,6 +60,25 @@ export default function ExtendEnrollmentModal({ sourceEnrollment, onClose, onExt
         return `${ct?.name || sourceEnrollment.program_name || 'RECODE Coaching'} — ${form.planType === 'couple' ? 'Couple' : 'Individual'} — ${dur?.label || ''}`;
     };
 
+    // Mirrors the backend's chaining rule (createEnrollmentExtension): the
+    // new period starts the moment the SOURCE plan's own coverage ends —
+    // not "today" — so renewing a few days before it lapses doesn't eat
+    // into days the client already paid for. Only starts "today" if the
+    // source has already expired (nothing to chain onto).
+    const coverageDates = () => {
+        if (!sourceEnrollment.plan_start_date || !sourceEnrollment.duration_months) return null;
+        const sourceEnd = new Date(sourceEnrollment.plan_start_date);
+        sourceEnd.setMonth(sourceEnd.getMonth() + Number(sourceEnrollment.duration_months));
+
+        const now = new Date();
+        const start = sourceEnd.getTime() > now.getTime() ? sourceEnd : now;
+
+        if (!form.durationMonths) return { start, end: null };
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + Number(form.durationMonths));
+        return { start, end, chained: sourceEnd.getTime() > now.getTime() };
+    };
+
     const suggestedAmount = () =>
         pricingTable?.[form.coachingType]?.[form.planType]?.[form.durationMonths] || '';
 
@@ -80,9 +97,7 @@ export default function ExtendEnrollmentModal({ sourceEnrollment, onClose, onExt
                 coachingType: form.coachingType,
                 planType: form.planType,
                 durationMonths: form.durationMonths,
-                programName: form.programName.trim() || suggestedProgram(),
                 totalAmount: Number(form.totalAmount),
-                originalAmount: form.originalAmount ? Number(form.originalAmount) : Number(form.totalAmount),
                 initialPaymentAmount: form.initialPaymentAmount === '' ? undefined : Number(form.initialPaymentAmount),
                 paymentMethod: form.paymentMethod,
                 paymentReference: form.paymentReference.trim() || null,
@@ -164,22 +179,35 @@ export default function ExtendEnrollmentModal({ sourceEnrollment, onClose, onExt
                                     </select>
                                 </Field>
                             </div>
-                            <Field label="Program Name (auto-filled if left blank)">
-                                <input className={inputCls} style={inputStyle} value={form.programName} onChange={set('programName')} placeholder={suggestedProgram()} />
-                            </Field>
+                            <p className="text-[11px] text-white/30 leading-relaxed">
+                                Program name: <span className="text-white/60 font-medium">{suggestedProgram()}</span> — generated from the fields above, always in the same format.
+                            </p>
+
+                            {(() => {
+                                const dates = coverageDates();
+                                if (!dates) return (
+                                    <p className="text-[10px] text-white/25 leading-relaxed">
+                                        Can't preview coverage dates — the current plan has no recorded start date.
+                                    </p>
+                                );
+                                return (
+                                    <p className="text-[11px] text-white/40 leading-relaxed">
+                                        {dates.chained
+                                            ? <>Coverage starts <strong className="text-white/70">{fmtDate(dates.start.toISOString(), true)}</strong> — right when the current plan ends, so nothing paid for is lost.</>
+                                            : <>Coverage starts <strong className="text-white/70">today</strong> — the current plan has already lapsed.</>
+                                        }
+                                        {dates.end && <> Runs through <strong className="text-white/70">{fmtDate(dates.end.toISOString(), true)}</strong>.</>}
+                                    </p>
+                                );
+                            })()}
                         </div>
 
                         {/* Payment */}
                         <div className="rounded-2xl p-4 sm:p-5 space-y-4" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.18)' }}>
                             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#e71763' }}>Payment</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Field label="Total Price for Extension (₹)" required>
-                                    <input type="number" className={inputCls} style={inputStyle} value={form.totalAmount} onChange={set('totalAmount')} placeholder={suggestedAmount() ? String(suggestedAmount()) : '0'} />
-                                </Field>
-                                <Field label="Original Amount (₹, optional)">
-                                    <input type="number" className={inputCls} style={inputStyle} value={form.originalAmount} onChange={set('originalAmount')} placeholder="Same as total price" />
-                                </Field>
-                            </div>
+                            <Field label="Total Price for Extension (₹)" required>
+                                <input type="number" className={inputCls} style={inputStyle} value={form.totalAmount} onChange={set('totalAmount')} placeholder={suggestedAmount() ? String(suggestedAmount()) : '0'} />
+                            </Field>
 
                             <Field label="Amount Received Now (₹)">
                                 <input type="number" className={inputCls} style={inputStyle} value={form.initialPaymentAmount} onChange={set('initialPaymentAmount')} placeholder={`Full amount (${form.totalAmount || 0}) if left blank`} />
