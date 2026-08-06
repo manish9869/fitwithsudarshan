@@ -49,6 +49,7 @@ import {
     exportEnrollmentsAll,
     saveNote, sendEnrollmentEmail,
     deleteEnrollmentAdmin,
+    fetchEnrollmentHistory,
 } from '../adminApi';
 import PaginationBar from '../PaginationBar';
 import {
@@ -65,6 +66,9 @@ import {
     exportEnrollmentsToExcel,
     exportEnrollmentsToPDF,
     exportSingleEnrollmentToExcel,
+    getLifecycleStatus,
+    lifecycleBadge,
+    LIFECYCLE_FILTERS,
 } from '../adminUtils';
 
 import { useDebounce } from '../useDebounce';
@@ -72,6 +76,7 @@ import ExportMenu from '../ExportMenu';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from '../ToastProvider';
 import PaymentLedgerPanel from './PaymentLedgerPanel';
+import ExtendEnrollmentModal from './ExtendEnrollmentModal';
 
 
 const CACHE_TTL = 60_000;
@@ -522,10 +527,12 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
     );
 }
 
-function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPaymentRecorded }) {
+function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPaymentRecorded, onNavigateToEnrollment }) {
     const [enrollment, setEnrollment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState('');
+    const [history, setHistory] = useState([]);
+    const [showExtendModal, setShowExtendModal] = useState(false);
     const toast = useToast();
 
     useEffect(() => {
@@ -538,6 +545,12 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
             .finally(() => {
                 if (!cancelled) setLoading(false);
             });
+
+        fetchEnrollmentHistory(enrollmentId)
+            .then((rows) => {
+                if (!cancelled) setHistory(rows);
+            })
+            .catch(() => { /* non-fatal — Plan History section just won't render */ });
 
         return () => {
             cancelled = true;
@@ -675,6 +688,19 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                 </a>
                             )}
 
+                            <button
+                                onClick={() => setShowExtendModal(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                                style={{
+                                    background: 'rgba(96,165,250,0.1)',
+                                    border: '1px solid rgba(96,165,250,0.25)',
+                                    color: '#60a5fa',
+                                }}
+                            >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Extend Plan
+                            </button>
+
                         </div>
                     )}
                 </div>
@@ -760,6 +786,64 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                     </div>
                                 </div>
                             </div>
+
+                            {history.length > 1 && (
+                                <section>
+                                    <p
+                                        className="text-[10px] font-black uppercase tracking-widest mb-3"
+                                        style={{ color: '#e71763' }}
+                                    >
+                                        Plan History
+                                    </p>
+                                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
+                                        {history.map((row) => {
+                                            const lc = getLifecycleStatus(row);
+                                            const isCurrent = row.id === enrollment.id;
+                                            return (
+                                                <div
+                                                    key={row.id}
+                                                    className="flex items-center justify-between gap-3 px-4 py-3"
+                                                    style={{
+                                                        background: isCurrent ? 'rgba(231,23,99,0.06)' : 'rgba(255,255,255,0.02)',
+                                                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                    }}
+                                                >
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-semibold text-white truncate">
+                                                            {row.program_name || '—'}
+                                                            {row.duration_months ? ` · ${row.duration_months}M` : ''}
+                                                        </p>
+                                                        <p className="text-[10px] text-white/35 mt-0.5">
+                                                            {fmtCurrency(row.amount_paid)} paid · {fmtDate(row.created_at, true)}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        {lc && (
+                                                            <span
+                                                                className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                                                                style={{ background: lifecycleBadge(lc.tag).bg, border: `1px solid ${lifecycleBadge(lc.tag).border}`, color: lifecycleBadge(lc.tag).color }}
+                                                            >
+                                                                {lc.label}
+                                                            </span>
+                                                        )}
+                                                        {isCurrent ? (
+                                                            <span className="text-[10px] text-white/25 px-2">Viewing</span>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => onNavigateToEnrollment(row.id)}
+                                                                className="text-[10px] font-bold px-2.5 py-1 rounded-lg"
+                                                                style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa' }}
+                                                            >
+                                                                View
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            )}
 
                             {/* ── NEW: Full payment ledger — every source, every partial ── */}
                             <PaymentLedgerPanel
@@ -917,6 +1001,24 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                         {dl('Source', enrollment.source === 'manual' ? 'Manual Entry' : 'Website Checkout')}
                                         {dl('Payment Date', fmtDateTime(enrollment.payment_date))}
                                         {dl('Created', fmtDate(enrollment.created_at))}
+                                        {(() => {
+                                            const lc = getLifecycleStatus(enrollment);
+                                            if (!lc) return null;
+                                            const b = lifecycleBadge(lc.tag);
+                                            return dl('Plan Status', (
+                                                <span className="inline-flex items-center gap-2">
+                                                    <span
+                                                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                        style={{ background: b.bg, border: `1px solid ${b.border}`, color: b.color }}
+                                                    >
+                                                        {lc.label}
+                                                    </span>
+                                                    {lc.tag !== 'expired' && lc.expiringSoon && (
+                                                        <span className="text-[10px] text-white/35">Expires in {lc.daysRemaining}d</span>
+                                                    )}
+                                                </span>
+                                            ));
+                                        })()}
                                     </div>
                                 </div>
                             </section>
@@ -984,6 +1086,17 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                     )
                 }
             </motion.div >
+
+            {showExtendModal && enrollment && (
+                <ExtendEnrollmentModal
+                    sourceEnrollment={enrollment}
+                    onClose={() => setShowExtendModal(false)}
+                    onExtended={(extended) => {
+                        setShowExtendModal(false);
+                        onNavigateToEnrollment(extended.id);
+                    }}
+                />
+            )}
         </div >
     );
 }
@@ -1167,6 +1280,7 @@ export default function AdminEnrollments() {
     const [coachingFilter, setCoachingFilter] = useState('all');
     const [planFilter, setPlanFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [lifecycleFilter, setLifecycleFilter] = useState('all');
 
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(15);
@@ -1344,6 +1458,14 @@ export default function AdminEnrollments() {
             );
         }
 
+        if (lifecycleFilter !== 'all') {
+            rows = rows.filter((r) => {
+                const lc = getLifecycleStatus(r);
+                if (!lc) return false;
+                return lifecycleFilter === 'expiring_soon' ? !!lc.expiringSoon : lc.tag === lifecycleFilter;
+            });
+        }
+
         rows = [...rows].sort((a, b) => {
             const aVal = a[sort.field] ?? '';
             const bVal = b[sort.field] ?? '';
@@ -1372,6 +1494,7 @@ export default function AdminEnrollments() {
         coachingFilter,
         planFilter,
         statusFilter,
+        lifecycleFilter,
         sort,
     ]);
 
@@ -1381,6 +1504,7 @@ export default function AdminEnrollments() {
         debouncedSearch,
         coachingFilter,
         planFilter,
+        lifecycleFilter,
         statusFilter,
         sort,
         pageSize,
@@ -1677,6 +1801,24 @@ export default function AdminEnrollments() {
                             : statusBadge(value)
                     }
                 />
+
+                <FilterDropdown
+                    value={lifecycleFilter}
+                    onChange={setLifecycleFilter}
+                    options={LIFECYCLE_FILTERS}
+                    minWidth={165}
+                    getBadge={(value) =>
+                        value === 'all'
+                            ? {
+                                bg: 'rgba(255,255,255,0.05)',
+                                border: 'rgba(255,255,255,0.1)',
+                                color: 'rgba(255,255,255,0.65)',
+                            }
+                            : value === 'expiring_soon'
+                                ? { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)', color: '#fbbf24' }
+                                : lifecycleBadge(value)
+                    }
+                />
             </div>
 
             {error && (
@@ -1869,6 +2011,26 @@ export default function AdminEnrollments() {
                                                         handleStatusChange(row.id, v)
                                                     }
                                                 />
+                                                {(() => {
+                                                    const lc = getLifecycleStatus(row);
+                                                    if (!lc) return null;
+                                                    const b = lifecycleBadge(lc.tag);
+                                                    return (
+                                                        <div className="mt-1.5">
+                                                            <span
+                                                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                                                                style={{ background: b.bg, border: `1px solid ${b.border}`, color: b.color }}
+                                                            >
+                                                                {lc.label}
+                                                            </span>
+                                                            {lc.tag !== 'expired' && lc.expiringSoon && (
+                                                                <p className="text-[9px] mt-1" style={{ color: '#fbbf24' }}>
+                                                                    Expires in {lc.daysRemaining}d
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
 
                                             <td className="px-4 py-3">
@@ -1981,6 +2143,10 @@ export default function AdminEnrollments() {
                         }}
                         onStatusChange={handleStatusChange}
                         onPaymentRecorded={handlePaymentRecorded}
+                        onNavigateToEnrollment={(id) => {
+                            handleRefresh();
+                            setSelectedId(id);
+                        }}
                     />
                 )}
             </AnimatePresence>

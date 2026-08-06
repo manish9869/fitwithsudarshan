@@ -22,6 +22,8 @@ export const ENROLLMENT_EMAIL_OPTIONS = [
     { value: 'balance_due_reminder', label: 'Balance Due Reminder', recipient: 'customer' },
     { value: 'payment_failed', label: 'Payment Failed Notice', recipient: 'customer' },
     { value: 'enrollment_coach', label: 'New Enrollment Alert', recipient: 'coach' },
+    { value: 'enrollment_extended_customer', label: 'Plan Extended', recipient: 'customer' },
+    { value: 'enrollment_extended_coach', label: 'Plan Extended Alert', recipient: 'coach' },
 ];
 
 const MENU_WIDTH = 256; // w-64
