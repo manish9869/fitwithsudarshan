@@ -261,17 +261,26 @@ function LazyRoute({ children }) {
 // which independently rejects while maintenance is on — this gate is the UX
 // layer on top of that.)
 //
-// While site content is still loading with no cached copy yet, we hold on
-// the fallback spinner rather than the real page — otherwise a first-time
-// visitor could see the live site flash for a moment before the maintenance
-// flag arrives and swaps it out.
+// FIX: this used to hold on the fallback spinner for the ENTIRE app —
+// including the landing page, which isn't even lazy — until the site-content
+// fetch resolved. A returning visitor never noticed (last response is
+// localStorage-cached for 10 min and paints instantly), but incognito/a new
+// device always starts with an empty cache, so every first-time visitor sat
+// on a blank spinner for as long as that fetch took (~1.5s+ on a cold
+// serverless hit, worse on mobile). Now the real page renders immediately;
+// the only remaining trade-off is that on that same never-cached first visit,
+// if an admin happens to have maintenance mode on at that exact moment, the
+// real page can be visible for a beat before this swaps it to the
+// maintenance page once `maintenance.enabled` arrives. That's an acceptable,
+// rare, short window versus every single first-time visitor eating a
+// multi-second blank load — the server-side checkout guard in
+// POST /api/create-order is what actually stops a transaction either way.
 function MaintenanceGate({ children }) {
-  const { maintenance, loading } = useSiteData();
+  const { maintenance } = useSiteData();
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   if (isAdminRoute) return children;
-  if (loading) return <PageFallback />;
   if (maintenance?.enabled) return <PageEnter><MaintenancePage /></PageEnter>;
 
   return children;

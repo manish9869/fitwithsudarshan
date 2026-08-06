@@ -176,7 +176,8 @@ function BeforeAfterSlider({ transformation }) {
                 <img
                     src={src}
                     alt={label}
-                    loading="lazy"
+                    loading="eager"
+                    fetchPriority="high"
                     className="absolute inset-0 w-full h-full object-cover object-top"
                 />
 
@@ -208,7 +209,8 @@ function BeforeAfterSlider({ transformation }) {
             <img
                 src={transformation.photoAfter}
                 alt="After"
-                loading="lazy"
+                loading="eager"
+                fetchPriority="high"
                 className="absolute inset-0 w-full h-full object-cover object-top"
                 draggable={false}
             />
@@ -220,7 +222,8 @@ function BeforeAfterSlider({ transformation }) {
                 <img
                     src={transformation.photoBefore}
                     alt="Before"
-                    loading="lazy"
+                    loading="eager"
+                    fetchPriority="high"
                     className="absolute inset-0 h-full object-cover object-top"
                     style={{
                         width: `${(100 / Math.max(sliderPosition, 0.1)) * 100}%`,
