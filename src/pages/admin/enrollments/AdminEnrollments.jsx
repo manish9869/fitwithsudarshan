@@ -1516,6 +1516,27 @@ export default function AdminEnrollments() {
         return filtered.slice(start, start + pageSize);
     }, [filtered, page, pageSize]);
 
+    // How many enrollment rows (across the WHOLE dataset, not just this
+    // page) share this row's email or phone — surfaces "this isn't a
+    // duplicate, it's the same person's other plan" directly in the table
+    // instead of only being discoverable after opening the drawer.
+    const contactCounts = useMemo(() => {
+        const byEmail = new Map();
+        const byPhone = new Map();
+        for (const r of allData) {
+            if (r.customer_email) byEmail.set(r.customer_email, (byEmail.get(r.customer_email) || 0) + 1);
+            if (r.customer_phone) byPhone.set(r.customer_phone, (byPhone.get(r.customer_phone) || 0) + 1);
+        }
+        return { byEmail, byPhone };
+    }, [allData]);
+
+    const countForRow = (row) => {
+        const counts = [];
+        if (row.customer_email) counts.push(contactCounts.byEmail.get(row.customer_email) || 1);
+        if (row.customer_phone) counts.push(contactCounts.byPhone.get(row.customer_phone) || 1);
+        return counts.length ? Math.max(...counts) : 1;
+    };
+
     const toggleSort = (field) => {
         setSort((s) =>
             s.field === field
@@ -1930,7 +1951,7 @@ export default function AdminEnrollments() {
                                                     {row.customer_email}
                                                 </p>
 
-                                                {(hasNote || row.source === 'manual') && (
+                                                {(hasNote || row.source === 'manual' || countForRow(row) > 1) && (
                                                     <div className="flex items-center gap-1 mt-1">
                                                         {hasNote && (
                                                             <span
@@ -1954,6 +1975,19 @@ export default function AdminEnrollments() {
                                                                 }}
                                                             >
                                                                 MANUAL
+                                                            </span>
+                                                        )}
+
+                                                        {countForRow(row) > 1 && (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                                                                style={{
+                                                                    background: 'rgba(167,139,250,0.1)',
+                                                                    color: '#a78bfa',
+                                                                }}
+                                                                title="This person has other enrollments — open this row to see all of them under Plan History"
+                                                            >
+                                                                {countForRow(row)} PLANS
                                                             </span>
                                                         )}
                                                     </div>
@@ -2016,17 +2050,15 @@ export default function AdminEnrollments() {
                                                     if (!lc) return null;
                                                     const b = lifecycleBadge(lc.tag);
                                                     return (
-                                                        <div className="mt-1.5">
-                                                            <span
-                                                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
-                                                                style={{ background: b.bg, border: `1px solid ${b.border}`, color: b.color }}
-                                                            >
+                                                        <div className="flex items-center gap-1.5 mt-2 pl-0.5">
+                                                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: b.color }} />
+                                                            <span className="text-[10px] font-semibold" style={{ color: b.color }}>
                                                                 {lc.label}
                                                             </span>
                                                             {lc.tag !== 'expired' && lc.expiringSoon && (
-                                                                <p className="text-[9px] mt-1" style={{ color: '#fbbf24' }}>
-                                                                    Expires in {lc.daysRemaining}d
-                                                                </p>
+                                                                <span className="text-[10px]" style={{ color: '#fbbf24' }}>
+                                                                    · {lc.daysRemaining}d left
+                                                                </span>
                                                             )}
                                                         </div>
                                                     );
