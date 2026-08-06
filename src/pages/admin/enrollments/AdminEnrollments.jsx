@@ -1382,17 +1382,11 @@ export default function AdminEnrollments() {
         sort,
         pageSize,
     ]);
-    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
-    const pageData = useMemo(() => {
-        const start = (page - 1) * pageSize;
-        return filtered.slice(start, start + pageSize);
-    }, [filtered, page, pageSize]);
-
-    // How many enrollment rows (across the WHOLE dataset, not just this
-    // page) share this row's email or phone — surfaces "this isn't a
-    // duplicate, it's the same person's other plan" directly in the table
-    // instead of only being discoverable after opening the drawer.
+    // How many enrollment rows (across the WHOLE dataset, not just the
+    // current filter/page) share this row's email or phone — the source of
+    // truth for the "N PLANS" badge and for how many periods live "inside"
+    // a grouped table row.
     const contactCounts = useMemo(() => {
         const byEmail = new Map();
         const byPhone = new Map();
@@ -1409,6 +1403,43 @@ export default function AdminEnrollments() {
         if (row.customer_phone) counts.push(contactCounts.byPhone.get(row.customer_phone) || 1);
         return counts.length ? Math.max(...counts) : 1;
     };
+
+    // The TABLE shows one row per CUSTOMER, not one row per plan period —
+    // easier to scan than seeing the same person twice. `filtered` (above)
+    // stays the full, ungrouped, one-row-per-period list: stats cards and
+    // exports still read from it, since "how many coupons were used" or an
+    // accounting export should reflect every real transaction, not just
+    // whichever period happens to represent its customer on screen.
+    // Grouping key is email (falling back to phone, then the row's own id
+    // so contact-less rows never accidentally merge with one another).
+    // Representative = first match in `filtered`'s current sort order, so
+    // whatever the admin is sorting by (date, amount, …) is also what
+    // decides which of a customer's periods "stands in" for them.
+    const groupedFiltered = useMemo(() => {
+        const seen = new Set();
+        const groups = [];
+        for (const row of filtered) {
+            const key = row.customer_email || row.customer_phone || row.id;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            groups.push({ ...row, _planCount: countForRow(row) });
+        }
+        return groups;
+    }, [filtered, contactCounts]);
+
+    const totalPages = Math.max(1, Math.ceil(groupedFiltered.length / pageSize));
+
+    const pageData = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return groupedFiltered.slice(start, start + pageSize);
+    }, [groupedFiltered, page, pageSize]);
+
+    // Same grouping, unfiltered — gives the "X of Y clients" header a
+    // like-for-like denominator instead of mixing customer counts with
+    // raw period counts.
+    const totalCustomerCount = useMemo(() => new Set(
+        allData.map((r) => r.customer_email || r.customer_phone || r.id)
+    ).size, [allData]);
 
     const toggleSort = (field) => {
         setSort((s) =>
@@ -1572,9 +1603,10 @@ export default function AdminEnrollments() {
                     </h1>
 
                     <p className="text-xs text-white/35">
-                        {filtered.length !== allData.length
-                            ? `${filtered.length} of ${allData.length} records`
-                            : `${allData.length} total records`}
+                        {groupedFiltered.length !== totalCustomerCount
+                            ? `${groupedFiltered.length} of ${totalCustomerCount} clients`
+                            : `${totalCustomerCount} total clients`}
+                        {filtered.length !== groupedFiltered.length && ` · ${filtered.length} enrollment records`}
                     </p>
                 </div>
 
@@ -1605,7 +1637,7 @@ export default function AdminEnrollments() {
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
                 <StatCard
                     label="Showing"
-                    value={`${pageData.length} / ${filtered.length}`}
+                    value={`${pageData.length} / ${groupedFiltered.length}`}
                     sub=""
                     color="white"
                 />
@@ -1852,16 +1884,18 @@ export default function AdminEnrollments() {
                                                         )}
 
                                                         {countForRow(row) > 1 && (
-                                                            <span
-                                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                                                            <button
+                                                                onClick={() => setSelectedId(row.id)}
+                                                                className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none transition-colors hover:brightness-125"
                                                                 style={{
                                                                     background: 'rgba(167,139,250,0.1)',
+                                                                    border: '1px solid rgba(167,139,250,0.25)',
                                                                     color: '#a78bfa',
                                                                 }}
-                                                                title="This person has other enrollments — open this row to see all of them under Plan History"
+                                                                title={`This client has ${countForRow(row)} plans on record — showing their most recent here. Click to see all of them.`}
                                                             >
-                                                                {countForRow(row)} PLANS
-                                                            </span>
+                                                                {countForRow(row)} PLANS <ChevronDown className="w-2.5 h-2.5 -rotate-90" />
+                                                            </button>
                                                         )}
                                                     </div>
                                                 )}
@@ -2029,7 +2063,7 @@ export default function AdminEnrollments() {
                     <PaginationBar
                         page={page}
                         totalPages={totalPages}
-                        totalItems={filtered.length}
+                        totalItems={groupedFiltered.length}
                         pageSize={pageSize}
                         onPageChange={setPage}
                         onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
