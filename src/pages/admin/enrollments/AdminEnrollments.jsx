@@ -1153,7 +1153,7 @@ export default function AdminEnrollments() {
     const [coachingFilter, setCoachingFilter] = useState('all');
     const [planFilter, setPlanFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [lifecycleFilter, setLifecycleFilter] = useState('all');
+    const [lifecycleFilter, setLifecycleFilter] = useState(searchParams.get('lifecycle') || 'all');
 
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(15);
@@ -1245,8 +1245,6 @@ export default function AdminEnrollments() {
             next.delete('focus');
             setSearchParams(next, { replace: true });
         }
-
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleRefresh = () => {

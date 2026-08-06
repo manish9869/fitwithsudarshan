@@ -32,7 +32,7 @@ import {
     IndianRupee, TrendingUp, Users, ClipboardList, Tag, Heart,
     RefreshCw, AlertCircle, ArrowUpRight, Calendar, Sparkles, Loader2,
     Percent, BellRing, ListChecks, ClipboardCheck, Salad,
-    ShieldAlert, Globe,
+    ShieldAlert, Globe, Repeat, Clock,
 } from 'lucide-react';
 import { fetchDashboard, fetchAssessments, fetchFollowUps, fetchLiveUsers } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
@@ -382,6 +382,69 @@ function ActivityItem({ item }) {
                     </p>
                 )}
                 <p className="text-[10px] text-white/25">{fmtRelativeTime(item.timestamp)}</p>
+            </div>
+        </Link>
+    );
+}
+
+// ── Ending Soon Row ───────────────────────────────────────────────────────────
+// One row per client whose active plan period (root enrollment or latest
+// extension in its chain — see getDashboard's chain grouping) expires
+// within the next 7 days. `extensionsCount` is how many times that chain
+// has already been renewed, so the coach can tell a first-timer from a
+// repeat client at a glance.
+function EndingSoonRow({ item }) {
+    const urgent = item.daysRemaining <= 2;
+    const accent = urgent ? '#f87171' : '#fbbf24';
+
+    return (
+        <Link
+            to={`/admin/enrollments?focus=${item.id}`}
+            className="group flex items-center justify-between gap-3 px-5 py-3 rounded-xl mx-2 my-1 transition-all duration-200"
+            style={{
+                border: '1px solid transparent',
+                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                background: 'transparent',
+            }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = `${accent}26`;
+                e.currentTarget.style.boxShadow = `0 10px 26px ${accent}10`;
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.boxShadow = 'none';
+            }}
+        >
+            <div className="flex items-center gap-3 min-w-0">
+                <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5"
+                    style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}
+                >
+                    <Clock className="w-3.5 h-3.5" style={{ color: accent }} />
+                </div>
+
+                <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{item.customerName}</p>
+                    <p className="text-[11px] text-white/35 truncate">{item.programName || 'Plan'}</p>
+                </div>
+            </div>
+
+            <div className="text-right flex-shrink-0 flex items-center gap-2">
+                {item.isRenewed && (
+                    <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
+                        style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}
+                        title={`Renewed ${item.extensionsCount} time${item.extensionsCount === 1 ? '' : 's'}`}
+                    >
+                        Renewed ×{item.extensionsCount}
+                    </span>
+                )}
+                <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
+                    style={{ background: `${accent}18`, color: accent, border: `1px solid ${accent}30` }}
+                >
+                    {item.daysRemaining === 0 ? 'Ends today' : `${item.daysRemaining}d left`}
+                </span>
             </div>
         </Link>
     );
@@ -849,6 +912,15 @@ export default function AdminDashboard() {
                                 delay={0.18}
                             />
                         </Link>
+                        <Link to="/admin/enrollments?lifecycle=expiring_soon" className="block">
+                            <KpiCard
+                                icon={Clock} label="Ending Soon"
+                                accent={k.endingSoonCount > 0 ? '#f87171' : '#34d399'}
+                                value={k.endingSoonCount ?? 0}
+                                sub={k.endingSoonCount > 0 ? 'plans expiring within 7 days' : 'nothing expiring soon'}
+                                delay={0.2}
+                            />
+                        </Link>
                     </KpiSection>
 
                     <KpiSection title="Client Insights" icon={Users} accent="#60a5fa">
@@ -876,6 +948,14 @@ export default function AdminDashboard() {
                                 value={k.dietPlansInRange ?? 0}
                                 sub={`${k.totalDietPlansAllTime ?? 0} all-time · ${k.dietPlansLinkedInRange ?? 0} for enrolled clients`}
                                 delay={0.3}
+                            />
+                        </Link>
+                        <Link to="/admin/enrollments?lifecycle=active_renewed" className="block">
+                            <KpiCard
+                                icon={Repeat} label="Renewed" accent="#60a5fa"
+                                value={k.renewedInRange ?? 0}
+                                sub={`${k.renewedAllTime ?? 0} clients renewed all-time`}
+                                delay={0.33}
                             />
                         </Link>
                     </KpiSection>
@@ -1414,6 +1494,45 @@ export default function AdminDashboard() {
                             </div>
                         </motion.div>
                     </div>
+
+                    {/* ── Ending Soon — renewal insight ──
+                        All-time, independent of the range picker (see
+                        backend comment in getDashboard): a plan started
+                        long before the selected window can still expire
+                        inside the next 7 days. */}
+                    <ChartCard
+                        title="Ending Soon"
+                        icon={Clock}
+                        className="mt-5"
+                        bodyClassName="p-4 overflow-y-auto dashboard-thin-scroll"
+                        badge={
+                            (k.endingSoonCount ?? 0) > (data?.endingSoon?.length ?? 0)
+                                ? `${data.endingSoon.length} of ${k.endingSoonCount}`
+                                : `${k.endingSoonCount ?? 0} plan${k.endingSoonCount === 1 ? '' : 's'}`
+                        }
+                    >
+                        {!data?.endingSoon?.length ? (
+                            <div className="text-center py-8">
+                                <Sparkles className="w-5 h-5 mx-auto mb-2 text-white/15" />
+                                <p className="text-xs text-white/25">Nothing expiring in the next 7 days.</p>
+                            </div>
+                        ) : (
+                            <>
+                                {data.endingSoon.map((item) => (
+                                    <EndingSoonRow key={item.id} item={item} />
+                                ))}
+                                {(k.endingSoonCount ?? 0) > data.endingSoon.length && (
+                                    <Link
+                                        to="/admin/enrollments?lifecycle=expiring_soon"
+                                        className="block text-center text-[11px] font-bold mt-2 py-1.5 rounded-lg transition-colors"
+                                        style={{ color: '#fbbf24' }}
+                                    >
+                                        View all {k.endingSoonCount} plans ending soon →
+                                    </Link>
+                                )}
+                            </>
+                        )}
+                    </ChartCard>
                 </>
             )}
         </div>

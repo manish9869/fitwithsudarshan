@@ -132,7 +132,6 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                 .catch(() => { /* non-fatal — form just won't prefill */ })
                 .finally(() => setLoadingLedger(false));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingRow]);
 
     const isCouple = form.planType === 'couple';

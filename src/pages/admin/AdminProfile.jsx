@@ -36,7 +36,6 @@ export default function AdminProfile() {
             } catch (e) { toast.error(e.message); }
             finally { setLoading(false); }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const setField = (key) => (val) => setProfile((p) => ({ ...p, [key]: val }));

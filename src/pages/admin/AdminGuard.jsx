@@ -39,7 +39,6 @@ export default function AdminGuard({ children }) {
 
         verify();
         return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     if (checking) {

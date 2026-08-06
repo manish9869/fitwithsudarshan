@@ -439,7 +439,6 @@ export default function AdminSiteSettings() {
             .catch((e) => { if (!cancelled) toast.error(e.message || 'Failed to load'); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active]);
 
     const handleSave = async () => {

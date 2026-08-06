@@ -14,7 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     RefreshCw, Search, MessageCircle, CheckCircle2, Clock, X,
-    AlertCircle, Loader2, StickyNote, PauseCircle, Calendar,
+    AlertCircle, Loader2, PauseCircle, Calendar,
 } from 'lucide-react';
 import { fetchFollowUps, markFollowUp } from '../adminApi';
 import { fmtCurrency, fmtDateTime } from '../adminUtils';
