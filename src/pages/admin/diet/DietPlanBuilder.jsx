@@ -87,28 +87,28 @@ function FoodEntryRow({ food, dietUnits, onAmountChange, onRemove, onAddAlt, isA
                 </div>
             </div>
             {isConvertible({ serving_unit: food.servingUnit }) ? (
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                     <input type="number" min="0" step="any" value={food.amount ?? ''}
                         onChange={(e) => onAmountChange({ amount: e.target.value === '' ? '' : Number(e.target.value) })}
-                        className="w-16 px-2 py-1 rounded text-white outline-none"
+                        className="w-16 flex-shrink-0 px-2 py-1 rounded text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
                     <select value={food.unit || ''} onChange={(e) => onAmountChange({ unit: e.target.value })}
-                        className="flex-1 px-2 py-1 rounded text-white outline-none"
+                        className="px-2 py-1 rounded text-white outline-none"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
                         {getUnitsForFood(dietUnits, food.category, food.servingUnit).map((u) => <option key={u.label} value={u.label}>{u.label}</option>)}
                     </select>
-                    <span className="text-white/25 text-[10px] flex-shrink-0">
+                    <span className="text-white/25 text-[10px] basis-full sm:basis-auto">
                         base: {formatServing({ serving_qty: food.servingQty, serving_unit: food.servingUnit })}
                     </span>
                 </div>
             ) : (
-                <div className="flex items-center gap-1.5">
-                    <span className="text-white/35">×</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-white/35 flex-shrink-0">×</span>
                     <input type="number" min="0" step="any" value={food.amount ?? ''}
                         onChange={(e) => onAmountChange({ amount: e.target.value === '' ? '' : Number(e.target.value) })}
-                        className="w-16 px-2 py-1 rounded text-white outline-none"
+                        className="w-16 flex-shrink-0 px-2 py-1 rounded text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                    <span className="text-white/25 text-[10px] flex-shrink-0">
+                    <span className="text-white/25 text-[10px] basis-full sm:basis-auto sm:flex-1 min-w-0">
                         {food.servingSize || 'serving'} — no gram weight set, edit in Diet Foods for precise units
                     </span>
                 </div>
