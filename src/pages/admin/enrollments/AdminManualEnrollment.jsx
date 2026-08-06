@@ -55,7 +55,7 @@ function StatCard({ label, value, color }) {
 const EMPTY_FORM = {
     customerName: '', customerEmail: '', customerPhone: '',
     coachingType: 'online', planType: 'individual', durationMonths: '3',
-    programName: '', totalAmount: '', originalAmount: '',
+    totalAmount: '',
     initialPaymentAmount: '',
     latestPaymentAmount: '', // ← edit-mode only: amount of the latest ledger payment
     paymentMethod: 'razorpay_link', paymentReference: '', paymentDate: toISTDatetimeLocal(new Date().toISOString()),
@@ -75,9 +75,7 @@ function rowToForm(row) {
         coachingType: row.coaching_type || 'online',
         planType: row.plan_type || 'individual',
         durationMonths: row.duration_months || '3',
-        programName: row.program_name || '',
         totalAmount: row.total_amount != null ? String(row.total_amount) : (row.amount_paid != null ? String(row.amount_paid) : ''),
-        originalAmount: row.original_amount != null ? String(row.original_amount) : '',
         initialPaymentAmount: '',
         latestPaymentAmount: '',
         paymentMethod: row.payment_method || 'razorpay_link',
@@ -168,12 +166,10 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                 customerName: form.customerName.trim(),
                 customerEmail: form.customerEmail.trim() || null,
                 customerPhone: form.customerPhone.trim() || null,
-                programName: form.programName.trim() || suggestedProgram(),
                 coachingType: form.coachingType,
                 planType: form.planType,
                 durationMonths: form.durationMonths,
                 totalAmount: Number(form.totalAmount),
-                originalAmount: form.originalAmount ? Number(form.originalAmount) : Number(form.totalAmount),
                 initialPaymentAmount: isEdit ? undefined : (form.initialPaymentAmount === '' ? undefined : Number(form.initialPaymentAmount)),
                 paymentAmount: isEdit && form.latestPaymentAmount !== '' ? Number(form.latestPaymentAmount) : undefined,
                 paymentMethod: form.paymentMethod,
@@ -303,9 +299,9 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                                     </select>
                                 </Field>
                             </div>
-                            <Field label="Program Name (auto-filled if left blank)">
-                                <input className={inputCls} style={inputStyle} value={form.programName} onChange={set('programName')} placeholder={suggestedProgram()} />
-                            </Field>
+                            <p className="text-[11px] text-white/30 leading-relaxed">
+                                Program name: <span className="text-white/60 font-medium">{suggestedProgram()}</span> — generated from the fields above, always in the same format.
+                            </p>
 
                             {isCouple && (
                                 <div className="pt-2 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -323,14 +319,9 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                         {/* Payment */}
                         <div className="rounded-2xl p-4 sm:p-5 space-y-4" style={{ background: 'rgba(231,23,99,0.05)', border: '1px solid rgba(231,23,99,0.18)' }}>
                             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#e71763' }}>Payment</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Field label="Total Program Price (₹)" required>
-                                    <input type="number" className={inputCls} style={inputStyle} value={form.totalAmount} onChange={set('totalAmount')} placeholder={suggestedAmount() ? String(suggestedAmount()) : '0'} />
-                                </Field>
-                                <Field label="Original Amount (₹, optional)">
-                                    <input type="number" className={inputCls} style={inputStyle} value={form.originalAmount} onChange={set('originalAmount')} placeholder="Same as total price" />
-                                </Field>
-                            </div>
+                            <Field label="Total Program Price (₹)" required>
+                                <input type="number" className={inputCls} style={inputStyle} value={form.totalAmount} onChange={set('totalAmount')} placeholder={suggestedAmount() ? String(suggestedAmount()) : '0'} />
+                            </Field>
 
                             {!isEdit && (
                                 <Field label="Amount Received Now (₹)">

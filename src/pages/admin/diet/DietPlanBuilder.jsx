@@ -71,6 +71,17 @@ const inputCard = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgb
 // choice group (isAlt just tints it to match the group's container).
 // `onAddAlt` opens the food picker to add another OR-option starting from
 // this specific entry.
+// Quantity is a multiplier on a single serving — nothing realistic needs
+// more than 4 digits, and an unclamped value (a stray extra digit while
+// typing, e.g. "144655") blows up the kcal math and the pill's width.
+const MAX_QUANTITY = 9999;
+function clampQuantity(raw) {
+    if (raw === '') return '';
+    const n = Number(raw);
+    if (Number.isNaN(n)) return '';
+    return Math.min(Math.max(n, 0), MAX_QUANTITY);
+}
+
 function FoodEntryRow({ food, dietUnits, onAmountChange, onRemove, onAddAlt, isAlt }) {
     return (
         <div className="p-2.5 rounded-lg text-xs space-y-1.5" style={isAlt ? { background: 'rgba(144,133,233,0.05)', border: '1px solid rgba(144,133,233,0.18)' } : inputCard}>
@@ -88,9 +99,9 @@ function FoodEntryRow({ food, dietUnits, onAmountChange, onRemove, onAddAlt, isA
             </div>
             {isConvertible({ serving_unit: food.servingUnit }) ? (
                 <div className="flex flex-wrap items-center gap-1.5">
-                    <input type="number" min="0" step="any" value={food.amount ?? ''}
-                        onChange={(e) => onAmountChange({ amount: e.target.value === '' ? '' : Number(e.target.value) })}
-                        className="w-16 flex-shrink-0 px-2 py-1 rounded text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    <input type="number" min="0" max={MAX_QUANTITY} step="any" value={food.amount ?? ''}
+                        onChange={(e) => onAmountChange({ amount: clampQuantity(e.target.value) })}
+                        className="w-14 flex-shrink-0 px-2 py-1 rounded text-white text-xs outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
                     <select value={food.unit || ''} onChange={(e) => onAmountChange({ unit: e.target.value })}
                         className="px-2 py-1 rounded text-white outline-none"
@@ -104,9 +115,9 @@ function FoodEntryRow({ food, dietUnits, onAmountChange, onRemove, onAddAlt, isA
             ) : (
                 <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-white/35 flex-shrink-0">×</span>
-                    <input type="number" min="0" step="any" value={food.amount ?? ''}
-                        onChange={(e) => onAmountChange({ amount: e.target.value === '' ? '' : Number(e.target.value) })}
-                        className="w-16 flex-shrink-0 px-2 py-1 rounded text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    <input type="number" min="0" max={MAX_QUANTITY} step="any" value={food.amount ?? ''}
+                        onChange={(e) => onAmountChange({ amount: clampQuantity(e.target.value) })}
+                        className="w-14 flex-shrink-0 px-2 py-1 rounded text-white text-xs outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
                     <span className="text-white/25 text-[10px] basis-full sm:basis-auto sm:flex-1 min-w-0">
                         {food.servingSize || 'serving'} — no gram weight set, edit in Diet Foods for precise units
