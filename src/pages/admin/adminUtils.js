@@ -725,6 +725,48 @@ export function statusBadge(status) {
     return map[status] || map.new;
 }
 
+// ── Enrollment lifecycle — Active / Active · Renewed / Expired ───────────────
+// Computed client-side, not stored: the correct answer changes every day, so
+// caching it server-side would just go stale. `plan_start_date` is set once
+// at creation and never touched again (see backend), so the end date it
+// implies is stable even if the row later gets extra installment payments.
+export function getLifecycleStatus(enrollment) {
+    if (enrollment.payment_status !== 'paid' || !enrollment.plan_start_date || !enrollment.duration_months) {
+        return null;
+    }
+    const end = new Date(enrollment.plan_start_date);
+    end.setMonth(end.getMonth() + Number(enrollment.duration_months));
+    const daysRemaining = Math.ceil((end.getTime() - Date.now()) / 86400000);
+    const isRenewed = !!enrollment.root_enrollment_id;
+
+    if (daysRemaining < 0) {
+        return { tag: 'expired', label: 'Expired', daysRemaining };
+    }
+    return {
+        tag: isRenewed ? 'active_renewed' : 'active',
+        label: isRenewed ? 'Active · Renewed' : 'Active',
+        daysRemaining,
+        expiringSoon: daysRemaining <= 7,
+    };
+}
+
+export function lifecycleBadge(tag) {
+    const map = {
+        active: { bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)', color: '#34d399' },
+        active_renewed: { bg: 'rgba(96,165,250,0.1)', border: 'rgba(96,165,250,0.3)', color: '#60a5fa' },
+        expired: { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' },
+    };
+    return map[tag] || map.active;
+}
+
+export const LIFECYCLE_FILTERS = [
+    { value: 'all', label: 'All Lifecycles' },
+    { value: 'active', label: 'Active' },
+    { value: 'active_renewed', label: 'Active · Renewed' },
+    { value: 'expired', label: 'Expired' },
+    { value: 'expiring_soon', label: 'Expiring Soon' },
+];
+
 export function exportSingleEnrollmentToExcel(enrollment) {
     exportEnrollmentsToExcel([enrollment], {});
 }

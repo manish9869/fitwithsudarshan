@@ -282,4 +282,12 @@ export async function sendBalanceReminder(id) {
 export async function sendPaymentReceiptEmail(enrollmentId, paymentId) {
     return request(`/enrollments/${enrollmentId}/payments/${paymentId}/send-receipt`, { method: 'POST' });
 }
+export async function extendEnrollment(id, payload) {
+    const data = await request(`/enrollments/${id}/extend`, { method: 'POST', body: payload });
+    return data.enrollment;
+}
+export async function fetchEnrollmentHistory(id) {
+    const data = await request(`/enrollments/${id}/history`);
+    return data.rows;
+}
 export { AdminApiError };
