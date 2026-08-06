@@ -12,9 +12,13 @@ import {
 import RecordPaymentModal from './RecordPaymentModal';
 import PaymentLedgerPanel from './PaymentLedgerPanel';
 import PaginationBar from '../PaginationBar';
-import { fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO, statusBadge, ENROLLMENT_STATUSES, formatLabel } from '../adminUtils';
+import {
+    fmtCurrency, fmtDate, fmtDateTime, toISTDatetimeLocal, istDatetimeLocalToISO,
+    statusBadge, ENROLLMENT_STATUSES, formatLabel, getLifecycleStatus, lifecycleBadge, LIFECYCLE_FILTERS,
+} from '../adminUtils';
 import EmailSendMenu from './EmailSendMenu';
 import { useToast } from '../ToastProvider';
+import FilterDropdown from './FilterDropdown';
 
 // ── All 4 real-world payment modes, plus cash/other for edge cases ──────────
 const PAYMENT_METHODS = [
@@ -593,6 +597,7 @@ export default function AdminManualEnrollment() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
+    const [lifecycleFilter, setLifecycleFilter] = useState('all');
 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState(null);
@@ -628,15 +633,28 @@ export default function AdminManualEnrollment() {
     useEffect(() => { load(); }, [load]);
 
     const filtered = useMemo(() => {
-        if (!search.trim()) return rows;
-        const q = search.trim().toLowerCase();
-        return rows.filter((r) =>
-            (r.customer_name || '').toLowerCase().includes(q) ||
-            (r.customer_email || '').toLowerCase().includes(q) ||
-            (r.enrollment_id || '').toLowerCase().includes(q));
-    }, [rows, search]);
+        let out = rows;
 
-    useEffect(() => { setPage(1); }, [search, pageSize]);
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            out = out.filter((r) =>
+                (r.customer_name || '').toLowerCase().includes(q) ||
+                (r.customer_email || '').toLowerCase().includes(q) ||
+                (r.enrollment_id || '').toLowerCase().includes(q));
+        }
+
+        if (lifecycleFilter !== 'all') {
+            out = out.filter((r) => {
+                const lc = getLifecycleStatus(r);
+                if (!lc) return false;
+                return lifecycleFilter === 'expiring_soon' ? !!lc.expiringSoon : lc.tag === lifecycleFilter;
+            });
+        }
+
+        return out;
+    }, [rows, search, lifecycleFilter]);
+
+    useEffect(() => { setPage(1); }, [search, lifecycleFilter, pageSize]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const pageData = useMemo(() => {
@@ -813,12 +831,28 @@ export default function AdminManualEnrollment() {
                 <StatCard label="Partial Payments" value={partialCount} color={partialCount ? '#fbbf24' : '#34d399'} />
             </div>
 
-            <div className="relative mb-5 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search name, email, enrollment ID…"
-                    className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+                <div className="relative max-w-sm flex-1 min-w-[220px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                    <input value={search} onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search name, email, enrollment ID…"
+                        className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </div>
+
+                <FilterDropdown
+                    value={lifecycleFilter}
+                    onChange={setLifecycleFilter}
+                    options={LIFECYCLE_FILTERS}
+                    minWidth={165}
+                    getBadge={(value) =>
+                        value === 'all'
+                            ? { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.65)' }
+                            : value === 'expiring_soon'
+                                ? { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)', color: '#fbbf24' }
+                                : lifecycleBadge(value)
+                    }
+                />
             </div>
 
             {error && (
@@ -885,6 +919,20 @@ export default function AdminManualEnrollment() {
                                                     style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}>
                                                     {(row.payment_status || 'paid').toUpperCase()}
                                                 </span>
+                                                {(() => {
+                                                    const lc = getLifecycleStatus(row);
+                                                    if (!lc) return null;
+                                                    const b = lifecycleBadge(lc.tag);
+                                                    return (
+                                                        <div className="flex items-center gap-1.5 mt-2 pl-0.5">
+                                                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: b.color }} />
+                                                            <span className="text-[10px] font-semibold" style={{ color: b.color }}>{lc.label}</span>
+                                                            {lc.tag !== 'expired' && lc.expiringSoon && (
+                                                                <span className="text-[10px]" style={{ color: '#fbbf24' }}>· {lc.daysRemaining}d left</span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-1.5">
