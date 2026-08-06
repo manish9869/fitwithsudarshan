@@ -128,7 +128,6 @@ export default function DietTemplateEditor() {
                 setLoading(false);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const setDayCount = (n) => {

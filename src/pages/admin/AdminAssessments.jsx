@@ -46,7 +46,6 @@ import {
 } from 'lucide-react';
 import PaginationBar from './PaginationBar';
 import {
-    fmtDate,
     fmtDateTime,
     fmtRelativeTime,
     statusBadge,
@@ -1472,7 +1471,7 @@ export default function AdminAssessments() {
             setSearchParams(next, { replace: true });
         }
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []);
 
     const handleRefresh = () => {

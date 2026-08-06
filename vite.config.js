@@ -41,29 +41,15 @@ export default defineConfig({
           // Recharts for admin dashboard — only needed on /admin routes
           'vendor-charts': ['recharts'],
 
-          // Radix UI primitives — large collection
+          // Radix UI primitives actually in use (select/tabs/slider/label —
+          // everything else was only reachable through the shadcn ui/
+          // scaffold files, which were unused and removed)
           'vendor-radix': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
             '@radix-ui/react-select',
             '@radix-ui/react-tabs',
-            '@radix-ui/react-accordion',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-scroll-area',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-radio-group',
             '@radix-ui/react-slider',
-            '@radix-ui/react-switch',
             '@radix-ui/react-label',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-progress',
-            '@radix-ui/react-toggle',
           ],
-
-          // Supabase — only needed after payment/admin
-          'vendor-supabase': ['@supabase/supabase-js'],
 
           // Excel export — only triggered on demand
           'vendor-xlsx': ['xlsx'],
@@ -73,9 +59,6 @@ export default defineConfig({
 
           // Lucide icons — large icon set
           'vendor-lucide': ['lucide-react'],
-
-          // Date utils
-          'vendor-dates': ['date-fns'],
 
           // Admin panel chunk — only loads on /admin routes
           'admin': [

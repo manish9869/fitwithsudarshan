@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Trash2, Edit2, X, Loader2, Tag, Search, Eye,
-    Percent, IndianRupee, Layers, Calendar, CheckCircle2,
-    XCircle, Copy, Check, AlertCircle, AlertTriangle, TrendingUp, Sparkles,
+    Percent, IndianRupee, Layers, CheckCircle2, Copy, Check, AlertCircle, AlertTriangle, TrendingUp, Sparkles,
     ChevronDown,
 } from 'lucide-react';
 import { fetchCoupons, createCouponAdmin, updateCouponAdmin, deleteCouponAdmin } from '../adminApi';

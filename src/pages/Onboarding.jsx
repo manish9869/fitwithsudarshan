@@ -2,11 +2,10 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-    User, Phone, Calendar, MapPin, Target, Dumbbell,
+    User, Dumbbell,
     Utensils, Heart, Camera, CheckCircle2,
     ChevronRight, ChevronLeft, Loader2, AlertCircle,
-    Flame, Shield, Lock, Star, X, Upload,
-    Activity, Zap, Mail, FileText, Home, Eye,
+    Flame, Shield, Lock, Star, X, Upload, Zap, FileText, Home, Eye,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -165,7 +164,7 @@ function PhotoUpload({ label, hint, required, onChange, value, accept = 'image/*
                 if (!wasPdf) setPreview(dataUrl);
             }
         } catch (_) { /* ignore */ }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []);
 
     const handleFile = useCallback(async (file) => {

@@ -299,7 +299,6 @@ export default function DietPlanBuilder() {
                 setLoading(false);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     // Trainer identity comes from the logged-in admin's own profile (Admin →
@@ -317,7 +316,6 @@ export default function DietPlanBuilder() {
                 setTrainer({ name: p.display_name || '', qualification: p.qualification || '', contact: p.contact || '' });
             })
             .catch(() => { /* non-blocking — admin can still fill it in manually */ });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isNew]);
 
     // ── Client detail helpers ──────────────────────────────────────────────

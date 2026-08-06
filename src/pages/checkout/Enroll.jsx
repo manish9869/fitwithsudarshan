@@ -8,11 +8,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { validateCouponRemote } from '@/services/couponService';
-import { formatPrice as fmtPrice } from '@/utils/coupons';
 import { useSiteData } from '@/contexts/SiteDataContext';
 
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
