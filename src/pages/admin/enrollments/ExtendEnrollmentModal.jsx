@@ -128,10 +128,12 @@ export default function ExtendEnrollmentModal({ sourceEnrollment, onClose, onExt
 
                 <form onSubmit={handleSubmit}>
                     <div className="p-5 sm:p-6 space-y-5">
-                        <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
+                        <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl text-sm"
                             style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.18)', color: 'rgba(255,255,255,0.6)' }}>
-                            <Users className="w-4 h-4 flex-shrink-0" style={{ color: '#60a5fa' }} />
-                            Extending for <strong className="text-white">{fmtName(sourceEnrollment.customer_name)}</strong> — client details carry forward automatically.
+                            <Users className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#60a5fa' }} />
+                            <span className="leading-relaxed">
+                                Extending for <strong className="text-white">{fmtName(sourceEnrollment.customer_name)}</strong> — client details carry forward automatically.
+                            </span>
                         </div>
 
                         {error && (
