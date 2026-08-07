@@ -50,10 +50,7 @@ import {
     fmtRelativeTime,
     statusBadge,
     ASSESSMENT_STATUSES,
-    exportAssessmentsToExcel,
-    exportAssessmentsToPDF,
     exportToCSV,
-    exportSingleAssessmentToExcel,
 } from './adminUtils';
 
 import { useDebounce } from './useDebounce';
@@ -870,7 +867,7 @@ function DetailDrawer({ assessmentId, onClose, onNoteClick, onStatusChange, onRe
 
                         {assessment && (
                             <button
-                                onClick={() => exportSingleAssessmentToExcel(assessment)}
+                                onClick={() => import('./adminExcelExport').then(({ exportSingleAssessmentToExcel }) => exportSingleAssessmentToExcel(assessment))}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                                 style={{
                                     background: 'rgba(96,165,250,0.1)',
@@ -1653,11 +1650,17 @@ export default function AdminAssessments() {
                     `recode-assessments-${new Date().toISOString().slice(0, 10)}`
                 );
             } else if (format === 'excel') {
+                // Dynamic import: xlsx is fairly heavy and only needed for
+                // this one export path, not every admin page that happens
+                // to import adminUtils.js for its formatters.
+                const { exportAssessmentsToExcel } = await import('./adminExcelExport');
                 exportAssessmentsToExcel(allRows, {
                     dateFrom: range?.from,
                     dateTo: range?.to,
                 });
             } else if (format === 'pdf') {
+                // Dynamic import: same reasoning — jsPDF only needed here.
+                const { exportAssessmentsToPDF } = await import('./adminPdfExport');
                 exportAssessmentsToPDF(allRows, {
                     dateFrom: range?.from,
                     dateTo: range?.to,
