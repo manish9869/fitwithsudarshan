@@ -28,7 +28,6 @@ import { MEAL_TYPES, OPTIONAL_MEAL_TYPES } from './dietMealTypes';
 import { filterFoodPicker } from './dietFoodFilters';
 import FoodFilterBar from './FoodFilterBar';
 import { DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
-import { generateDietPlanPDF, buildDietPlanPreviewUrl } from './dietPdfGenerator';
 import Modal from './DietModal';
 
 const STEPS = [
@@ -594,6 +593,12 @@ export default function DietPlanBuilder() {
         } catch {
             return; // handleSave already showed the real error — don't download an unsaved plan
         }
+        // Dynamic import: jsPDF (+ its internal html2canvas dependency) is
+        // fairly heavy, and this page is statically imported by App.jsx's
+        // route table — a top-level import here would pull PDF-drawing code
+        // into the builder on every visit, not just the ones that actually
+        // reach the export step. Same pattern as EnrollmentDietPlanCard.jsx.
+        const { generateDietPlanPDF } = await import('./dietPdfGenerator');
         await generateDietPlanPDF(buildPayload(), buildExportOptions());
         navigate('/admin/diet-plans');
     };
@@ -625,6 +630,7 @@ export default function DietPlanBuilder() {
         let cancelled = false;
         const timer = setTimeout(async () => {
             try {
+                const { buildDietPlanPreviewUrl } = await import('./dietPdfGenerator');
                 const url = await buildDietPlanPreviewUrl(buildPayload(), buildExportOptions());
                 if (!cancelled) setPreviewUrl(url);
             } catch {

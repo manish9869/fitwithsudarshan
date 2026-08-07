@@ -63,9 +63,6 @@ import {
     downloadInvoicePDF,
     statusBadge,
     ENROLLMENT_STATUSES,
-    exportEnrollmentsToExcel,
-    exportEnrollmentsToPDF,
-    exportSingleEnrollmentToExcel,
     getLifecycleStatus,
     lifecycleBadge,
     LIFECYCLE_FILTERS,
@@ -503,7 +500,7 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                             />
 
                             <button
-                                onClick={() => exportSingleEnrollmentToExcel(enrollment)}
+                                onClick={() => import('../adminExcelExport').then(({ exportSingleEnrollmentToExcel }) => exportSingleEnrollmentToExcel(enrollment))}
                                 className="flex items-center justify-center w-9 h-9 rounded-lg transition-all"
                                 style={{
                                     background: 'rgba(96,165,250,0.1)',
@@ -1566,11 +1563,17 @@ export default function AdminEnrollments() {
                     `recode-enrollments-${new Date().toISOString().slice(0, 10)}`
                 );
             } else if (format === 'excel') {
+                // Dynamic import: xlsx is fairly heavy and only needed for
+                // this one export path, not every admin page that happens
+                // to import adminUtils.js for its formatters.
+                const { exportEnrollmentsToExcel } = await import('../adminExcelExport');
                 exportEnrollmentsToExcel(allRows, {
                     dateFrom: range?.from,
                     dateTo: range?.to,
                 });
             } else if (format === 'pdf') {
+                // Dynamic import: same reasoning — jsPDF only needed here.
+                const { exportEnrollmentsToPDF } = await import('../adminPdfExport');
                 exportEnrollmentsToPDF(allRows, {
                     dateFrom: range?.from,
                     dateTo: range?.to,

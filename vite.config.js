@@ -30,47 +30,60 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
+        // FIX: this used to manually isolate jspdf/recharts/xlsx/admin-pages
+        // into their own named chunks (both as a plain object, and then as a
+        // function — neither actually fixed it). A PageSpeed Insights audit
+        // caught the real symptom: index.html's entry script statically
+        // imported vendor-pdf (594KB) and vendor-charts (431KB), and every
+        // manually-named chunk got a <link rel="modulepreload"> in
+        // index.html — ~377KB+ of admin-only JS fetched at HIGH priority on
+        // every first visit to the public landing page, a big chunk of a
+        // 7.6s LCP / 9.3s Time to Interactive.
+        //
+        // Root cause (confirmed via sourcemap): jsPDF has its own internal
+        // `import('html2canvas')` call. Forcing jsPDF into an isolated
+        // manual chunk put that dynamic-import call site — and the small
+        // shared Vite runtime helper every dynamic import() needs — inside
+        // that chunk. The entry ALSO needs that same shared helper for its
+        // own 39 lazy-loaded routes, so Rollup wired the entry to import it
+        // from vendor-pdf, dragging the whole 594KB chunk along for a
+        // ~150-byte function. The 'admin' grouping had the identical risk
+        // (it included adminUtils.js, which also imports jsPDF).
+        //
+        // Fix: only manually chunk libraries with no such internal dynamic
+        // imports that are ALSO genuinely needed on every page (React,
+        // Framer Motion, the 4 Radix primitives the landing page's
+        // ToolsSection uses, Lucide icons). Everything admin-only
+        // (jspdf/recharts/xlsx/the admin pages themselves) is left to
+        // Rollup's default automatic splitting, which correctly keeps
+        // async-only code async without this kind of cross-chunk leak.
+        manualChunks(id) {
+          const norm = id.split('\\').join('/');
+          if (!norm.includes('node_modules')) return;
 
           // React core — cached long-term, rarely changes
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          if (
+            norm.includes('/node_modules/react/') ||
+            norm.includes('/node_modules/react-dom/') ||
+            norm.includes('/node_modules/react-router-dom/') ||
+            norm.includes('/node_modules/scheduler/')
+          ) return 'vendor-react';
 
           // Animation library — large, split out
-          'vendor-framer': ['framer-motion'],
-
-          // Recharts for admin dashboard — only needed on /admin routes
-          'vendor-charts': ['recharts'],
+          if (norm.includes('/node_modules/framer-motion/')) return 'vendor-framer';
 
           // Radix UI primitives actually in use (select/tabs/slider/label —
           // everything else was only reachable through the shadcn ui/
           // scaffold files, which were unused and removed)
-          'vendor-radix': [
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-slider',
-            '@radix-ui/react-label',
-          ],
-
-          // Excel export — only triggered on demand
-          'vendor-xlsx': ['xlsx'],
-
-          // PDF — only triggered on demand
-          'vendor-pdf': ['jspdf'],
+          if (
+            norm.includes('/node_modules/@radix-ui/react-select/') ||
+            norm.includes('/node_modules/@radix-ui/react-tabs/') ||
+            norm.includes('/node_modules/@radix-ui/react-slider/') ||
+            norm.includes('/node_modules/@radix-ui/react-label/')
+          ) return 'vendor-radix';
 
           // Lucide icons — large icon set
-          'vendor-lucide': ['lucide-react'],
-
-          // Admin panel chunk — only loads on /admin routes
-          'admin': [
-            './src/pages/admin/AdminDashboard.jsx',
-            './src/pages/admin/enrollments/AdminEnrollments.jsx',
-            './src/pages/admin/AdminAssessments.jsx',
-            './src/pages/admin/AdminLayout.jsx',
-            './src/pages/admin/AdminLogin.jsx',
-            './src/pages/admin/AdminGuard.jsx',
-            './src/pages/admin/adminApi.js',
-            './src/pages/admin/adminUtils.js',
-          ],
+          if (norm.includes('/node_modules/lucide-react/')) return 'vendor-lucide';
         },
       },
     },
