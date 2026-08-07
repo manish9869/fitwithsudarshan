@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSiteData } from "@/contexts/SiteDataContext";
+import { DEFAULT_LOGO_URL } from "@/utils/siteContentDefaults";
 
 const bgIcons = [Activity, Flame, Target, Heart, Zap, Dumbbell];
 
@@ -304,7 +305,7 @@ export default function FooterSection() {
                             className="flex items-center gap-2 mb-4 group"
                         >
                             <img
-                                src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png"
+                                src={brand?.logo || DEFAULT_LOGO_URL}
                                 alt="FitWithSudarshan"
                                 className="h-10 group-hover:scale-105 transition-transform"
                             />

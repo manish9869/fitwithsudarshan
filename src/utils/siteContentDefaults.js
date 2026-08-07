@@ -84,3 +84,8 @@ export const DEFAULT_HERO_BANNER_IMAGE =
 
 export const DEFAULT_COACH_PHOTO =
     'https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan.jpeg';
+
+// Site logo (navbar, footer, admin sidebar) — used whenever an admin hasn't
+// uploaded a custom one (brand.logo is empty).
+export const DEFAULT_LOGO_URL =
+    'https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png';

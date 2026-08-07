@@ -11,7 +11,7 @@ import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_MAINTENANCE, DEFAULT_LOGGING, DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_LOGO_URL, DEFAULT_MAINTENANCE, DEFAULT_LOGGING, DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -68,6 +68,14 @@ function BrandForm({ value, onChange }) {
     const set = (k) => (val) => onChange({ ...v, [k]: val });
     return (
         <FieldGroup title="Brand" description="Your business name and tagline, shown across the site and in the browser tab.">
+            <ImageField
+                label="Logo"
+                value={v.logo || ''}
+                onChange={set('logo')}
+                folder="brand"
+                defaultPreview={DEFAULT_LOGO_URL}
+                hint="Shown in the navbar, footer, and admin sidebar. Upload a new one anytime, or reset to go back to the original."
+            />
             <TextInput label="Business Name" value={v.name} onChange={set('name')} placeholder="FitWithSudarshan" />
             <TextInput label="System / Program Name" value={v.system} onChange={set('system')} placeholder="RECODE™" />
             <TextInput label="Tagline" value={v.tagline} onChange={set('tagline')} placeholder="Recode Your Body. Recode Your Life." />

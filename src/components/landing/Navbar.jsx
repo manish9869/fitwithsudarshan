@@ -4,9 +4,11 @@ import { Menu, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { wa } from "@/utils/whatsapp"
 import { useSiteData } from "@/contexts/SiteDataContext"
+import { DEFAULT_LOGO_URL } from "@/utils/siteContentDefaults"
 
 export function Navbar() {
-    const { navbar } = useSiteData()
+    const { navbar, brand } = useSiteData()
+    const logoUrl = brand?.logo || DEFAULT_LOGO_URL
 
     const navItems = navbar?.navItems?.length
         ? navbar.navItems
@@ -96,7 +98,7 @@ export function Navbar() {
                 }}
             >
                 <img
-                    src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png"
+                    src={logoUrl}
                     alt="FitWithSudarshan"
                     style={{ height: "48px" }}
                 />
@@ -216,7 +218,7 @@ export function Navbar() {
                         className="flex items-center gap-2"
                     >
                         <img
-                            src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png"
+                            src={logoUrl}
                             alt="FitWithSudarshan"
                             className="h-12 lg:h-14"
                         />

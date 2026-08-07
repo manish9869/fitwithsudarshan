@@ -31,6 +31,8 @@ import {
 
 import { logout, getStoredAdmin } from './adminApi';
 import { ToastProvider } from './ToastProvider';
+import { useSiteData } from '@/contexts/SiteDataContext';
+import { DEFAULT_LOGO_URL } from '@/utils/siteContentDefaults';
 
 const NAV_GROUPS = [
     {
@@ -87,6 +89,8 @@ const NAV_GROUPS = [
 
 export default function AdminLayout() {
     const navigate = useNavigate();
+    const { brand } = useSiteData();
+    const logoUrl = brand?.logo || DEFAULT_LOGO_URL;
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [admin, setAdmin] = useState(getStoredAdmin());
@@ -120,7 +124,7 @@ export default function AdminLayout() {
             >
                 <div className="flex items-center gap-3">
                     <img
-                        src="https://vducmiggraxtqdgt.public.blob.vercel-storage.com/logo.png"
+                        src={logoUrl}
                         alt="FitWithSudarshan"
                         className="w-9 h-9 rounded-xl"
                     />
