@@ -43,9 +43,10 @@ export function isLoggedIn() {
 
 // ── Core request helper ───────────────────────────────────────────────────────
 class AdminApiError extends Error {
-    constructor(message, status) {
+    constructor(message, status, data) {
         super(message);
         this.status = status;
+        this.data = data;
     }
 }
 
@@ -77,7 +78,7 @@ async function request(path, { method = 'GET', body, params } = {}) {
     try { data = await res.json(); } catch { data = {}; }
 
     if (!res.ok) {
-        throw new AdminApiError(data.error || `Request failed (${res.status})`, res.status);
+        throw new AdminApiError(data.error || `Request failed (${res.status})`, res.status, data);
     }
 
     return data;
