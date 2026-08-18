@@ -27,6 +27,7 @@ import {
     BarChart3,
     CalendarRange,
     Repeat2,
+    ShieldCheck,
 } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
@@ -51,6 +52,7 @@ const NAV_GROUPS = [
             { to: '/admin/manual-enrollment', icon: UserPlus, label: 'Manual Entry' },
             { to: '/admin/balance-due', icon: Wallet, label: 'Balance Due' },
             { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
+            { to: '/admin/data-audit', icon: ShieldCheck, label: 'Data Audit' },
             { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
             { to: '/admin/diet-plans', icon: Salad, label: 'Diet Plans' },
         ],

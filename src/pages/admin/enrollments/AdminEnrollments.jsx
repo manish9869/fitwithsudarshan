@@ -45,8 +45,7 @@ import { buildDietPrefillFromEnrollment } from '../diet/dietPrefill';
 import {
     fetchEnrollments,
     fetchEnrollment,
-    setEnrollmentStatus,
-    recomputeEnrollmentStatus,
+    refundEnrollment,
     setEnrollmentPlanStartDate,
     exportEnrollmentsAll,
     saveNote, sendEnrollmentEmail,
@@ -114,141 +113,21 @@ function StatCard({ label, value, sub, color }) {
 }
 
 
-function StatusSelect({ value, onChange, disabled }) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+// Read-only — payment_status is derived entirely from Record Payment /
+// the website checkout (Razorpay confirm/webhook), never hand-picked. The
+// only exception is a deliberate refund, which has its own separate,
+// confirm-gated action (RefundAction below) rather than living as one more
+// option in a casual dropdown.
+function StatusBadge({ value }) {
     const badge = statusBadge(value || 'paid');
-
-    useEffect(() => {
-        if (!open) return;
-
-        const handler = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) {
-                setOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
-
     return (
-        <div ref={ref} className="relative inline-block">
-            <button
-                type="button"
-                disabled={disabled}
-                onClick={() => setOpen((o) => !o)}
-                className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50 focus:outline-none"
-                style={{
-                    background: badge.bg,
-                    border: `1px solid ${badge.border}`,
-                    color: badge.color,
-                    minWidth: 90,
-                }}
-            >
-                <span
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: badge.color }}
-                />
-
-                <span className="flex-1 text-left leading-none">
-                    {formatLabel(value || 'paid')}
-                </span>
-
-                <ChevronDown
-                    className="w-2.5 h-2.5 flex-shrink-0 transition-transform"
-                    style={{
-                        opacity: 0.6,
-                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                    }}
-                />
-            </button>
-
-            <AnimatePresence>
-                {open && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                        transition={{ duration: 0.12 }}
-                        className="absolute left-0 top-full mt-1.5 z-[100] rounded-xl overflow-hidden shadow-2xl"
-                        style={{
-                            background: '#13131f',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            minWidth: 160,
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                        }}
-                    >
-                        {ENROLLMENT_STATUSES.map((s) => {
-                            const b = statusBadge(s);
-                            const isActive = s === (value || 'paid');
-                            // 'Paid' can only ever be reached by actually recording a
-                            // payment (Record Payment / website checkout) — never by
-                            // hand-picking it here, or the row shows "Paid" while
-                            // amount_paid/balance_due stay untouched at whatever they
-                            // were. Still shown (so the list stays visually complete
-                            // and the current value renders normally) but disabled.
-                            const isBlockedPaid = s === 'paid' && !isActive;
-
-                            return (
-                                <button
-                                    type="button"
-                                    key={s}
-                                    disabled={isBlockedPaid}
-                                    title={isBlockedPaid ? 'Use Record Payment to mark as paid' : undefined}
-                                    onClick={() => {
-                                        if (isBlockedPaid) return;
-                                        onChange(s);
-                                        setOpen(false);
-                                    }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-left transition-colors disabled:cursor-not-allowed"
-                                    style={{
-                                        background: isActive
-                                            ? 'rgba(255,255,255,0.06)'
-                                            : 'transparent',
-                                        opacity: isBlockedPaid ? 0.4 : 1,
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!isActive && !isBlockedPaid) {
-                                            e.currentTarget.style.background =
-                                                'rgba(255,255,255,0.04)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = isActive
-                                            ? 'rgba(255,255,255,0.06)'
-                                            : 'transparent';
-                                    }}
-                                >
-                                    <span
-                                        className="w-2 h-2 rounded-full flex-shrink-0"
-                                        style={{ background: b.color }}
-                                    />
-
-                                    <span
-                                        className="flex-1"
-                                        style={{
-                                            color: isActive
-                                                ? b.color
-                                                : 'rgba(255,255,255,0.65)',
-                                        }}
-                                    >
-                                        {formatLabel(s)}
-                                    </span>
-
-                                    {isActive && (
-                                        <Check
-                                            className="w-3 h-3 flex-shrink-0"
-                                            style={{ color: b.color }}
-                                        />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+        <span
+            className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
+            style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color, minWidth: 90 }}
+        >
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: badge.color }} />
+            <span className="flex-1 text-left leading-none">{formatLabel(value || 'paid')}</span>
+        </span>
     );
 }
 
@@ -365,7 +244,7 @@ function NoteModal({ recordId, name, currentNote, onClose, onSaved }) {
     );
 }
 
-function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPaymentRecorded, onNavigateToEnrollment, onEnrollmentDeleted }) {
+function DetailDrawer({ enrollmentId, onClose, onNoteClick, onPaymentRecorded, onNavigateToEnrollment, onEnrollmentDeleted }) {
     const [enrollment, setEnrollment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState('');
@@ -376,28 +255,27 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
     const [fixingPlanStart, setFixingPlanStart] = useState(false);
     const [planStartDraft, setPlanStartDraft] = useState('');
     const [savingPlanStart, setSavingPlanStart] = useState(false);
-    const [recomputing, setRecomputing] = useState(false);
+    const [confirmingRefund, setConfirmingRefund] = useState(false);
+    const [refunding, setRefunding] = useState(false);
     const toast = useToast();
 
-    // The undo for "accidentally clicked Pending/Failed/Refunded on a row
-    // that was actually already paid" — 'Paid' can't be hand-picked from the
-    // dropdown anymore (by design), so this is the only way back. Re-derives
-    // payment_status/amount_paid/balance_due from the actual payment ledger,
-    // which a status click never touches either way — safe even after a
-    // Failed/Refunded mis-click zeroed the enrollment row's own fields.
-    const handleRecompute = async () => {
-        setRecomputing(true);
+    // The one deliberate manual override of payment_status — separate from
+    // (and confirm-gated, unlike) a casual dropdown, since nothing else in
+    // the system can ever detect "the admin already sent this money back
+    // outside the app." Zeroes amount_paid/balance_due; the payment ledger
+    // itself is left untouched as the permanent record of what was
+    // originally collected.
+    const handleRefund = async () => {
+        setRefunding(true);
         try {
-            const updated = await recomputeEnrollmentStatus(enrollment.id);
-            // Bubbles into both local state and the parent table/cache —
-            // deliberately NOT onStatusChange, which would PATCH /status
-            // with 'paid' and hit the very block this recovers from.
+            const updated = await refundEnrollment(enrollment.id);
             handlePaymentRecorded(updated);
-            toast.success(`Recalculated — now ${formatLabel(updated.payment_status)}`);
+            setConfirmingRefund(false);
+            toast.success('Marked as refunded');
         } catch (e) {
-            toast.error(e.message || 'Failed to recalculate status.');
+            toast.error(e.message || 'Failed to mark as refunded.');
         } finally {
-            setRecomputing(false);
+            setRefunding(false);
         }
     };
 
@@ -670,28 +548,47 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                     </p>
 
                                     <div className="flex justify-center">
-                                        <StatusSelect
-                                            value={enrollment.payment_status || 'paid'}
-                                            onChange={(newStatus) => {
-                                                onStatusChange(enrollment.id, newStatus);
-                                                setEnrollment((prev) => ({
-                                                    ...prev,
-                                                    payment_status: newStatus,
-                                                }));
-                                            }}
-                                        />
+                                        <StatusBadge value={enrollment.payment_status || 'paid'} />
                                     </div>
 
-                                    {(enrollment.payment_status || 'paid') !== 'paid' && (
-                                        <button
-                                            onClick={handleRecompute}
-                                            disabled={recomputing}
-                                            title="Re-derive status from the actual payment history — use this if Pending/Failed/Refunded was clicked by mistake on a row that was really already paid"
-                                            className="mt-2 text-[10px] font-semibold underline decoration-dotted disabled:opacity-50"
-                                            style={{ color: 'rgba(255,255,255,0.4)' }}
-                                        >
-                                            {recomputing ? 'Recalculating…' : 'Recalculate from payment history'}
-                                        </button>
+                                    {/* Only a currently-'paid' enrollment can be refunded — nothing
+                                        else needs a manual override, since Record Payment and the
+                                        website checkout are the only two things that ever set
+                                        payment_status otherwise. */}
+                                    {(enrollment.payment_status || 'paid') === 'paid' && (
+                                        confirmingRefund ? (
+                                            <div className="mt-2 flex flex-col items-center gap-1.5">
+                                                <p className="text-[10px] text-white/40">
+                                                    Only after you've already sent the money back — confirm?
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={handleRefund}
+                                                        disabled={refunding}
+                                                        className="text-[10px] font-bold px-2.5 py-1 rounded-lg disabled:opacity-50"
+                                                        style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
+                                                    >
+                                                        {refunding ? 'Marking…' : 'Confirm Refund'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmingRefund(false)}
+                                                        disabled={refunding}
+                                                        className="text-[10px] text-white/40 hover:text-white/60 disabled:opacity-50"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setConfirmingRefund(true)}
+                                                title="Record that this enrollment's payment was refunded outside the system"
+                                                className="mt-2 text-[10px] font-semibold underline decoration-dotted"
+                                                style={{ color: 'rgba(255,255,255,0.4)' }}
+                                            >
+                                                Mark Refunded
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             </div>
@@ -1591,28 +1488,6 @@ export default function AdminEnrollments() {
         );
     };
 
-    const handleStatusChange = async (id, newStatus) => {
-        const patch = (rows) =>
-            rows.map((r) =>
-                r.id === id ? { ...r, payment_status: newStatus } : r
-            );
-
-        setAllData(patch);
-
-        if (_cache.allRows) {
-            _cache.allRows = patch(_cache.allRows);
-        }
-
-        try {
-            await setEnrollmentStatus(id, newStatus);
-            toast.success('Status updated');
-        } catch (e) {
-            setError(e.message || 'Failed to update status.');
-            toast.error(e.message || 'Failed to update status.');
-            fetchData({ silent: true });
-        }
-    };
-
     // NEW: patches the list/cache whenever a payment is recorded from
     // inside the detail drawer's PaymentLedgerPanel, so amount_paid /
     // balance_due / payment_plan_status stay correct without a full
@@ -2134,12 +2009,7 @@ export default function AdminEnrollments() {
                                             </td>
 
                                             <td className="px-4 py-3">
-                                                <StatusSelect
-                                                    value={row.payment_status || 'paid'}
-                                                    onChange={(v) =>
-                                                        handleStatusChange(row.id, v)
-                                                    }
-                                                />
+                                                <StatusBadge value={row.payment_status || 'paid'} />
                                                 {(() => {
                                                     const lc = getLifecycleStatus(row);
                                                     if (!lc) return null;
@@ -2268,7 +2138,6 @@ export default function AdminEnrollments() {
                             setNoteTarget(row);
                             setSelectedId(null);
                         }}
-                        onStatusChange={handleStatusChange}
                         onPaymentRecorded={handlePaymentRecorded}
                         onNavigateToEnrollment={(id) => {
                             handleRefresh();

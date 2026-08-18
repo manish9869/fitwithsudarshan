@@ -16,6 +16,15 @@ import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 import { wa } from "@/utils/whatsapp";
+import { useSectionEngagement } from '@/hooks/useSectionEngagement';
+
+// Wraps a landing-page section with both its existing #id (nav anchors)
+// and time-on-section tracking (see useSectionEngagement.js).
+function TrackedSection({ name, children }) {
+    const ref = useSectionEngagement(name);
+    return <div id={name} ref={ref}>{children}</div>;
+}
+
 // Reusable scroll-reveal wrapper
 function Reveal({ children, delay = 0 }) {
     const ref = useRef(null);
@@ -38,12 +47,12 @@ export default function Landing() {
             <Navbar />
             <HeroSection />
 
-            <Reveal><div id="features"><FeaturesSection /></div></Reveal>
-            <Reveal delay={0.05}><div id="transformations"><TransformationsSection /></div></Reveal>
-            <Reveal delay={0.05}><div id="tools"><ToolsSection /></div></Reveal>
-            <Reveal delay={0.05}><div id="testimonials"><TestimonialsSection /></div></Reveal>
-            <Reveal delay={0.05}><div id="pricing"><PricingSection /></div></Reveal>
-            <Reveal delay={0.05}><div id="blog"><BlogSection /></div></Reveal>
+            <Reveal><TrackedSection name="features"><FeaturesSection /></TrackedSection></Reveal>
+            <Reveal delay={0.05}><TrackedSection name="transformations"><TransformationsSection /></TrackedSection></Reveal>
+            <Reveal delay={0.05}><TrackedSection name="tools"><ToolsSection /></TrackedSection></Reveal>
+            <Reveal delay={0.05}><TrackedSection name="testimonials"><TestimonialsSection /></TrackedSection></Reveal>
+            <Reveal delay={0.05}><TrackedSection name="pricing"><PricingSection /></TrackedSection></Reveal>
+            <Reveal delay={0.05}><TrackedSection name="blog"><BlogSection /></TrackedSection></Reveal>
 
             {/* ── Final CTA Section ──
                 320px fixes:
@@ -117,7 +126,7 @@ export default function Landing() {
                 </Reveal>
             </section>
 
-            <Reveal><div id="contact"><ContactSection /></div></Reveal>
+            <Reveal><TrackedSection name="contact"><ContactSection /></TrackedSection></Reveal>
             <FooterSection />
 
             <FloatingWhatsApp />

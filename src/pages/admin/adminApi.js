@@ -126,6 +126,10 @@ export async function fetchDashboard(rangeDays = 90) {
     return request('/dashboard', { params: { range: rangeDays } });
 }
 
+export async function fetchDataAudit() {
+    return request('/data-audit');
+}
+
 // { configured: false } if GA4 isn't set up yet, otherwise
 // { configured: true, total, topPages, fetchedAt } or { configured: true, error }.
 export async function fetchLiveUsers() {
@@ -149,13 +153,8 @@ export async function fetchEnrollment(id) {
     return data.enrollment;
 }
 
-export async function setEnrollmentStatus(id, status) {
-    const data = await request(`/enrollments/${id}/status`, { method: 'PATCH', body: { status } });
-    return data.enrollment;
-}
-
-export async function recomputeEnrollmentStatus(id) {
-    const data = await request(`/enrollments/${id}/recompute-status`, { method: 'POST' });
+export async function refundEnrollment(id) {
+    const data = await request(`/enrollments/${id}/refund`, { method: 'POST' });
     return data.enrollment;
 }
 

@@ -14,6 +14,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import CustomCursor from '@/components/CustomCursor';
 import ScrollToTop from '@/components/ScrollToTop';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
+import UpdateAvailableBanner from '@/components/UpdateAvailableBanner';
 import Landing from '@/pages/Landing';
 import MaintenancePage from '@/pages/MaintenancePage';
 import { lazyRetry } from '@/utils/lazyRetry';
@@ -112,6 +113,10 @@ const AdminFollowUps = lazy(() =>
 
 const AdminFunnelAudit = lazy(() =>
   lazyRetry(() => import('@/pages/admin/AdminFunnelAudit'))
+);
+
+const AdminDataAudit = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/AdminDataAudit'))
 );
 
 const AdminAnalytics = lazy(() =>
@@ -295,6 +300,7 @@ function App() {
           <CustomCursor />
           <ScrollToTop />
           <AnalyticsTracker />
+          <UpdateAvailableBanner />
 
           <MaintenanceGate>
           <Routes>
@@ -505,6 +511,15 @@ function App() {
                 element={
                   <LazyRoute>
                     <AdminFunnelAudit />
+                  </LazyRoute>
+                }
+              />
+
+              <Route
+                path="data-audit"
+                element={
+                  <LazyRoute>
+                    <AdminDataAudit />
                   </LazyRoute>
                 }
               />

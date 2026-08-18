@@ -2,11 +2,35 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { writeFileSync } from 'fs';
+
+// One id per build, used by the frontend to detect "a newer deploy exists"
+// while a tab is already open (see src/hooks/useBuildVersionCheck.js) — the
+// lazyRetry() self-heal already covers a stale chunk failing to *load*, but
+// nothing previously told an already-open tab that hadn't touched a new
+// route yet that a newer build was live at all.
+const BUILD_ID = String(Date.now());
+
+// public/ files are copied verbatim before the build even starts, so this
+// can't be a static file — it has to be written after Vite finishes, with
+// the exact same id that got baked into the JS bundle via `define`.
+function writeVersionFile() {
+  return {
+    name: 'write-version-json',
+    closeBundle() {
+      writeFileSync(path.resolve(__dirname, 'dist/version.json'), JSON.stringify({ buildId: BUILD_ID }));
+    },
+  };
+}
 
 export default defineConfig({
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   plugins: [
     react(),
     tailwindcss(),
+    writeVersionFile(),
   ],
   resolve: {
     alias: {

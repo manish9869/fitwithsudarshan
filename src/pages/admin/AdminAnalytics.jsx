@@ -121,6 +121,14 @@ function RankedList({ items, labelKey, valueKey, formatValue = (v) => v.toLocale
     );
 }
 
+function formatDuration(totalSeconds) {
+    const s = Math.round(totalSeconds);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem ? `${m}m ${rem}s` : `${m}m`;
+}
+
 const RANGE_OPTIONS = [{ label: '7D', value: 7 }, { label: '30D', value: 30 }, { label: '90D', value: 90 }];
 
 export default function AdminAnalytics() {
@@ -254,6 +262,42 @@ export default function AdminAnalytics() {
                                         <Legend wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }} iconType="circle" iconSize={8} />
                                     </PieChart>
                                 </ResponsiveContainer>
+                            )}
+                        </ChartCard>
+                    </div>
+
+                    <div className="grid gap-5 mt-5">
+                        <ChartCard title="Time Spent per Page" icon={Clock} badge={`${data.timeOnPage.length}`}>
+                            {!data.timeOnPage.length ? <EmptyState /> : (
+                                <RankedList items={data.timeOnPage} labelKey="path" valueKey="avgEngagementSeconds" formatValue={formatDuration} />
+                            )}
+                        </ChartCard>
+                    </div>
+
+                    <div className="grid gap-5 mt-5">
+                        <ChartCard title="Time Spent per Landing Section" icon={Clock} badge={data.sectionEngagement.configured ? `${data.sectionEngagement.sections.length}` : undefined}>
+                            {!data.sectionEngagement.configured ? (
+                                <div className="flex flex-col items-center justify-center py-10 text-center px-6">
+                                    <Clock className="w-6 h-6 text-white/12 mb-3" />
+                                    <p className="text-xs text-white/40 mb-1.5">Not set up yet in GA4</p>
+                                    <p className="text-[11px] text-white/25 max-w-md leading-relaxed">
+                                        Tracking code is already live on the landing page. In GA4 → Admin → Custom
+                                        definitions, register two event-scoped custom definitions from the
+                                        <code className="mx-1 px-1 rounded" style={{ background: 'rgba(255,255,255,0.06)' }}>section_engagement</code>
+                                        event: dimension <code className="mx-1 px-1 rounded" style={{ background: 'rgba(255,255,255,0.06)' }}>section_name</code>
+                                        and metric <code className="mx-1 px-1 rounded" style={{ background: 'rgba(255,255,255,0.06)' }}>engaged_seconds</code>.
+                                        Data appears here once GA4 finishes processing (usually within a day).
+                                    </p>
+                                </div>
+                            ) : !data.sectionEngagement.sections.length ? (
+                                <EmptyState label="No section engagement recorded in this range yet" />
+                            ) : (
+                                <RankedList
+                                    items={data.sectionEngagement.sections.map((s) => ({ ...s, section: s.section.charAt(0).toUpperCase() + s.section.slice(1) }))}
+                                    labelKey="section"
+                                    valueKey="avgEngagementSeconds"
+                                    formatValue={formatDuration}
+                                />
                             )}
                         </ChartCard>
                     </div>
