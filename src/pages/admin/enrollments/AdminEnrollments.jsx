@@ -46,6 +46,7 @@ import {
     fetchEnrollments,
     fetchEnrollment,
     setEnrollmentStatus,
+    recomputeEnrollmentStatus,
     setEnrollmentPlanStartDate,
     exportEnrollmentsAll,
     saveNote, sendEnrollmentEmail,
@@ -375,7 +376,30 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
     const [fixingPlanStart, setFixingPlanStart] = useState(false);
     const [planStartDraft, setPlanStartDraft] = useState('');
     const [savingPlanStart, setSavingPlanStart] = useState(false);
+    const [recomputing, setRecomputing] = useState(false);
     const toast = useToast();
+
+    // The undo for "accidentally clicked Pending/Failed/Refunded on a row
+    // that was actually already paid" — 'Paid' can't be hand-picked from the
+    // dropdown anymore (by design), so this is the only way back. Re-derives
+    // payment_status/amount_paid/balance_due from the actual payment ledger,
+    // which a status click never touches either way — safe even after a
+    // Failed/Refunded mis-click zeroed the enrollment row's own fields.
+    const handleRecompute = async () => {
+        setRecomputing(true);
+        try {
+            const updated = await recomputeEnrollmentStatus(enrollment.id);
+            // Bubbles into both local state and the parent table/cache —
+            // deliberately NOT onStatusChange, which would PATCH /status
+            // with 'paid' and hit the very block this recovers from.
+            handlePaymentRecorded(updated);
+            toast.success(`Recalculated — now ${formatLabel(updated.payment_status)}`);
+        } catch (e) {
+            toast.error(e.message || 'Failed to recalculate status.');
+        } finally {
+            setRecomputing(false);
+        }
+    };
 
     const handleSavePlanStart = async () => {
         if (!planStartDraft) return;
@@ -657,6 +681,18 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                             }}
                                         />
                                     </div>
+
+                                    {(enrollment.payment_status || 'paid') !== 'paid' && (
+                                        <button
+                                            onClick={handleRecompute}
+                                            disabled={recomputing}
+                                            title="Re-derive status from the actual payment history — use this if Pending/Failed/Refunded was clicked by mistake on a row that was really already paid"
+                                            className="mt-2 text-[10px] font-semibold underline decoration-dotted disabled:opacity-50"
+                                            style={{ color: 'rgba(255,255,255,0.4)' }}
+                                        >
+                                            {recomputing ? 'Recalculating…' : 'Recalculate from payment history'}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
