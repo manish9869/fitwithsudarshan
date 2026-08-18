@@ -181,23 +181,34 @@ function StatusSelect({ value, onChange, disabled }) {
                         {ENROLLMENT_STATUSES.map((s) => {
                             const b = statusBadge(s);
                             const isActive = s === (value || 'paid');
+                            // 'Paid' can only ever be reached by actually recording a
+                            // payment (Record Payment / website checkout) — never by
+                            // hand-picking it here, or the row shows "Paid" while
+                            // amount_paid/balance_due stay untouched at whatever they
+                            // were. Still shown (so the list stays visually complete
+                            // and the current value renders normally) but disabled.
+                            const isBlockedPaid = s === 'paid' && !isActive;
 
                             return (
                                 <button
                                     type="button"
                                     key={s}
+                                    disabled={isBlockedPaid}
+                                    title={isBlockedPaid ? 'Use Record Payment to mark as paid' : undefined}
                                     onClick={() => {
+                                        if (isBlockedPaid) return;
                                         onChange(s);
                                         setOpen(false);
                                     }}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-left transition-colors"
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-semibold text-left transition-colors disabled:cursor-not-allowed"
                                     style={{
                                         background: isActive
                                             ? 'rgba(255,255,255,0.06)'
                                             : 'transparent',
+                                        opacity: isBlockedPaid ? 0.4 : 1,
                                     }}
                                     onMouseEnter={(e) => {
-                                        if (!isActive) {
+                                        if (!isActive && !isBlockedPaid) {
                                             e.currentTarget.style.background =
                                                 'rgba(255,255,255,0.04)';
                                         }
@@ -1503,6 +1514,39 @@ export default function AdminEnrollments() {
         allData.map((r) => r.customer_email || r.customer_phone || r.id)
     ).size, [allData]);
 
+    // Whole-dataset lifecycle picture (not scoped to the current page/filter,
+    // unlike the cards above) — one bucket per CLIENT, not per enrollment
+    // row, so a renewed client with 2 rows (original + extension) counts
+    // once under whichever period is currently live. When a client has both
+    // an expired old period and a fresh renewal, the renewal wins — that's
+    // the period that actually determines whether they're still a customer.
+    const lifecycleInsights = useMemo(() => {
+        const rank = (lc) => {
+            if (!lc) return 0;
+            if (lc.tag === 'expired') return 1;
+            if (lc.expiringSoon) return 2;
+            return 3;
+        };
+
+        const byCustomer = new Map();
+        for (const row of allData) {
+            const key = row.customer_email || row.customer_phone || row.id;
+            const lc = getLifecycleStatus(row);
+            const prev = byCustomer.get(key);
+            if (!prev || rank(lc) >= rank(prev)) byCustomer.set(key, lc);
+        }
+
+        let active = 0, expiringSoon = 0, expired = 0, renewed = 0, noPlan = 0;
+        for (const lc of byCustomer.values()) {
+            if (!lc) { noPlan += 1; continue; }
+            if (lc.tag === 'expired') { expired += 1; continue; }
+            active += 1;
+            if (lc.expiringSoon) expiringSoon += 1;
+            if (lc.tag === 'active_renewed') renewed += 1;
+        }
+        return { active, expiringSoon, expired, renewed, noPlan };
+    }, [allData]);
+
     const toggleSort = (field) => {
         setSort((s) =>
             s.field === field
@@ -1736,6 +1780,46 @@ export default function AdminEnrollments() {
                     value={partialCount}
                     sub={partialCount ? 'balance still due' : 'none on this page'}
                     color={partialCount ? '#fbbf24' : '#34d399'}
+                />
+            </div>
+
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/25 mb-2.5">
+                Plan Lifecycle — All Clients
+            </p>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+                <StatCard
+                    label="Active Plans"
+                    value={lifecycleInsights.active}
+                    sub="currently within their plan period"
+                    color="#34d399"
+                />
+
+                <StatCard
+                    label="Expiring ≤7d"
+                    value={lifecycleInsights.expiringSoon}
+                    sub={lifecycleInsights.expiringSoon ? 'follow up before it lapses' : 'none due soon'}
+                    color={lifecycleInsights.expiringSoon ? '#fbbf24' : '#34d399'}
+                />
+
+                <StatCard
+                    label="Expired"
+                    value={lifecycleInsights.expired}
+                    sub="past their plan end date"
+                    color="rgba(255,255,255,0.5)"
+                />
+
+                <StatCard
+                    label="Renewed"
+                    value={lifecycleInsights.renewed}
+                    sub="on a 2nd+ period"
+                    color="#60a5fa"
+                />
+
+                <StatCard
+                    label="No Active Plan"
+                    value={lifecycleInsights.noPlan}
+                    sub="pending / failed / refunded / unpaid"
+                    color="rgba(255,255,255,0.35)"
                 />
             </div>
 

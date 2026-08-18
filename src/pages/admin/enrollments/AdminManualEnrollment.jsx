@@ -103,6 +103,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
     const [form, setForm] = useState(() => rowToForm(editingRow));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [duplicateWarning, setDuplicateWarning] = useState(null);
     const [loadingLedger, setLoadingLedger] = useState(false);
     const [hasExistingPayment, setHasExistingPayment] = useState(false);
     const toast = useToast();
@@ -113,6 +114,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
     useEffect(() => {
         setForm(rowToForm(editingRow));
         setError('');
+        setDuplicateWarning(null);
         setHasExistingPayment(false);
 
         if (isEdit && editingRow?.id) {
@@ -152,7 +154,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
     const suggestedAmount = () =>
         pricingTable[form.coachingType]?.[form.planType]?.[form.durationMonths] || '';
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e, force = false) => {
         e.preventDefault();
         setError('');
 
@@ -164,6 +166,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
         setSaving(true);
         try {
             const payload = {
+                confirmDuplicate: force || undefined,
                 customerName: form.customerName.trim(),
                 customerEmail: form.customerEmail.trim() || null,
                 customerPhone: form.customerPhone.trim() || null,
@@ -195,11 +198,19 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                 ? await updateManualEnrollment(editingRow.id, payload)
                 : await createManualEnrollment(payload);
 
+            setDuplicateWarning(null);
             onSaved(saved);
             toast.success(isEdit ? 'Enrollment updated successfully' : 'Enrollment added successfully');
         } catch (err) {
-            setError(err.message || 'Failed to save enrollment.');
-            toast.error(err.message || 'Failed to save enrollment.');
+            if (!isEdit && err.status === 409 && err.data?.duplicates) {
+                // Not a hard failure — a legitimate second program for the
+                // same client is possible — so surface what was found and let
+                // the admin explicitly confirm rather than blocking outright.
+                setDuplicateWarning({ message: err.message, duplicates: err.data.duplicates });
+            } else {
+                setError(err.message || 'Failed to save enrollment.');
+                toast.error(err.message || 'Failed to save enrollment.');
+            }
         } finally {
             setSaving(false);
         }
@@ -236,6 +247,38 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                             <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
                                 style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}>
                                 <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
+                            </div>
+                        )}
+
+                        {duplicateWarning && (
+                            <div className="rounded-xl p-4 space-y-3"
+                                style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                                <div className="flex items-start gap-2">
+                                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#fbbf24' }} />
+                                    <p className="text-xs leading-relaxed" style={{ color: '#fde68a' }}>
+                                        {duplicateWarning.message} If this is the same checkout, close this and record
+                                        the payment against the existing enrollment instead — otherwise it's fine to
+                                        continue.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleSubmit(e, true)}
+                                        disabled={saving}
+                                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
+                                        style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}
+                                    >
+                                        {saving ? 'Creating…' : 'Create Anyway'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDuplicateWarning(null)}
+                                        className="text-[11px] text-white/40 hover:text-white/60"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         )}
 

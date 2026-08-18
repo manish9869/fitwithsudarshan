@@ -41,6 +41,10 @@ export default function RecordPaymentModal({ enrollment, onClose, onSaved }) {
         setError('');
         const amt = Number(amount);
         if (!amt || amt <= 0) { setError('Enter a valid amount.'); return; }
+        if (amt > balance + 1) { // ₹1 slack for rounding — real block is server-side too
+            setError(`Amount exceeds the outstanding balance of ₹${balance.toLocaleString('en-IN')}.`);
+            return;
+        }
         setSaving(true);
         try {
             const updated = await recordEnrollmentPayment(enrollment.id, {
