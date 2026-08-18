@@ -153,6 +153,11 @@ export async function setEnrollmentStatus(id, status) {
     return data.enrollment;
 }
 
+export async function setEnrollmentPlanStartDate(id, planStartDate) {
+    const data = await request(`/enrollments/${id}/plan-start-date`, { method: 'PATCH', body: { planStartDate } });
+    return data.enrollment;
+}
+
 export async function exportEnrollmentsAll(filters) {
     const data = await request('/enrollments/export', { params: filters });
     return data.rows;

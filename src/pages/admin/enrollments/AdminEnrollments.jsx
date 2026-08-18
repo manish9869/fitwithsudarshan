@@ -46,6 +46,7 @@ import {
     fetchEnrollments,
     fetchEnrollment,
     setEnrollmentStatus,
+    setEnrollmentPlanStartDate,
     exportEnrollmentsAll,
     saveNote, sendEnrollmentEmail,
     deleteEnrollmentAdmin,
@@ -66,6 +67,8 @@ import {
     getLifecycleStatus,
     lifecycleBadge,
     LIFECYCLE_FILTERS,
+    toISTDatetimeLocal,
+    istDatetimeLocalToISO,
 } from '../adminUtils';
 
 import { useDebounce } from '../useDebounce';
@@ -358,7 +361,25 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
     const [showExtendModal, setShowExtendModal] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingHistoryId, setDeletingHistoryId] = useState(null);
+    const [fixingPlanStart, setFixingPlanStart] = useState(false);
+    const [planStartDraft, setPlanStartDraft] = useState('');
+    const [savingPlanStart, setSavingPlanStart] = useState(false);
     const toast = useToast();
+
+    const handleSavePlanStart = async () => {
+        if (!planStartDraft) return;
+        setSavingPlanStart(true);
+        try {
+            const updated = await setEnrollmentPlanStartDate(enrollment.id, istDatetimeLocalToISO(planStartDraft));
+            setEnrollment((prev) => ({ ...prev, ...updated }));
+            setFixingPlanStart(false);
+            toast.success('Plan start date set');
+        } catch (e) {
+            toast.error(e.message || 'Failed to set plan start date.');
+        } finally {
+            setSavingPlanStart(false);
+        }
+    };
 
     const handleDeleteHistoryRow = async (row) => {
         setDeletingHistoryId(row.id);
@@ -873,19 +894,65 @@ function DetailDrawer({ enrollmentId, onClose, onNoteClick, onStatusChange, onPa
                                         {dl('Created', fmtDate(enrollment.created_at))}
                                         {(() => {
                                             const lc = getLifecycleStatus(enrollment);
-                                            if (!lc) return null;
-                                            const b = lifecycleBadge(lc.tag);
-                                            return dl('Plan Status', (
-                                                <span className="inline-flex items-center gap-2">
-                                                    <span
-                                                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                                        style={{ background: b.bg, border: `1px solid ${b.border}`, color: b.color }}
-                                                    >
-                                                        {lc.label}
+                                            if (lc) {
+                                                const b = lifecycleBadge(lc.tag);
+                                                return dl('Plan Status', (
+                                                    <span className="inline-flex items-center gap-2">
+                                                        <span
+                                                            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                            style={{ background: b.bg, border: `1px solid ${b.border}`, color: b.color }}
+                                                        >
+                                                            {lc.label}
+                                                        </span>
+                                                        {lc.tag !== 'expired' && lc.expiringSoon && (
+                                                            <span className="text-[10px] text-white/35">Expires in {lc.daysRemaining}d</span>
+                                                        )}
                                                     </span>
-                                                    {lc.tag !== 'expired' && lc.expiringSoon && (
-                                                        <span className="text-[10px] text-white/35">Expires in {lc.daysRemaining}d</span>
-                                                    )}
+                                                ));
+                                            }
+
+                                            // payment_status is 'paid' but plan_start_date is missing — usually
+                                            // a website checkout whose gateway timed out and was later marked
+                                            // paid by hand, so it never went through the flow that sets it.
+                                            if ((enrollment.payment_status || 'paid') !== 'paid') return null;
+
+                                            return dl('Plan Status', fixingPlanStart ? (
+                                                <span className="inline-flex items-center gap-2 flex-wrap">
+                                                    <input
+                                                        type="datetime-local"
+                                                        className="rounded-lg px-2 py-1 text-xs text-white outline-none"
+                                                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                                                        value={planStartDraft}
+                                                        onChange={(e) => setPlanStartDraft(e.target.value)}
+                                                    />
+                                                    <button
+                                                        onClick={handleSavePlanStart}
+                                                        disabled={savingPlanStart || !planStartDraft}
+                                                        className="text-[10px] font-bold px-2 py-1 rounded-lg disabled:opacity-50"
+                                                        style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}
+                                                    >
+                                                        {savingPlanStart ? 'Saving…' : 'Save'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setFixingPlanStart(false)}
+                                                        className="text-[10px] text-white/35 hover:text-white/60"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-2">
+                                                    <span className="text-[10px] text-white/35">Plan start date missing — no badge</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            setPlanStartDraft(toISTDatetimeLocal(enrollment.payment_date || new Date().toISOString()));
+                                                            setFixingPlanStart(true);
+                                                        }}
+                                                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                        style={{ background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa' }}
+                                                    >
+                                                        Fix
+                                                    </button>
                                                 </span>
                                             ));
                                         })()}
