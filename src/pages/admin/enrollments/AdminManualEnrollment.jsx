@@ -59,6 +59,7 @@ const EMPTY_FORM = {
     initialPaymentAmount: '',
     latestPaymentAmount: '', // ← edit-mode only: amount of the latest ledger payment
     paymentMethod: 'razorpay_link', paymentReference: '', paymentDate: toISTDatetimeLocal(new Date().toISOString()),
+    planStartDate: toISTDatetimeLocal(new Date().toISOString()),
     paymentStatus: 'paid',
     age: '', city: '', weight: '', goals: '',
     medicalIssue: 'no', medicalNote: '',
@@ -81,6 +82,7 @@ function rowToForm(row) {
         paymentMethod: row.payment_method || 'razorpay_link',
         paymentReference: row.razorpay_payment_id || '',
         paymentDate: toISTDatetimeLocal(row.payment_date),
+        planStartDate: toISTDatetimeLocal(row.plan_start_date),
         paymentStatus: row.payment_status || 'paid',
         age: row.age || '',
         city: row.city || '',
@@ -186,6 +188,7 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                 partnerGoals: isCouple && form.partnerGoals
                     ? form.partnerGoals.split(',').map((g) => g.trim()).filter(Boolean) : null,
                 adminNote: form.adminNote || null,
+                planStartDate: isEdit ? istDatetimeLocalToISO(form.planStartDate) : undefined,
             };
 
             const saved = isEdit
@@ -371,6 +374,22 @@ function EnrollmentFormModal({ editingRow, onClose, onSaved, coachingTypes, dura
                                     />
                                 </Field>
                             </div>
+                            {isEdit && (
+                                <Field label="Plan Start Date">
+                                    <input
+                                        type="datetime-local"
+                                        className={inputCls}
+                                        style={inputStyle}
+                                        value={form.planStartDate}
+                                        onChange={set('planStartDate')}
+                                    />
+                                    <p className="text-[10px] text-white/25 mt-1.5">
+                                        Anchors the Active/Expired badge — set once at creation and never touched by
+                                        later payments/edits. Only correct this if the badge is missing or wrong.
+                                    </p>
+                                </Field>
+                            )}
+
                             <div className="grid grid-cols-2 gap-3">
                                 <Field label="Payment Reference (UTR / UPI / Payment ID)">
                                     <input className={inputCls} style={inputStyle} value={form.paymentReference} onChange={set('paymentReference')} placeholder="Optional" />
