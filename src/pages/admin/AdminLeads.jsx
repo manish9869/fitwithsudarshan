@@ -7,6 +7,7 @@
  * admin can see whether someone's already followed up.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
@@ -103,26 +104,60 @@ function FilterDropdown({ value, onChange, options, minWidth = 170 }) {
     );
 }
 
+// Renders its open menu into document.body via a portal, positioned with
+// `fixed` coordinates computed from the trigger's own bounding rect. The
+// table cell this sits in lives inside an `overflow-x-auto` wrapper (needed
+// for horizontal scroll on narrow screens) — per the CSS overflow spec,
+// setting overflow-x to a non-visible value forces overflow-y to compute to
+// 'auto' too, so a plain `absolute` dropdown gets silently clipped by that
+// same wrapper instead of floating below the row. Portaling out of that
+// subtree sidesteps the clipping entirely.
 function StatusSelect({ value, onChange, disabled }) {
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+    const [coords, setCoords] = useState(null);
+    const triggerRef = useRef(null);
+    const menuRef = useRef(null);
     const badge = statusBadge(value || 'new');
+
+    const openMenu = () => {
+        const rect = triggerRef.current?.getBoundingClientRect();
+        if (rect) {
+            setCoords({ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(160, rect.width) });
+        }
+        setOpen(true);
+    };
 
     useEffect(() => {
         if (!open) return;
-        const handler = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+
+        const handleClick = (e) => {
+            if (
+                triggerRef.current && !triggerRef.current.contains(e.target) &&
+                menuRef.current && !menuRef.current.contains(e.target)
+            ) {
+                setOpen(false);
+            }
         };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
+        // A fixed-position menu doesn't track the trigger if the table (or
+        // the page) scrolls underneath it — closing on scroll is simpler
+        // and less error-prone than re-measuring on every scroll tick.
+        const handleScroll = () => setOpen(false);
+
+        document.addEventListener('mousedown', handleClick);
+        window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+        return () => {
+            document.removeEventListener('mousedown', handleClick);
+            window.removeEventListener('scroll', handleScroll, { capture: true });
+        };
     }, [open]);
 
     return (
-        <div ref={ref} className="relative inline-block">
+        <div className="inline-block">
             <button
+                ref={triggerRef}
                 type="button"
                 disabled={disabled}
-                onClick={() => setOpen((o) => !o)}
+                onClick={() => (open ? setOpen(false) : openMenu())}
                 className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full transition-all disabled:opacity-50"
                 style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color, minWidth: 100 }}
             >
@@ -131,15 +166,22 @@ function StatusSelect({ value, onChange, disabled }) {
                 <ChevronDown className="w-2.5 h-2.5 flex-shrink-0" style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
             </button>
 
-            <AnimatePresence>
-                {open && (
+            {open && coords && createPortal(
+                <AnimatePresence>
                     <motion.div
+                        ref={menuRef}
                         initial={{ opacity: 0, y: -6, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -4, scale: 0.97 }}
                         transition={{ duration: 0.12 }}
-                        className="absolute left-0 top-full mt-1.5 z-[100] rounded-xl overflow-hidden shadow-2xl"
-                        style={{ background: '#13131f', border: '1px solid rgba(255,255,255,0.12)', minWidth: 160 }}
+                        className="fixed z-[200] rounded-xl overflow-hidden shadow-2xl"
+                        style={{
+                            top: coords.top,
+                            left: coords.left,
+                            minWidth: coords.minWidth,
+                            background: '#13131f',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                        }}
                     >
                         {LEAD_STATUSES.map((s) => {
                             const b = statusBadge(s);
@@ -161,8 +203,9 @@ function StatusSelect({ value, onChange, disabled }) {
                             );
                         })}
                     </motion.div>
-                )}
-            </AnimatePresence>
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

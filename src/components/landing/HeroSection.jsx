@@ -370,22 +370,32 @@ export default function HeroSection() {
             id="home"
             className="relative min-h-screen flex items-center justify-center overflow-hidden"
         >
-            {/* BG — on lg+ the subject is pushed right (72%) so it stays
-                visible past the left-side text gradient below. */}
+            {/* Mobile/tablet — deliberately stays on the default placeholder
+                rather than reusing the admin's uploaded desktop photo. That
+                photo is composed for the wide split layout (subject on the
+                right, negative space on the left); object-cover has to scale
+                it up hard to cover a much taller mobile viewport, which only
+                ever shows a narrow vertical slice — fine for an ambient
+                gym-texture shot with no single subject to miscrop, but a
+                composed portrait doesn't survive that crop. */}
+            <img
+                src={DEFAULT_HERO_BANNER_IMAGE}
+                alt="Fitness training background"
+                className="lg:hidden absolute inset-0 w-full h-full object-cover object-center"
+            />
+            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/80" />
+
+            {/* Desktop — the admin's actual uploaded photo, composed with
+                the subject on the right for the split text/photo layout.
+                Split composition: dark on the left where the text column
+                sits, fading clear by ~78% so the subject reads on the
+                right, plus a light top/bottom vignette for the navbar and
+                stat cards. */}
             <img
                 src={heroBg}
                 alt="Fitness training background"
-                className="absolute inset-0 w-full h-full object-cover object-center lg:object-[72%_center]"
+                className="hidden lg:block absolute inset-0 w-full h-full object-cover object-[72%_center]"
             />
-
-            {/* Mobile/tablet: full-strength overlay, text stays centered
-                over the whole image (unchanged from before). */}
-            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-black/85 via-black/60 to-black/95" />
-
-            {/* Desktop: split composition — dark on the left where the text
-                column sits, fading clear by ~78% so the photo's subject
-                reads on the right, plus a light top/bottom vignette so the
-                navbar and stat cards stay legible over any uploaded photo. */}
             <div
                 className="hidden lg:block absolute inset-0"
                 style={{
