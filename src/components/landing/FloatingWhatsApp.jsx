@@ -11,8 +11,16 @@ export default function FloatingWhatsApp() {
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        const t = setTimeout(() => setShowTooltip(true), 4000);
-        return () => clearTimeout(t);
+        // Scroll-gated rather than a flat timer — a flat 4s delay means the
+        // tooltip can pop up while someone's still reading the hero and land
+        // directly on top of the subtext (worse on the compact mobile hero,
+        // which fits more copy above the fold). Waiting for scroll past the
+        // hero means it only ever appears over content they've moved past.
+        const handleScroll = () => {
+            if (window.scrollY > 400) setShowTooltip(true);
+        };
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
     if (floatingWhatsapp?.enabled === false) return null;
