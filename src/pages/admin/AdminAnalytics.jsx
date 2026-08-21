@@ -153,6 +153,10 @@ export default function AdminAnalytics() {
 
     const channelTotal = data?.channels?.reduce((s, c) => s + c.sessions, 0) || 0;
     const deviceTotal = data?.devices?.reduce((s, d) => s + d.users, 0) || 0;
+    // Rows GA4 can't attribute to a real section (blank/"(not set)") or with
+    // 0s recorded carry no information worth showing in the ranked list.
+    const meaningfulSections = (data?.sectionEngagement?.sections || [])
+        .filter((s) => s.section && s.section !== '(not set)' && s.avgEngagementSeconds > 0);
 
     return (
         <div>
@@ -275,7 +279,7 @@ export default function AdminAnalytics() {
                     </div>
 
                     <div className="grid gap-5 mt-5">
-                        <ChartCard title="Time Spent per Landing Section" icon={Clock} badge={data.sectionEngagement.configured ? `${data.sectionEngagement.sections.length}` : undefined}>
+                        <ChartCard title="Time Spent per Landing Section" icon={Clock} badge={data.sectionEngagement.configured ? `${meaningfulSections.length}` : undefined}>
                             {!data.sectionEngagement.configured ? (
                                 <div className="flex flex-col items-center justify-center py-10 text-center px-6">
                                     <Clock className="w-6 h-6 text-white/12 mb-3" />
@@ -289,11 +293,11 @@ export default function AdminAnalytics() {
                                         Data appears here once GA4 finishes processing (usually within a day).
                                     </p>
                                 </div>
-                            ) : !data.sectionEngagement.sections.length ? (
+                            ) : !meaningfulSections.length ? (
                                 <EmptyState label="No section engagement recorded in this range yet" />
                             ) : (
                                 <RankedList
-                                    items={data.sectionEngagement.sections.map((s) => ({ ...s, section: s.section.charAt(0).toUpperCase() + s.section.slice(1) }))}
+                                    items={meaningfulSections.map((s) => ({ ...s, section: s.section.charAt(0).toUpperCase() + s.section.slice(1) }))}
                                     labelKey="section"
                                     valueKey="avgEngagementSeconds"
                                     formatValue={formatDuration}
