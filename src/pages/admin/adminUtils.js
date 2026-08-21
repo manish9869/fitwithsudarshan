@@ -342,9 +342,15 @@ export function statusBadge(status) {
         plan_sent: { bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.3)', color: '#a78bfa' },
         completed: { bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)', color: '#34d399' },
         archived: { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' },
+        // Lead statuses
+        contacted: { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)', color: '#fbbf24' },
+        converted: { bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.3)', color: '#34d399' },
+        not_interested: { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' },
     };
     return map[status] || map.new;
 }
+
+export const LEAD_STATUSES = ['new', 'contacted', 'converted', 'not_interested'];
 
 // ── Enrollment lifecycle — Active / Active · Renewed / Expired ───────────────
 // Computed client-side, not stored: the correct answer changes every day, so
