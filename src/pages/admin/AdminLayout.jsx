@@ -28,6 +28,7 @@ import {
     CalendarRange,
     Repeat2,
     ShieldCheck,
+    Inbox,
 } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
@@ -54,6 +55,7 @@ const NAV_GROUPS = [
             { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
             { to: '/admin/data-audit', icon: ShieldCheck, label: 'Data Audit' },
             { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
+            { to: '/admin/leads', icon: Inbox, label: 'Cold Enquiries' },
             { to: '/admin/diet-plans', icon: Salad, label: 'Diet Plans' },
         ],
     },

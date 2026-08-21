@@ -199,6 +199,20 @@ export async function exportAssessmentsAll(filters) {
     return data.rows;
 }
 
+// ── Leads ("Apply For Coaching" hero-modal cold enquiries) ──────────────────────
+export async function fetchLeads(filters) {
+    return request('/leads', { params: filters });
+}
+
+export async function setLeadStatus(id, status) {
+    const data = await request(`/leads/${id}/status`, { method: 'PATCH', body: { status } });
+    return data.lead;
+}
+
+export async function deleteLeadAdmin(id) {
+    return request(`/leads/${id}`, { method: 'DELETE' });
+}
+
 // ── Notes (server-side, shared across admins) ───────────────────────────────────
 export async function saveNote(recordType, recordId, note) {
     const data = await request('/notes', { method: 'PUT', body: { recordType, recordId, note } });

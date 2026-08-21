@@ -95,6 +95,10 @@ const AdminAssessments = lazy(() =>
   lazyRetry(() => import('@/pages/admin/AdminAssessments'))
 );
 
+const AdminLeads = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/AdminLeads'))
+);
+
 const AdminProfile = lazy(() =>
   lazyRetry(() => import('@/pages/admin/AdminProfile'))
 );
@@ -466,6 +470,15 @@ function App() {
                 element={
                   <LazyRoute>
                     <AdminAssessments />
+                  </LazyRoute>
+                }
+              />
+
+              <Route
+                path="leads"
+                element={
+                  <LazyRoute>
+                    <AdminLeads />
                   </LazyRoute>
                 }
               />

@@ -8,9 +8,9 @@ import {
     Clock,
     TrendingUp
 } from "lucide-react";
-import { wa } from "@/utils/whatsapp";
 import { useSiteData } from "@/contexts/SiteDataContext";
 import { DEFAULT_HERO_BANNER_IMAGE } from "@/utils/siteContentDefaults";
+import ConsultationModal from "@/components/landing/ConsultationModal";
 
 // ─── Typewriter ───────────────────────────────────────────────────────────────
 function Typewriter({ words }) {
@@ -156,6 +156,69 @@ function PulseButton({
     onClick,
     style
 }) {
+    const content = (
+        <motion.div
+            className="relative inline-flex"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+        >
+            {/* Pulse rings */}
+            <motion.span
+                className="absolute inset-0 rounded-full"
+                animate={{
+                    scale: [1, 1.5, 2],
+                    opacity: [0.5, 0.2, 0]
+                }}
+                transition={{
+                    duration: 2.2,
+                    repeat: Infinity,
+                    ease: "easeOut"
+                }}
+                style={{
+                    background:
+                        "rgba(231,23,99,0.35)"
+                }}
+            />
+
+            <motion.span
+                className="absolute inset-0 rounded-full"
+                animate={{
+                    scale: [1, 1.3, 1.6],
+                    opacity: [0.4, 0.15, 0]
+                }}
+                transition={{
+                    duration: 2.2,
+                    repeat: Infinity,
+                    ease: "easeOut",
+                    delay: 0.6
+                }}
+                style={{
+                    background:
+                        "rgba(231,23,99,0.25)"
+                }}
+            />
+
+            {/* Reduced px/py on mobile to prevent overflow at 320px */}
+            <Button
+                size="lg"
+                className="relative text-sm sm:text-lg px-5 sm:px-8 py-4 sm:py-6 text-white font-bold group rounded-full"
+                style={style}
+                // No href → this is an in-page action (e.g. opening the
+                // consultation modal). The click goes directly on this
+                // Button (already a real <button>) rather than an extra
+                // wrapping element, since a <button> can't legally nest
+                // inside another <button>.
+                onClick={!href ? onClick : undefined}
+            >
+                {children}
+            </Button>
+        </motion.div>
+    );
+
+    if (!href) {
+        return content;
+    }
+
     return (
         <a
             href={href}
@@ -163,56 +226,7 @@ function PulseButton({
             rel="noopener noreferrer"
             onClick={onClick}
         >
-            <motion.div
-                className="relative inline-flex"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-            >
-                {/* Pulse rings */}
-                <motion.span
-                    className="absolute inset-0 rounded-full"
-                    animate={{
-                        scale: [1, 1.5, 2],
-                        opacity: [0.5, 0.2, 0]
-                    }}
-                    transition={{
-                        duration: 2.2,
-                        repeat: Infinity,
-                        ease: "easeOut"
-                    }}
-                    style={{
-                        background:
-                            "rgba(231,23,99,0.35)"
-                    }}
-                />
-
-                <motion.span
-                    className="absolute inset-0 rounded-full"
-                    animate={{
-                        scale: [1, 1.3, 1.6],
-                        opacity: [0.4, 0.15, 0]
-                    }}
-                    transition={{
-                        duration: 2.2,
-                        repeat: Infinity,
-                        ease: "easeOut",
-                        delay: 0.6
-                    }}
-                    style={{
-                        background:
-                            "rgba(231,23,99,0.25)"
-                    }}
-                />
-
-                {/* Reduced px/py on mobile to prevent overflow at 320px */}
-                <Button
-                    size="lg"
-                    className="relative text-sm sm:text-lg px-5 sm:px-8 py-4 sm:py-6 text-white font-bold group rounded-full"
-                    style={style}
-                >
-                    {children}
-                </Button>
-            </motion.div>
+            {content}
         </a>
     );
 }
@@ -269,6 +283,8 @@ export default function HeroSection() {
 
     const [statsStarted, setStatsStarted] =
         useState(false);
+
+    const [showConsultationModal, setShowConsultationModal] = useState(false);
 
     useEffect(() => {
         const t = setTimeout(
@@ -354,21 +370,37 @@ export default function HeroSection() {
             id="home"
             className="relative min-h-screen flex items-center justify-center overflow-hidden"
         >
-            {/* BG */}
+            {/* BG — on lg+ the subject is pushed right (72%) so it stays
+                visible past the left-side text gradient below. */}
             <img
                 src={heroBg}
                 alt="Fitness training background"
-                className="absolute inset-0 w-full h-full object-cover object-center"
+                className="absolute inset-0 w-full h-full object-cover object-center lg:object-[72%_center]"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/60 to-black/95" />
+            {/* Mobile/tablet: full-strength overlay, text stays centered
+                over the whole image (unchanged from before). */}
+            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-black/85 via-black/60 to-black/95" />
+
+            {/* Desktop: split composition — dark on the left where the text
+                column sits, fading clear by ~78% so the photo's subject
+                reads on the right, plus a light top/bottom vignette so the
+                navbar and stat cards stay legible over any uploaded photo. */}
+            <div
+                className="hidden lg:block absolute inset-0"
+                style={{
+                    background:
+                        "linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.82) 30%, rgba(0,0,0,0.4) 55%, rgba(0,0,0,0.05) 78%)"
+                }}
+            />
+            <div className="hidden lg:block absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/70" />
 
             {/* Animated glow orbs */}
             <motion.div
                 className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-3xl"
                 style={{
                     background:
-                        "rgba(231,23,99,0.07)"
+                        "rgba(231,23,99,0.09)"
                 }}
                 animate={{
                     scale: [1, 1.2, 1],
@@ -382,10 +414,10 @@ export default function HeroSection() {
             />
 
             <motion.div
-                className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full blur-3xl"
+                className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full blur-3xl"
                 style={{
                     background:
-                        "rgba(231,23,99,0.05)"
+                        "rgba(231,23,99,0.07)"
                 }}
                 animate={{
                     scale: [1, 1.3, 1],
@@ -403,7 +435,7 @@ export default function HeroSection() {
 
             {/* Reduced pt on smallest screens (320px) */}
             <div className="relative container mx-auto px-4 pt-20 sm:pt-24 pb-14 sm:pb-20">
-                <div className="max-w-5xl mx-auto text-center">
+                <div className="max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
 
                     {/* Badge */}
                     <motion.div
@@ -538,7 +570,7 @@ export default function HeroSection() {
                             duration: 0.6,
                             delay: 0.2
                         }}
-                        className="text-base md:text-xl text-white/60 max-w-3xl mx-auto mb-3 leading-relaxed px-2"
+                        className="text-base md:text-xl text-white/60 max-w-3xl mx-auto lg:mx-0 mb-3 leading-relaxed px-2 lg:px-0"
                     >
                         {subtext1}
                     </motion.p>
@@ -556,7 +588,7 @@ export default function HeroSection() {
                             duration: 0.5,
                             delay: 0.25
                         }}
-                        className="text-xs md:text-sm text-white/40 max-w-2xl mx-auto mb-8 md:mb-10 px-2"
+                        className="text-xs md:text-sm text-white/40 max-w-2xl mx-auto lg:mx-0 mb-8 md:mb-10 px-2 lg:px-0"
                     >
                         {subtext2}
                     </motion.p>
@@ -575,10 +607,10 @@ export default function HeroSection() {
                             duration: 0.6,
                             delay: 0.3
                         }}
-                        className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mb-10 md:mb-16 px-4"
+                        className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 md:gap-4 mb-10 md:mb-16 px-4 lg:px-0"
                     >
                         <PulseButton
-                            href={wa.coaching}
+                            onClick={() => setShowConsultationModal(true)}
                             style={{
                                 background:
                                     "#e71763",
@@ -856,6 +888,11 @@ export default function HeroSection() {
                     </motion.div>
                 </motion.div>
             </div>
+
+            <ConsultationModal
+                open={showConsultationModal}
+                onClose={() => setShowConsultationModal(false)}
+            />
         </section>
     );
 }
