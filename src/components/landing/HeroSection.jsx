@@ -330,7 +330,7 @@ export default function HeroSection() {
 
     const ctaPrimaryLabel =
         hero?.ctaPrimaryLabel ||
-        "Apply For Coaching";
+        "Start Your Transformation";
 
     const ctaSecondaryLabel =
         hero?.ctaSecondaryLabel ||
