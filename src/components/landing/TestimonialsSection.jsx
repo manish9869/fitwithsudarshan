@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { useSiteData } from "@/contexts/SiteDataContext";
+import SectionSkeleton from "./SectionSkeleton";
 
 function Orb({ style, delay = 0 }) {
     return (
@@ -57,7 +58,11 @@ export default function TestimonialsSection() {
         }
     }, [testimonials, currentIndex]);
 
-    if (loading || !testimonials?.length) {
+    if (loading) {
+        return <SectionSkeleton id="testimonials" minHeight={640} />;
+    }
+
+    if (!testimonials?.length) {
         return null;
     }
 

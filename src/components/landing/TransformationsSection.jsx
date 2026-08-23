@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { wa } from "@/utils/whatsapp";
 import { useSiteData } from "@/contexts/SiteDataContext";
+import SectionSkeleton from "./SectionSkeleton";
 
 function getInitials(name) {
     return name
@@ -369,7 +370,11 @@ export function TransformationsSection() {
         }
     }, [transformations, selectedIndex]);
 
-    if (loading || !transformations?.length) {
+    if (loading) {
+        return <SectionSkeleton id="transformations" minHeight={560} />;
+    }
+
+    if (!transformations?.length) {
         return null;
     }
 

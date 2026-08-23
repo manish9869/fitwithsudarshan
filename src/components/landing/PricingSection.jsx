@@ -4,6 +4,7 @@ import { Check, Globe, Video, MapPin, Zap, Users, User, ArrowRight, Flame } from
 import { Link } from "react-router-dom";
 import { wa } from "@/utils/whatsapp";
 import { useSiteData } from "@/contexts/SiteDataContext";
+import SectionSkeleton from "./SectionSkeleton";
 
 const tabIcons = { online: Globe, video: Video, personal: MapPin };
 const formatPrice = (p) =>
@@ -154,7 +155,11 @@ export function PricingSection() {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-60px" });
 
-    if (loading || !coachingTypes.length) {
+    if (loading) {
+        return <SectionSkeleton id="pricing" minHeight={640} />;
+    }
+
+    if (!coachingTypes.length) {
         return <section id="pricing" className="relative py-28 text-center text-white/30 text-sm">Loading pricing…</section>;
     }
 
