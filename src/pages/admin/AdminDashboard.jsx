@@ -32,7 +32,7 @@ import {
     IndianRupee, TrendingUp, Users, ClipboardList, Tag, Heart,
     RefreshCw, AlertCircle, ArrowUpRight, Calendar, Sparkles, Loader2,
     Percent, BellRing, ListChecks, ClipboardCheck, Salad,
-    ShieldAlert, Globe, Repeat, Clock,
+    ShieldAlert, Globe, Repeat, Clock, Inbox,
 } from 'lucide-react';
 import { fetchDashboard, fetchAssessments, fetchFollowUps, fetchLiveUsers } from './adminApi';
 import { fmtCurrency, fmtCompactCurrency, fmtRelativeTime } from './adminUtils';
@@ -62,6 +62,13 @@ const STATUS_COLORS = {
     plan_sent: '#9085e9',
     completed: '#199e70',
     archived: 'rgba(255,255,255,0.3)',
+};
+
+const LEAD_STATUS_COLORS = {
+    new: '#3987e5',
+    contacted: '#c98500',
+    converted: '#199e70',
+    not_interested: 'rgba(255,255,255,0.3)',
 };
 
 const cardBaseStyle = {
@@ -328,14 +335,17 @@ function HBarValueLabel({ x, y, width, height, value }) {
 // ── Activity Feed Item ────────────────────────────────────────────────────────
 function ActivityItem({ item }) {
     const isEnrollment = item.type === 'enrollment';
-    const accent = isEnrollment ? '#e71763' : '#60a5fa';
+    const isLead = item.type === 'lead';
+    const accent = isEnrollment ? '#e71763' : isLead ? '#34d399' : '#60a5fa';
 
     return (
         <Link
             to={
                 isEnrollment
                     ? `/admin/enrollments?focus=${item.id}`
-                    : `/admin/assessments?focus=${item.id}`
+                    : isLead
+                        ? '/admin/leads'
+                        : `/admin/assessments?focus=${item.id}`
             }
             className="group flex items-center justify-between gap-3 px-5 py-3 rounded-xl mx-2 my-1 transition-all duration-200"
             style={{
@@ -356,21 +366,23 @@ function ActivityItem({ item }) {
                 <div
                     className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5"
                     style={{
-                        background: isEnrollment ? 'rgba(231,23,99,0.1)' : 'rgba(96,165,250,0.1)',
-                        border: `1px solid ${isEnrollment ? 'rgba(231,23,99,0.25)' : 'rgba(96,165,250,0.25)'}`,
+                        background: `${accent}18`,
+                        border: `1px solid ${accent}40`,
                     }}
                 >
                     {isEnrollment ? (
-                        <Users className="w-3.5 h-3.5" style={{ color: '#e71763' }} />
+                        <Users className="w-3.5 h-3.5" style={{ color: accent }} />
+                    ) : isLead ? (
+                        <Inbox className="w-3.5 h-3.5" style={{ color: accent }} />
                     ) : (
-                        <ClipboardList className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
+                        <ClipboardList className="w-3.5 h-3.5" style={{ color: accent }} />
                     )}
                 </div>
 
                 <div className="min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{item.title}</p>
                     <p className="text-[11px] text-white/35 truncate">
-                        {item.subtitle || (isEnrollment ? 'New enrollment' : 'New assessment')}
+                        {item.subtitle || (isEnrollment ? 'New enrollment' : isLead ? 'New enquiry' : 'New assessment')}
                     </p>
                 </div>
             </div>
@@ -735,6 +747,12 @@ export default function AdminDashboard() {
         fill: STATUS_COLORS[item.name] || '#e71763',
     }));
 
+    const leadStatusData = (c.leadStatusSplit || []).map((item) => ({
+        ...item,
+        label: formatStatusLabel(item.name),
+        fill: LEAD_STATUS_COLORS[item.name] || '#34d399',
+    }));
+
     // Clamped defensively on top of the backend's own cap — a gauge with a
     // fixed 0–100 domain (below) fed a value over 100 just clips silently,
     // which reads as "stuck full" rather than showing what's wrong.
@@ -921,6 +939,15 @@ export default function AdminDashboard() {
                                 delay={0.2}
                             />
                         </Link>
+                        <Link to="/admin/leads" className="block">
+                            <KpiCard
+                                icon={Inbox} label="New Leads"
+                                accent={k.newLeadsCount > 0 ? '#f87171' : '#34d399'}
+                                value={k.newLeadsCount ?? 0}
+                                sub={k.newLeadsCount > 0 ? 'cold enquiries awaiting a reply' : 'all caught up'}
+                                delay={0.22}
+                            />
+                        </Link>
                     </KpiSection>
 
                     <KpiSection title="Client Insights" icon={Users} accent="#60a5fa">
@@ -930,6 +957,14 @@ export default function AdminDashboard() {
                             sub={`${k.totalAssessmentsAllTime ?? 0} all-time`}
                             delay={0.21}
                         />
+                        <Link to="/admin/leads" className="block">
+                            <KpiCard
+                                icon={Inbox} label="Cold Enquiries" accent="#34d399"
+                                value={k.leadsInRange ?? 0}
+                                sub={`${k.totalLeadsAllTime ?? 0} all-time`}
+                                delay={0.215}
+                            />
+                        </Link>
                         <KpiCard
                             icon={Heart} label="Couple Plans" accent="#f472b6"
                             value={k.coupleCount ?? 0}
@@ -1441,6 +1476,71 @@ export default function AdminDashboard() {
                             </div>
                         </ChartCard>
                     </div>
+
+                    {/* ── Lead Pipeline — cold enquiries from the hero "Apply
+                        For Coaching" modal, by status ── */}
+                    <ChartCard
+                        title="Lead Pipeline"
+                        icon={Inbox}
+                        className="mb-5"
+                        badge={`${k.leadsInRange ?? 0} in range`}
+                    >
+                        {!leadStatusData.length ? (
+                            <EmptyState label="No cold enquiries in this range yet" />
+                        ) : (
+                            <ResponsiveContainer width="100%" height={220}>
+                                <BarChart
+                                    data={leadStatusData}
+                                    layout="vertical"
+                                    margin={{ top: 4, right: 36, left: 8, bottom: 4 }}
+                                    barCategoryGap="30%"
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        stroke="rgba(255,255,255,0.045)"
+                                        horizontal={false}
+                                    />
+
+                                    <XAxis
+                                        type="number"
+                                        tick={{ fill: 'rgba(255,255,255,0.28)', fontSize: 11 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        allowDecimals={false}
+                                    />
+
+                                    <YAxis
+                                        type="category"
+                                        dataKey="label"
+                                        tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 700 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        width={110}
+                                    />
+
+                                    <Tooltip
+                                        cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                                        content={<CustomTooltip valueLabel="Leads" />}
+                                    />
+
+                                    <Bar
+                                        dataKey="value"
+                                        name="Leads"
+                                        radius={[0, 8, 8, 0]}
+                                        maxBarSize={22}
+                                    >
+                                        {leadStatusData.map((entry, i) => (
+                                            <Cell key={i} fill={entry.fill} />
+                                        ))}
+                                        <LabelList
+                                            dataKey="value"
+                                            content={(props) => <HBarValueLabel {...props} />}
+                                        />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                    </ChartCard>
 
                     {/* ── Today's To-Do + Recent Activity ── */}
                     <div className="grid lg:grid-cols-3 gap-5">

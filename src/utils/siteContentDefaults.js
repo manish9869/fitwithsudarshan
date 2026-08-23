@@ -23,6 +23,21 @@ export const DEFAULT_MAINTENANCE = {
     message: "The site is currently undergoing scheduled maintenance. We're working hard to improve your experience — please check back shortly. For anything urgent, reach out on WhatsApp.",
 };
 
+// Every key defaults to true (shown) — the object only ever needs to carry
+// the sections an admin has explicitly turned OFF. A section missing from
+// this object (e.g. never saved, or added to the site after this was last
+// saved) is treated as visible everywhere it's checked.
+export const DEFAULT_SECTION_VISIBILITY = {
+    hero: true,
+    features: true,
+    transformations: true,
+    tools: true,
+    testimonials: true,
+    pricing: true,
+    blog: true,
+    contact: true,
+};
+
 export const DEFAULT_LOGGING = {
     verbose: false,
 };
@@ -79,8 +94,23 @@ export const DEFAULT_DIET_GUIDELINES = {
 // The original hero banner and coach photo — used whenever an admin hasn't
 // uploaded a custom one (hero.bannerImage / coach.photo are empty). Uploading
 // a custom image overrides these; clearing it reverts back to these exact URLs.
+// Also doubles as the mobile hero image regardless of what's uploaded above —
+// see CURRENT_HERO_BANNER_IMAGE_DESKTOP below for why mobile stays on this one.
 export const DEFAULT_HERO_BANNER_IMAGE =
     'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1280&h=720&fit=crop&q=70&auto=format';
+
+// A hardcoded snapshot of the currently-uploaded desktop hero photo, used
+// ONLY as HeroSection's instant-paint fallback for the moment before
+// SiteDataContext's fetch resolves (fresh/incognito visits with no cached
+// content yet). Without this, that brief window would fall back to the
+// generic default above instead — visibly flashing the wrong photo before
+// swapping to the real one a second or two later.
+//
+// NOT auto-synced with the admin's upload — if the desktop banner photo
+// changes (Admin → Site Settings → Banner Image), update this URL to match,
+// or the flash comes back with the old photo instead of no flash at all.
+export const CURRENT_HERO_BANNER_IMAGE_DESKTOP =
+    'https://cpuwyduadrpmbgdissca.supabase.co/storage/v1/object/public/media/hero/1787336336537-743x40.png';
 
 export const DEFAULT_COACH_PHOTO =
     'https://vducmiggraxtqdgt.public.blob.vercel-storage.com/sudarshan.jpeg';
