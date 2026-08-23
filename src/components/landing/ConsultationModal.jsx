@@ -206,7 +206,7 @@ export default function ConsultationModal({ open, onClose }) {
                             </div>
                         ) : (
                             <>
-                                <h3 className="text-2xl font-black text-white mb-1">Apply For Coaching</h3>
+                                <h3 className="text-2xl font-black text-white mb-1">Start Your Transformation</h3>
 
                                 <p className="text-sm text-white/45 mb-6">
                                     Tell us a bit about yourself — Sudarshan personally reviews every
