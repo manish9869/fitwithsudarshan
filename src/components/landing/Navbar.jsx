@@ -192,7 +192,7 @@ export function Navbar() {
                         boxShadow: "0 0 20px rgba(231,23,99,0.4)",
                     }}
                 >
-                    Apply For Coaching
+                    Start Your Transformation
                 </a>
             </div>
         </div>

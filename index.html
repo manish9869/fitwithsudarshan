@@ -502,6 +502,36 @@
     ════════════════════════════════════════════════════════════════ -->
     <!-- <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" /> -->
     <!-- <meta name="bing-site-verification" content="YOUR_BING_VERIFICATION_CODE" /> -->
+    <!-- ═══════════════════════════════════════════════════════════
+         STALE-CACHE SELF-HEAL — entry script
+         lazyRetry() (src/utils/lazyRetry.js) already self-heals a failed
+         *lazy route chunk*. It can't cover the very first module script
+         below though: if a browser has this HTML cached from before a
+         deploy, it points at a hashed bundle filename that no longer
+         exists on the server. That 404 fires before React ever mounts,
+         so nothing inside the app can catch it — symptom is a blank page
+         that only clears on a manual hard refresh (works fine in
+         incognito, which never had the stale HTML cached). One forced
+         reload with a cache-busting param sidesteps any HTTP/proxy cache
+         layer and grabs the current index.html + correct chunk hashes.
+         Guarded by sessionStorage so a real failure doesn't loop forever.
+    ════════════════════════════════════════════════════════════════ -->
+    <script>
+      (function () {
+        function isEntryModuleError(event) {
+          var el = event.target;
+          return el && el.tagName === 'SCRIPT' && el.type === 'module';
+        }
+        window.addEventListener('error', function (event) {
+          if (!isEntryModuleError(event)) return;
+          if (sessionStorage.getItem('entry-reload')) return;
+          sessionStorage.setItem('entry-reload', '1');
+          var url = new URL(window.location.href);
+          url.searchParams.set('_cb', Date.now().toString());
+          window.location.replace(url.toString());
+        }, true);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
