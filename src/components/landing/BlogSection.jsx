@@ -711,7 +711,7 @@ export default function BlogSection() {
         Boolean(blogPosts[selectedIndex]);
 
     if (loading) {
-        return <SectionSkeleton id="blog" minHeight={600} />;
+        return <SectionSkeleton minHeight={600} />;
     }
 
     if (!blogPosts.length) {
@@ -722,7 +722,6 @@ export default function BlogSection() {
         <>
             <section
                 className="relative py-28 overflow-hidden"
-                id="blog"
             >
                 {/* Background */}
                 <div className="absolute inset-0 pointer-events-none">

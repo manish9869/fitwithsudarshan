@@ -371,7 +371,7 @@ export function TransformationsSection() {
     }, [transformations, selectedIndex]);
 
     if (loading) {
-        return <SectionSkeleton id="transformations" minHeight={560} />;
+        return <SectionSkeleton minHeight={560} />;
     }
 
     if (!transformations?.length) {
@@ -457,7 +457,6 @@ export function TransformationsSection() {
 
     return (
         <section
-            id="transformations"
             className="relative py-12 sm:py-20 md:py-24 overflow-hidden"
         >
             <style>{`

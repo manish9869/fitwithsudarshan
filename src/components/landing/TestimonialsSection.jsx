@@ -59,7 +59,7 @@ export default function TestimonialsSection() {
     }, [testimonials, currentIndex]);
 
     if (loading) {
-        return <SectionSkeleton id="testimonials" minHeight={640} />;
+        return <SectionSkeleton minHeight={640} />;
     }
 
     if (!testimonials?.length) {
@@ -82,7 +82,6 @@ export default function TestimonialsSection() {
 
     return (
         <section
-            id="testimonials"
             ref={playRef}
             className="relative py-14 sm:py-20 md:py-28 overflow-hidden"
         >

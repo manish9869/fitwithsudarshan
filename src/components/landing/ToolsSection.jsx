@@ -228,7 +228,7 @@ export function ToolsSection() {
     const isInView = useInView(ref, { once: true, margin: "-100px" })
     return (
         // FIX: py-12 sm:py-20 md:py-24 — was flat py-24
-        <section id="tools" className="relative py-12 sm:py-20 md:py-24 overflow-hidden">
+        <section className="relative py-12 sm:py-20 md:py-24 overflow-hidden">
             <div ref={ref} className="relative container mx-auto px-4">
                 {/* FIX: mb-8 sm:mb-12 md:mb-16 — was flat mb-16 */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="text-center mb-8 sm:mb-12 md:mb-16">
