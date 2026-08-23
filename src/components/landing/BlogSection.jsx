@@ -12,6 +12,7 @@ import {
     Flame
 } from "lucide-react"
 import { useSiteData } from "@/contexts/SiteDataContext"
+import SectionSkeleton from "./SectionSkeleton"
 
 const categoryColors = {
     "Recovery": { bg: "rgba(96,165,250,0.12)", color: "#60a5fa" },
@@ -709,7 +710,11 @@ export default function BlogSection() {
         selectedIndex !== null &&
         Boolean(blogPosts[selectedIndex]);
 
-    if (loading || !blogPosts.length) {
+    if (loading) {
+        return <SectionSkeleton id="blog" minHeight={600} />;
+    }
+
+    if (!blogPosts.length) {
         return null;
     }
 
