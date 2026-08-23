@@ -43,10 +43,24 @@ function Reveal({ children, delay = 0 }) {
 }
 
 export default function Landing() {
-    const { sectionVisibility } = useSiteData();
+    const { sectionVisibility, loading } = useSiteData();
     // Missing/unset (still loading, or never saved) defaults to visible —
     // only an explicit `false` from the admin panel hides a section.
     const show = (key) => sectionVisibility?.[key] !== false;
+
+    // Testimonials/Pricing/Blog/Transformations each run their own
+    // useInView(ref)-driven reveal animation internally. While loading they
+    // render a ref-less skeleton (SectionSkeleton), so the ref never
+    // attaches to anything and that hook's setup effect bails out early. It
+    // won't retry: the component itself never unmounts across the
+    // loading -> loaded transition (only its returned JSX changes), and
+    // effects only re-run when their dependencies change, not when a ref's
+    // `.current` is filled in later — so the observer that would flip
+    // isInView never gets created, and the real content mounts frozen at
+    // its `initial` (opacity: 0) state forever. Keying by `loading` forces
+    // a full remount at that exact transition, so the ref is already
+    // attached before the fresh useInView effect runs.
+    const loadKey = loading ? 'loading' : 'loaded';
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -54,11 +68,11 @@ export default function Landing() {
             {show('hero') && <HeroSection />}
 
             {show('features') && <Reveal><TrackedSection name="features"><FeaturesSection /></TrackedSection></Reveal>}
-            {show('transformations') && <Reveal delay={0.05}><TrackedSection name="transformations"><TransformationsSection /></TrackedSection></Reveal>}
+            {show('transformations') && <Reveal delay={0.05}><TrackedSection name="transformations"><TransformationsSection key={loadKey} /></TrackedSection></Reveal>}
             {show('tools') && <Reveal delay={0.05}><TrackedSection name="tools"><ToolsSection /></TrackedSection></Reveal>}
-            {show('testimonials') && <Reveal delay={0.05}><TrackedSection name="testimonials"><TestimonialsSection /></TrackedSection></Reveal>}
-            {show('pricing') && <Reveal delay={0.05}><TrackedSection name="pricing"><PricingSection /></TrackedSection></Reveal>}
-            {show('blog') && <Reveal delay={0.05}><TrackedSection name="blog"><BlogSection /></TrackedSection></Reveal>}
+            {show('testimonials') && <Reveal delay={0.05}><TrackedSection name="testimonials"><TestimonialsSection key={loadKey} /></TrackedSection></Reveal>}
+            {show('pricing') && <Reveal delay={0.05}><TrackedSection name="pricing"><PricingSection key={loadKey} /></TrackedSection></Reveal>}
+            {show('blog') && <Reveal delay={0.05}><TrackedSection name="blog"><BlogSection key={loadKey} /></TrackedSection></Reveal>}
 
             {/* ── Final CTA Section ──
                 320px fixes:
