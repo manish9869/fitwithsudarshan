@@ -8,10 +8,15 @@ import { motion } from "framer-motion";
 // handful of gaps, which reads as broken even though it self-resolves.
 // Reserving roughly the section's real height also keeps a pending #hash
 // scroll (see ScrollToTop.jsx) from landing somewhere wildly off.
-export default function SectionSkeleton({ id, minHeight = 480 }) {
+//
+// No `id` here — the outer TrackedSection wrapper in Landing.jsx already
+// carries the section's #hash anchor id. Every real section used to also
+// set that same id on its own root (and this skeleton mirrored it), which
+// meant two elements sharing one id in the DOM at once — invalid HTML, and
+// technically undefined which one `document.getElementById` returns.
+export default function SectionSkeleton({ minHeight = 480 }) {
     return (
         <section
-            id={id}
             className="flex items-center justify-center"
             style={{ minHeight }}
         >

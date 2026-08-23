@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, AlertCircle, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -72,6 +72,22 @@ export default function ConsultationModal({ open, onClose }) {
     const [status, setStatus] = useState("idle");
     // idle | loading | success | error
 
+    const resetTimerRef = useRef(null);
+
+    // Closing and reopening within the reset delay below used to let a
+    // stale timer fire against the freshly-reopened form (wiping whatever
+    // was already typed) — clearing any pending timer whenever the modal
+    // re-opens, and on unmount, closes that window.
+    useEffect(() => {
+        if (open && resetTimerRef.current) {
+            clearTimeout(resetTimerRef.current);
+            resetTimerRef.current = null;
+        }
+        return () => {
+            if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+        };
+    }, [open]);
+
     const set = (field) => (e) => {
         const val = e.target.value;
 
@@ -92,12 +108,15 @@ export default function ConsultationModal({ open, onClose }) {
     const handleClose = () => {
         onClose();
         // Let the close animation play before wiping state, so the form
-        // doesn't visibly reset while it's still fading out.
-        setTimeout(() => {
+        // doesn't visibly reset while it's still fading out. Tracked in a
+        // ref (and cleared on reopen/unmount above) so a fast close+reopen
+        // can't let this stale timer wipe a freshly-typed form.
+        resetTimerRef.current = setTimeout(() => {
             setForm(EMPTY_FORM);
             setErrors({});
             setTouched({});
             setStatus("idle");
+            resetTimerRef.current = null;
         }, 300);
     };
 

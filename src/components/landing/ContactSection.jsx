@@ -231,7 +231,6 @@ export function ContactSection() {
 
     return (
         <section
-            id="contact"
             className="relative py-24 overflow-hidden"
         >
             <div

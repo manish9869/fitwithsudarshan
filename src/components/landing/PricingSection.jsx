@@ -146,7 +146,7 @@ function PricingCard({ pricingTable, saleFlags, popularFlags, coachingId, planTy
 }
 
 export function PricingSection() {
-    const { coachingTypes, pricingTable, durations, planInclusions, basicConsultation, saleFlags, popularFlags, loading } = useSiteData();
+    const { coachingTypes, pricingTable, durations, planInclusions, basicConsultation, saleFlags, popularFlags, loading, error } = useSiteData();
     const [activeTab, setActiveTab] = useState("online");
     // Three independent plan tabs — individual, couple, and (online-only) basic.
     // Each can be on sale at the same time as any other; nothing here is special-cased.
@@ -156,11 +156,18 @@ export function PricingSection() {
     const isInView = useInView(ref, { once: true, margin: "-60px" });
 
     if (loading) {
-        return <SectionSkeleton id="pricing" minHeight={640} />;
+        return <SectionSkeleton minHeight={640} />;
     }
 
     if (!coachingTypes.length) {
-        return <section id="pricing" className="relative py-28 text-center text-white/30 text-sm">Loading pricing…</section>;
+        // loading has actually finished by this point (the branch above
+        // handles the in-progress state) — this is either a genuine fetch
+        // failure after all retries, or no pricing configured yet.
+        return (
+            <section className="relative py-28 text-center text-white/30 text-sm">
+                {error ? "Couldn't load pricing right now. Please refresh the page." : "Pricing is being set up — check back soon."}
+            </section>
+        );
     }
 
     const activeCoaching = coachingTypes.find((c) => c.id === activeTab) || coachingTypes[0];
@@ -194,7 +201,7 @@ export function PricingSection() {
     ];
 
     return (
-        <section id="pricing" className="relative py-28 overflow-hidden">
+        <section className="relative py-28 overflow-hidden">
             <div className="absolute inset-0 pointer-events-none">
                 <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[700px] rounded-full blur-[140px]"
                     style={{ background: 'radial-gradient(ellipse, rgba(231,23,99,0.1) 0%, transparent 70%)' }}

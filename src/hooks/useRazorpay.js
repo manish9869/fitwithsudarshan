@@ -1,19 +1,31 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { trackEvent } from '@/utils/analytics';
 import { logEvent } from '@/utils/txnLog';
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
+// Shared in-flight promise so concurrent calls (e.g. a double-click before
+// the script has loaded) reuse the same <script> tag instead of each
+// appending their own — module-level since the script itself is a global
+// resource, not per-hook-instance state.
+let razorpayScriptPromise = null;
+
 function loadRazorpayScript() {
-    return new Promise((resolve) => {
-        if (window.Razorpay) return resolve(true);
+    if (window.Razorpay) return Promise.resolve(true);
+    if (razorpayScriptPromise) return razorpayScriptPromise;
+
+    razorpayScriptPromise = new Promise((resolve) => {
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
+        script.onerror = () => {
+            razorpayScriptPromise = null; // allow a later retry instead of permanently failing
+            resolve(false);
+        };
         document.body.appendChild(script);
     });
+    return razorpayScriptPromise;
 }
 
 // ── GA4 purchase-event dedupe guard ──────────────────────────────────────────
@@ -71,6 +83,15 @@ function mapEnrollmentRow(row) {
 }
 
 export function useRazorpay() {
+    // A ref (not state) so the guard is live the instant a second call
+    // comes in — the Pay button's `disabled` state only takes effect on
+    // React's next render, and a fast double-click/double-tap can fire
+    // initiatePayment twice before that commit, each hitting
+    // /api/create-order independently and opening two separate Razorpay
+    // checkout instances (the second silently clobbers
+    // window.__rzpInstance).
+    const inFlightRef = useRef(false);
+
     const initiatePayment = useCallback(async ({
         amountPaise,
         couponCode,
@@ -85,6 +106,11 @@ export function useRazorpay() {
         partnerName, partnerAge, partnerWeight, partnerGoals, partnerMedicalIssue, partnerMedicalNote,
         onSuccess, onError, onDismiss,
     }) => {
+        if (inFlightRef.current) return;
+        inFlightRef.current = true;
+
+        try {
+
         if (!RAZORPAY_KEY_ID) {
             onError?.('Razorpay key is not configured.');
             return;
@@ -286,6 +312,10 @@ export function useRazorpay() {
 
         logEvent({ orderId: order.order_id, enrollmentId: order.enrollmentId, step: 'checkout_opened', status: 'started' });
         rzp.open();
+
+        } finally {
+            inFlightRef.current = false;
+        }
     }, []);
 
     return { initiatePayment };
