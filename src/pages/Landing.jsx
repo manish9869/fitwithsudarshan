@@ -17,6 +17,7 @@ import { useRef } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 import { wa } from "@/utils/whatsapp";
 import { useSectionEngagement } from '@/hooks/useSectionEngagement';
+import { useSiteData } from '@/contexts/SiteDataContext';
 
 // Wraps a landing-page section with both its existing #id (nav anchors)
 // and time-on-section tracking (see useSectionEngagement.js).
@@ -42,17 +43,22 @@ function Reveal({ children, delay = 0 }) {
 }
 
 export default function Landing() {
+    const { sectionVisibility } = useSiteData();
+    // Missing/unset (still loading, or never saved) defaults to visible —
+    // only an explicit `false` from the admin panel hides a section.
+    const show = (key) => sectionVisibility?.[key] !== false;
+
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Navbar />
-            <HeroSection />
+            {show('hero') && <HeroSection />}
 
-            <Reveal><TrackedSection name="features"><FeaturesSection /></TrackedSection></Reveal>
-            <Reveal delay={0.05}><TrackedSection name="transformations"><TransformationsSection /></TrackedSection></Reveal>
-            <Reveal delay={0.05}><TrackedSection name="tools"><ToolsSection /></TrackedSection></Reveal>
-            <Reveal delay={0.05}><TrackedSection name="testimonials"><TestimonialsSection /></TrackedSection></Reveal>
-            <Reveal delay={0.05}><TrackedSection name="pricing"><PricingSection /></TrackedSection></Reveal>
-            <Reveal delay={0.05}><TrackedSection name="blog"><BlogSection /></TrackedSection></Reveal>
+            {show('features') && <Reveal><TrackedSection name="features"><FeaturesSection /></TrackedSection></Reveal>}
+            {show('transformations') && <Reveal delay={0.05}><TrackedSection name="transformations"><TransformationsSection /></TrackedSection></Reveal>}
+            {show('tools') && <Reveal delay={0.05}><TrackedSection name="tools"><ToolsSection /></TrackedSection></Reveal>}
+            {show('testimonials') && <Reveal delay={0.05}><TrackedSection name="testimonials"><TestimonialsSection /></TrackedSection></Reveal>}
+            {show('pricing') && <Reveal delay={0.05}><TrackedSection name="pricing"><PricingSection /></TrackedSection></Reveal>}
+            {show('blog') && <Reveal delay={0.05}><TrackedSection name="blog"><BlogSection /></TrackedSection></Reveal>}
 
             {/* ── Final CTA Section ──
                 320px fixes:
@@ -126,7 +132,7 @@ export default function Landing() {
                 </Reveal>
             </section>
 
-            <Reveal><TrackedSection name="contact"><ContactSection /></TrackedSection></Reveal>
+            {show('contact') && <Reveal><TrackedSection name="contact"><ContactSection /></TrackedSection></Reveal>}
             <FooterSection />
 
             <FloatingWhatsApp />

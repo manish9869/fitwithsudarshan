@@ -9,7 +9,7 @@ import {
     TrendingUp
 } from "lucide-react";
 import { useSiteData } from "@/contexts/SiteDataContext";
-import { DEFAULT_HERO_BANNER_IMAGE } from "@/utils/siteContentDefaults";
+import { DEFAULT_HERO_BANNER_IMAGE, CURRENT_HERO_BANNER_IMAGE_DESKTOP } from "@/utils/siteContentDefaults";
 import ConsultationModal from "@/components/landing/ConsultationModal";
 
 // ─── Typewriter ───────────────────────────────────────────────────────────────
@@ -279,7 +279,10 @@ function Particles() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function HeroSection() {
     const { hero } = useSiteData();
-    const heroBg = hero?.bannerImage || DEFAULT_HERO_BANNER_IMAGE;
+    // Falls back to the current desktop photo (not the generic default) so
+    // a fresh/incognito visit doesn't flash the wrong image before
+    // SiteDataContext's fetch resolves — see the constant's own comment.
+    const heroBg = hero?.bannerImage || CURRENT_HERO_BANNER_IMAGE_DESKTOP;
 
     const [statsStarted, setStatsStarted] =
         useState(false);

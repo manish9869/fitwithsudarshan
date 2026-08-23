@@ -6,12 +6,12 @@
 // every field below is a normal text box, toggle, or "Add" list.
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler, ClipboardList } from 'lucide-react';
+import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler, ClipboardList, Eye } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_LOGO_URL, DEFAULT_MAINTENANCE, DEFAULT_LOGGING, DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_LOGO_URL, DEFAULT_MAINTENANCE, DEFAULT_SECTION_VISIBILITY, DEFAULT_LOGGING, DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -22,6 +22,7 @@ const DEFAULTS_BY_KEY = {
     sticky_cta: DEFAULT_STICKY_CTA,
     floating_whatsapp: DEFAULT_FLOATING_WHATSAPP,
     maintenance: DEFAULT_MAINTENANCE,
+    section_visibility: DEFAULT_SECTION_VISIBILITY,
     logging: DEFAULT_LOGGING,
     diet_units: DEFAULT_DIET_UNITS,
     diet_guidelines: DEFAULT_DIET_GUIDELINES,
@@ -32,6 +33,7 @@ const SECTIONS = [
     { key: 'coach', label: 'Coach Bio', icon: User },
     { key: 'contact', label: 'Contact', icon: Phone },
     { key: 'hero', label: 'Hero Section', icon: Home },
+    { key: 'section_visibility', label: 'Show/Hide Sections', icon: Eye },
     { key: 'navbar', label: 'Navbar', icon: Menu },
     { key: 'footer', label: 'Footer', icon: PanelBottom },
     { key: 'why_recode', label: 'Why RECODE', icon: Scale },
@@ -346,6 +348,40 @@ function MaintenanceForm({ value, onChange }) {
     );
 }
 
+// Order here is the actual top-to-bottom order these sections appear in on
+// the homepage — keeping the toggle list in that same order is what makes it
+// readable at a glance instead of needing to think about which is which.
+const TOGGLEABLE_SECTIONS = [
+    { key: 'hero', label: 'Hero (top banner with headline & photo)' },
+    { key: 'features', label: 'About / Meet The Coach' },
+    { key: 'transformations', label: 'Transformations' },
+    { key: 'tools', label: 'Fitness Calculators' },
+    { key: 'testimonials', label: 'Testimonials' },
+    { key: 'pricing', label: 'Programs & Pricing' },
+    { key: 'blog', label: 'Blog' },
+    { key: 'contact', label: 'Contact Form' },
+];
+
+function SectionVisibilityForm({ value, onChange }) {
+    const v = value || {};
+    const set = (k) => (val) => onChange({ ...v, [k]: val });
+    return (
+        <FieldGroup
+            title="Show / Hide Sections"
+            description="Turn any homepage section off without losing its content — flip it back on anytime and everything's exactly as you left it. Note: the Navbar menu isn't updated automatically, so if you hide a section a link to it still won't scroll anywhere until you either turn the section back on or remove that link from Navbar settings."
+        >
+            {TOGGLEABLE_SECTIONS.map((s) => (
+                <ToggleField
+                    key={s.key}
+                    label={s.label}
+                    checked={v[s.key] !== false}
+                    onChange={set(s.key)}
+                />
+            ))}
+        </FieldGroup>
+    );
+}
+
 function LoggingForm({ value, onChange }) {
     const v = value || {};
     const set = (k) => (val) => onChange({ ...v, [k]: val });
@@ -423,6 +459,7 @@ const FORM_COMPONENTS = {
     sticky_cta: StickyCtaForm,
     floating_whatsapp: FloatingWhatsappForm,
     maintenance: MaintenanceForm,
+    section_visibility: SectionVisibilityForm,
     logging: LoggingForm,
     diet_units: DietUnitsForm,
     diet_guidelines: DietGuidelinesForm,

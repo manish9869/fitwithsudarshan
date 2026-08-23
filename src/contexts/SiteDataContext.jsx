@@ -14,6 +14,7 @@ const EMPTY = {
     pricingTable: {}, basicConsultation: null, recodeMethod: [],
     testimonials: [], blogPosts: [], transformations: [], saleFlags: {}, popularFlags: {},
     maintenance: { enabled: false },
+    sectionVisibility: {},
 };
 
 export function SiteDataProvider({ children }) {
