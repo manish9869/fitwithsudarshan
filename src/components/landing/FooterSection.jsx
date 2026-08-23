@@ -62,7 +62,7 @@ export default function FooterSection() {
                 external: true,
             },
             {
-                name: "Apply for Coaching",
+                name: "Start Your Transformation",
                 href: contact?.social?.whatsapp,
                 external: true,
             },
