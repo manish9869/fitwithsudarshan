@@ -31,7 +31,7 @@ const QUICK_ACTIONS = [
     { to: '/admin/manual-enrollment', icon: UserPlus, label: 'Add a client / record offline payment', keywords: 'new enrollment manual cash upi' },
     { to: '/admin/diet-plans/new', icon: Salad, label: 'Create a diet plan', keywords: 'new nutrition meal' },
     { to: '/admin/whatsapp?tab=queue', icon: MessageCircle, label: "Send today's WhatsApp messages", keywords: 'queue whatsapp broadcast' },
-    { to: '/admin/whatsapp?tab=broadcasts', icon: Megaphone, label: 'New WhatsApp broadcast', keywords: 'promotion offer campaign bulk' },
+    { to: '/admin/promotions', icon: Megaphone, label: 'Run a promotion (templates)', keywords: 'festival diwali offer popup broadcast whatsapp' },
     { to: '/admin/coupons', icon: Tag, label: 'Create a coupon', keywords: 'discount promo' },
     { to: '/admin/balance-due', icon: Wallet, label: 'Collect a pending balance', keywords: 'payment due reminder' },
     { to: '/admin/follow-ups', icon: BellRing, label: 'Review due follow-ups', keywords: 'check-in' },

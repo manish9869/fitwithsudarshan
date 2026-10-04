@@ -197,6 +197,10 @@ const AdminWhatsApp = lazy(() =>
   lazyRetry(() => import('@/pages/admin/whatsapp/AdminWhatsApp'))
 );
 
+const AdminPromotions = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/whatsapp/AdminPromotions'))
+);
+
 const NotFound = lazy(() =>
   lazyRetry(() => import('@/pages/NotFound'))
 );
@@ -583,6 +587,7 @@ function App() {
               <Route path="site-settings" element={<LazyRoute><AdminSiteSettings /></LazyRoute>} />
               <Route path="logs" element={<LazyRoute><AdminLogs /></LazyRoute>} />
               <Route path="whatsapp" element={<LazyRoute><AdminWhatsApp /></LazyRoute>} />
+              <Route path="promotions" element={<LazyRoute><AdminPromotions /></LazyRoute>} />
               {/* ── CMS: these have their own simplified editors ── */}
               <Route
                 path="content/coaching_types"
