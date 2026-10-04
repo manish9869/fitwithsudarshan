@@ -1,5 +1,5 @@
 // src/pages/admin/ToastProvider.jsx
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, XCircle, Info, X } from 'lucide-react';
 
@@ -23,11 +23,15 @@ export function ToastProvider({ children }) {
         return id;
     }, [remove]);
 
-    const api = {
+    // Memoised so `toast` keeps the same identity across renders. Pages list
+    // it in useCallback/useEffect deps; a fresh object per render meant every
+    // toast appearing or expiring re-ran those effects (reloading data), and a
+    // failing request looped forever: error → toast → re-render → refetch → error.
+    const api = useMemo(() => ({
         success: (msg, duration) => push(msg, 'success', duration),
         error: (msg, duration) => push(msg, 'error', duration ?? 5000),
         info: (msg, duration) => push(msg, 'info', duration),
-    };
+    }), [push]);
 
     const ICONS = { success: CheckCircle2, error: XCircle, info: Info };
     const COLORS = {

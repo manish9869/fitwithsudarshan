@@ -2,12 +2,13 @@
  * Contacts & groups — who can receive WhatsApp messages.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Upload, RefreshCw, Loader2, Users, Search, Trash2, BellOff, Bell, UserPlus, UserMinus, Pencil, X, Contact } from 'lucide-react';
+import { Plus, Upload, RefreshCw, Loader2, Users, Search, Trash2, BellOff, Bell, UserPlus, UserMinus, Pencil, X, Contact, MessageCircle } from 'lucide-react';
 import { waApi } from '../adminApi';
 import { useToast } from '../ToastProvider';
 import { useDebounce } from '../useDebounce';
 import PaginationBar from '../PaginationBar';
-import { card, btnGhost, btnPrimary, labelCls, inputCls, formatPhone, EmptyState, PINK } from './waShared';
+import DirectMessageModal from './DirectMessageModal';
+import { card, btnGhost, btnPrimary, labelCls, inputCls, formatPhone, EmptyState, PINK, WA_GREEN } from './waShared';
 
 function Modal({ title, onClose, children }) {
     useEffect(() => {
@@ -29,7 +30,7 @@ function Modal({ title, onClose, children }) {
     );
 }
 
-export default function WaContacts({ groups, tags, reloadMeta }) {
+export default function WaContacts({ groups, tags, reloadMeta, apiConfigured }) {
     const toast = useToast();
     const [groupId, setGroupId] = useState('');
     const [search, setSearch] = useState('');
@@ -42,6 +43,8 @@ export default function WaContacts({ groups, tags, reloadMeta }) {
     const [modal, setModal] = useState(null); // 'add' | 'import' | 'group' | {edit: contact} | {editGroup: group}
     const [form, setForm] = useState({});
     const [busy, setBusy] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [messageTarget, setMessageTarget] = useState(null); // { contactIds?, groupId?, label, count }
     const dSearch = useDebounce(search.trim(), 300);
 
     const load = useCallback(async () => {
@@ -77,7 +80,18 @@ export default function WaContacts({ groups, tags, reloadMeta }) {
         }
     };
 
-    const sync = () => run(() => waApi.syncContacts(), (r) => `Synced from website: ${r.added} new, ${r.updated} updated`);
+    const sync = async () => {
+        setSyncing(true);
+        try {
+            const r = await waApi.syncContacts();
+            toast.success(r.added || r.updated ? `Synced from website: ${r.added} new, ${r.updated} updated` : 'Already up to date');
+            refreshAll();
+        } catch (e) {
+            toast.error(e.message);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const toggleOptOut = (c) => run(
         () => waApi.updateContact(c.id, { opted_out: !c.opted_out }),
@@ -139,9 +153,15 @@ export default function WaContacts({ groups, tags, reloadMeta }) {
                         <option value="">All tags</option>
                         {tags.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}
                     </select>
-                    <button onClick={sync} disabled={busy} className={btnGhost} title="Pull clients, leads and assessments from the website">
-                        <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} /> Sync
+                    <button onClick={sync} disabled={syncing} className={btnGhost} title="Pull clients, leads and assessments from the website">
+                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync'}
                     </button>
+                    {groupId && (
+                        <button onClick={() => setMessageTarget({ groupId, label: groupName(groupId), count: groups.find((g) => g.id === groupId)?.memberCount || 0 })}
+                            className={btnPrimary} style={{ background: WA_GREEN, color: '#05210f' }}>
+                            <MessageCircle className="w-4 h-4" /> Message group
+                        </button>
+                    )}
                     <button onClick={() => { setForm({ groupId }); setModal('import'); }} className={btnGhost}><Upload className="w-4 h-4" /> Import</button>
                     <button onClick={() => { setForm({ groupIds: groupId ? [groupId] : [] }); setModal('add'); }} className={btnPrimary} style={{ background: PINK }}><Plus className="w-4 h-4" /> Add</button>
                 </div>
@@ -150,6 +170,18 @@ export default function WaContacts({ groups, tags, reloadMeta }) {
                     <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'rgba(231,23,99,0.08)', border: '1px solid rgba(231,23,99,0.25)' }}>
                         <span className="text-sm text-white font-semibold">{selected.size} selected</span>
                         <div className="flex-1" />
+                        <button
+                            onClick={() => {
+                                const picked = data.rows.filter((r) => selected.has(r.id));
+                                setMessageTarget({
+                                    contactIds: picked.map((r) => r.id),
+                                    label: picked.length === 1 ? (picked[0].name || formatPhone(picked[0].phone)) : `${picked.length} contacts`,
+                                    count: picked.length,
+                                });
+                            }}
+                            className={btnPrimary + ' !py-1.5'} style={{ background: WA_GREEN, color: '#05210f' }}>
+                            <MessageCircle className="w-4 h-4" /> Message {selected.size}
+                        </button>
                         <select defaultValue="" onChange={(e) => { if (e.target.value) addSelectedToGroup(e.target.value); e.target.value = ''; }} className={inputCls + ' !w-auto !py-1.5'} aria-label="Add selected to group">
                             <option value="">Add to group…</option>
                             {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -202,6 +234,11 @@ export default function WaContacts({ groups, tags, reloadMeta }) {
                                         </td>
                                         <td className="px-3 py-2.5 pr-4">
                                             <div className="flex justify-end gap-0.5">
+                                                <button onClick={() => setMessageTarget({ contactIds: [c.id], label: c.name || formatPhone(c.phone), count: 1 })}
+                                                    disabled={c.opted_out} title={c.opted_out ? 'This person stopped messages' : 'Send a message'} aria-label={`Message ${c.name || c.phone}`}
+                                                    className="p-1.5 rounded-lg text-white/35 hover:text-[#25d366] hover:bg-white/5 disabled:opacity-30">
+                                                    <MessageCircle className="w-3.5 h-3.5" />
+                                                </button>
                                                 <button onClick={() => { setForm({ name: c.name, phone: c.phone, tags: (c.tags || []).join(', '), notes: c.notes || '' }); setModal({ edit: c }); }} title="Edit" aria-label="Edit" className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/5"><Pencil className="w-3.5 h-3.5" /></button>
                                                 <button onClick={() => toggleOptOut(c)} title={c.opted_out ? 'Allow messages again' : 'Stop messages (opt out)'} aria-label={c.opted_out ? 'Allow messages' : 'Stop messages'} className="p-1.5 rounded-lg text-white/35 hover:text-amber-400 hover:bg-white/5">
                                                     {c.opted_out ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
@@ -226,6 +263,15 @@ export default function WaContacts({ groups, tags, reloadMeta }) {
                     pageSizeOptions={[25, 50, 100]}
                 />
             </div>
+
+            {messageTarget && (
+                <DirectMessageModal
+                    target={messageTarget}
+                    apiConfigured={apiConfigured}
+                    onClose={() => setMessageTarget(null)}
+                    onSent={() => { setSelected(new Set()); reloadMeta(); }}
+                />
+            )}
 
             {/* ── Modals ── */}
             {modal === 'add' && (
