@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler, ClipboardList, Eye, Megaphone } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
+import PreviewPanel from '../whatsapp/PreviewPanel';
 import { useToast } from '../ToastProvider';
 import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField, SelectField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
@@ -356,7 +357,8 @@ function PromoPopupForm({ value, onChange }) {
     const v = value || {};
     const set = (k) => (val) => onChange({ ...v, [k]: val });
     return (
-        <>
+        <div className="grid xl:grid-cols-[1fr_340px] gap-6 items-start">
+        <div className="space-y-6 min-w-0">
             <FieldGroup
                 title="Promo Pop-up"
                 description="A promotional offer that pops up on the homepage. Visitors can close it anytime, and it won't nag them: it respects the frequency you pick below. Changing the title or coupon counts as a new offer, so returning visitors will see it again."
@@ -387,7 +389,14 @@ function PromoPopupForm({ value, onChange }) {
                 <SelectField label="How often" value={v.frequency || 'day'} onChange={set('frequency')} options={PROMO_FREQUENCY_OPTIONS} />
                 <ToggleField label="Also show on phones" checked={v.showOnMobile !== false} onChange={set('showOnMobile')} />
             </FieldGroup>
-        </>
+        </div>
+        <aside className="xl:sticky xl:top-20">
+            <PreviewPanel popup={v} />
+            <p className="text-[11px] text-white/30 mt-2 text-center">
+                Want to send it on WhatsApp too? Use <Link to="/admin/promotions" className="underline">Promotions</Link>.
+            </p>
+        </aside>
+        </div>
     );
 }
 

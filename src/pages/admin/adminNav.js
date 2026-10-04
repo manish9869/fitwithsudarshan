@@ -34,6 +34,7 @@ import {
     Flame,
     UserCircle,
     MessageCircle,
+    Megaphone,
 } from 'lucide-react';
 
 // `keywords` are extra terms the command palette matches on, so typing
@@ -73,6 +74,7 @@ export const NAV_GROUPS = [
     {
         title: 'Sales',
         items: [
+            { to: '/admin/promotions', icon: Megaphone, label: 'Promotions', keywords: 'offer festival diwali template promo popup broadcast campaign' },
             { to: '/admin/whatsapp', icon: MessageCircle, label: 'WhatsApp', keywords: 'broadcast promotion message campaign scheduler sequence drip bulk' },
             { to: '/admin/coupons', icon: Tag, label: 'Coupons', keywords: 'discount promo code' },
             { to: '/admin/content/pricing', icon: IndianRupee, label: 'Pricing', keywords: 'plans price matrix' },

@@ -5,7 +5,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Plus, Megaphone, Loader2, Send, CalendarClock, Trash2, ArrowLeft, Copy, Ban, Save } from 'lucide-react';
 import { waApi } from '../adminApi';
 import { useToast } from '../ToastProvider';
-import { card, btnGhost, btnPrimary, labelCls, inputCls, MessageComposer, AudiencePicker, WhatsAppPreview, EmptyState, PINK } from './waShared';
+import { card, btnGhost, btnPrimary, labelCls, inputCls, AudiencePicker, EmptyState, PINK } from './waShared';
+import { ComposerWithTemplates } from './TemplateGallery';
+import PreviewPanel from './PreviewPanel';
+import { findPlaceholders } from './waTemplates';
 
 const STATUS_STYLE = {
     draft: { label: 'Draft', bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' },
@@ -64,6 +67,8 @@ export default function WaCampaigns({ groups, tags, onChanged }) {
     const save = async (launch) => {
         if (!editing.name.trim()) return toast.error('Give the broadcast a name.');
         if (!editing.body.trim()) return toast.error('Write a message first.');
+        const blanks = findPlaceholders(editing.body, editing.cta_url);
+        if (launch && blanks.length) return toast.error(`Fill in ${blanks.join(', ')} before sending.`);
         setBusy(true);
         try {
             const saved = editing.id
@@ -125,7 +130,7 @@ export default function WaCampaigns({ groups, tags, onChanged }) {
                                 <label className={labelCls}>Broadcast name (only you see this)</label>
                                 <input className={inputCls} value={editing.name} onChange={(e) => set({ name: e.target.value })} placeholder="Diwali offer — leads" disabled={locked} />
                             </div>
-                            <MessageComposer value={editing} onChange={(v) => set(v)} showAdvanced />
+                            <ComposerWithTemplates value={editing} onChange={(v) => set(v)} showAdvanced />
                         </section>
                         <section className="rounded-2xl p-5" style={card}>
                             <AudiencePicker value={editing.audience} onChange={(audience) => set({ audience })} groups={groups} tags={tags} body={editing.body} />
@@ -157,7 +162,7 @@ export default function WaCampaigns({ groups, tags, onChanged }) {
                     </div>
 
                     <aside className="lg:sticky lg:top-20 space-y-3">
-                        <WhatsAppPreview msg={editing} />
+                        <PreviewPanel msg={editing} />
                         {!locked && (
                             <div className="grid gap-2">
                                 <button onClick={() => save(true)} disabled={busy} className={btnPrimary} style={{ background: PINK }}>

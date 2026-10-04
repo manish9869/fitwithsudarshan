@@ -180,94 +180,114 @@ export default function PromoPopup() {
                         if (e.target === e.currentTarget) close();
                     }}
                 >
-                    <motion.div
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="promo-title"
-                        initial={{ opacity: 0, y: 24, scale: 0.96 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 12, scale: 0.98, transition: { duration: 0.15 } }}
-                        transition={{ type: "spring", duration: 0.45, bounce: 0.15 }}
-                        className="relative w-full max-w-md overflow-hidden rounded-3xl"
-                        style={{
-                            background: "#0f0f0f",
-                            border: "1px solid rgba(231,23,99,0.3)",
-                            boxShadow: "0 30px 90px rgba(0,0,0,0.7), 0 0 60px rgba(231,23,99,0.15)",
-                        }}
-                    >
-                        <button
-                            ref={closeBtnRef}
-                            onClick={close}
-                            aria-label="Close offer"
-                            className="press absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white"
-                            style={{ background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.12)" }}
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-
-                        {p.image && (
-                            <div className="relative aspect-[4/3] w-full overflow-hidden">
-                                <img src={p.image} alt="" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-transparent to-transparent" />
-                            </div>
-                        )}
-
-                        <div className={`px-6 pb-6 ${p.image ? "-mt-6 relative" : "pt-8"}`}>
-                            {p.eyebrow && (
-                                <div className="inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider"
-                                    style={{ background: "rgba(231,23,99,0.15)", color: "#ff4d8d" }}>
-                                    <Flame className="w-3.5 h-3.5" aria-hidden="true" />
-                                    {p.eyebrow}
-                                </div>
-                            )}
-
-                            <h2 id="promo-title" className="text-3xl sm:text-4xl font-bold uppercase text-white leading-[0.95] mb-3">
-                                {p.title}
-                            </h2>
-
-                            {p.message && (
-                                <p className="text-sm text-white/60 leading-relaxed mb-5">{p.message}</p>
-                            )}
-
-                            {p.couponCode && (
-                                <button
-                                    onClick={copyCode}
-                                    className="press w-full flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl text-left"
-                                    style={{ background: "rgba(255,255,255,0.04)", border: "1.5px dashed rgba(231,23,99,0.5)" }}
-                                    aria-label={`Copy coupon code ${p.couponCode}`}
-                                >
-                                    <span>
-                                        <span className="block text-[10px] uppercase tracking-widest text-white/40">Coupon code</span>
-                                        <span className="block text-lg font-bold tracking-[0.15em] text-white" style={{ fontFamily: "var(--font-display)" }}>
-                                            {p.couponCode}
-                                        </span>
-                                    </span>
-                                    <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: copied ? "#34d399" : "#ff4d8d" }} aria-live="polite">
-                                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                        {copied ? "Copied" : "Copy"}
-                                    </span>
-                                </button>
-                            )}
-
-                            <a
-                                href={ctaHref || "#pricing"}
-                                target={external ? "_blank" : undefined}
-                                rel={external ? "noopener noreferrer" : undefined}
-                                onClick={onCta}
-                                className="press group w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full text-white font-bold"
-                                style={{ background: "#e71763", boxShadow: "0 0 30px rgba(231,23,99,0.45)" }}
-                            >
-                                {p.ctaLabel || "Claim my offer"}
-                                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                            </a>
-
-                            <button onClick={close} className="w-full mt-3 text-xs text-white/35 hover:text-white/60 transition-colors">
-                                No thanks, maybe later
-                            </button>
-                        </div>
-                    </motion.div>
+                    <PromoPopupCard
+                        p={p}
+                        copied={copied}
+                        onCopy={copyCode}
+                        onClose={close}
+                        ctaHref={ctaHref}
+                        external={external}
+                        onCta={onCta}
+                        closeBtnRef={closeBtnRef}
+                    />
                 </motion.div>
             )}
         </AnimatePresence>
+    );
+}
+
+/**
+ * The visual card itself. Exported so the admin panel can render a live
+ * preview with exactly the same markup the website uses.
+ * `preview` renders it statically (no entrance animation, no dialog role).
+ */
+export function PromoPopupCard({ p, copied, onCopy, onClose, ctaHref, external, onCta, closeBtnRef, preview = false }) {
+    return (
+        <motion.div
+            role={preview ? undefined : "dialog"}
+            aria-modal={preview ? undefined : "true"}
+            aria-labelledby={preview ? undefined : "promo-title"}
+            initial={preview ? false : { opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98, transition: { duration: 0.15 } }}
+            transition={{ type: "spring", duration: 0.45, bounce: 0.15 }}
+            className="@container relative w-full max-w-md overflow-hidden rounded-3xl"
+            style={{
+                background: "#0f0f0f",
+                border: "1px solid rgba(231,23,99,0.3)",
+                boxShadow: "0 30px 90px rgba(0,0,0,0.7), 0 0 60px rgba(231,23,99,0.15)",
+            }}
+        >
+            <button
+                ref={closeBtnRef}
+                onClick={onClose}
+                aria-label="Close offer"
+                className="press absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white"
+                style={{ background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.12)" }}
+            >
+                <X className="w-4 h-4" />
+            </button>
+
+            {p.image && (
+                <div className="relative aspect-[4/3] w-full overflow-hidden">
+                    <img src={p.image} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-transparent to-transparent" />
+                </div>
+            )}
+
+            <div className={`px-6 pb-6 ${p.image ? "-mt-6 relative" : "pt-8"}`}>
+                {p.eyebrow && (
+                    <div className="inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider"
+                        style={{ background: "rgba(231,23,99,0.15)", color: "#ff4d8d" }}>
+                        <Flame className="w-3.5 h-3.5" aria-hidden="true" />
+                        {p.eyebrow}
+                    </div>
+                )}
+
+                <h2 id={preview ? undefined : "promo-title"} className="text-[1.75rem] @sm:text-4xl font-bold uppercase text-white leading-[0.95] mb-3 [overflow-wrap:anywhere]" style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}>
+                    {p.title}
+                </h2>
+
+                {p.message && (
+                    <p className="text-sm text-white/60 leading-relaxed mb-5">{p.message}</p>
+                )}
+
+                {p.couponCode && (
+                    <button
+                        onClick={onCopy}
+                        className="press w-full flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl text-left"
+                        style={{ background: "rgba(255,255,255,0.04)", border: "1.5px dashed rgba(231,23,99,0.5)" }}
+                        aria-label={`Copy coupon code ${p.couponCode}`}
+                    >
+                        <span>
+                            <span className="block text-[10px] uppercase tracking-widest text-white/40">Coupon code</span>
+                            <span className="block text-lg font-bold tracking-[0.15em] text-white" style={{ fontFamily: "var(--font-display)" }}>
+                                {p.couponCode}
+                            </span>
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: copied ? "#34d399" : "#ff4d8d" }} aria-live="polite">
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            {copied ? "Copied" : "Copy"}
+                        </span>
+                    </button>
+                )}
+
+                <a
+                    href={ctaHref || "#pricing"}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? "noopener noreferrer" : undefined}
+                    onClick={onCta}
+                    className="press group w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full text-white font-bold"
+                    style={{ background: "#e71763", boxShadow: "0 0 30px rgba(231,23,99,0.45)" }}
+                >
+                    {p.ctaLabel || "Claim my offer"}
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </a>
+
+                <button onClick={onClose} className="w-full mt-3 text-xs text-white/35 hover:text-white/60 transition-colors">
+                    No thanks, maybe later
+                </button>
+            </div>
+        </motion.div>
     );
 }

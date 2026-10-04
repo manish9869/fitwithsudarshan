@@ -6,7 +6,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Plus, CalendarDays, Loader2, ArrowLeft, Trash2, Save, Pause, Play, ChevronUp, ChevronDown } from 'lucide-react';
 import { waApi } from '../adminApi';
 import { useToast } from '../ToastProvider';
-import { card, btnGhost, btnPrimary, labelCls, inputCls, MessageComposer, ContactPicker, WhatsAppPreview, EmptyState, PINK } from './waShared';
+import { card, btnGhost, btnPrimary, labelCls, inputCls, ContactPicker, EmptyState, PINK } from './waShared';
+import { ComposerWithTemplates } from './TemplateGallery';
+import PreviewPanel from './PreviewPanel';
+import { SEQUENCE_PRESETS, findPlaceholders } from './waTemplates';
 
 const BLANK = {
     name: '',
@@ -18,13 +21,6 @@ const BLANK = {
     active: true,
     steps: [{ day_number: 1, body: '', image_url: '', cta_label: '', cta_url: '' }],
 };
-
-// Starter steps modelled on a typical challenge onboarding flow.
-const STARTER_STEPS = [
-    { day_number: 1, body: "Hey {{first_name}} 👋, let's get your fitness journey started!\n\nTap below and fill the form so I can build your RECODE plan.", cta_label: 'Fill the form', cta_url: '' },
-    { day_number: 2, body: "Hey {{first_name}}, you're just one step away from your transformation. Please fill the form so I can understand your goals.\n\n_Ignore this if you've already filled it._", cta_label: 'Fill form', cta_url: '' },
-    { day_number: 4, body: "{{first_name}}, here's a real result from our last batch 💪 Your journey can inspire others too.", cta_label: 'Get more details', cta_url: '' },
-];
 
 export default function WaSequences({ groups, onChanged }) {
     const toast = useToast();
@@ -58,7 +54,7 @@ export default function WaSequences({ groups, onChanged }) {
         setActiveStep(0);
         setEditing(seq
             ? { ...seq, group_id: seq.group_id || '', start_date: seq.start_date || '', steps: seq.steps.length ? seq.steps : BLANK.steps }
-            : { ...BLANK, steps: STARTER_STEPS.map((s) => ({ ...s })) });
+            : { ...BLANK, presetId: SEQUENCE_PRESETS[0].id, steps: SEQUENCE_PRESETS[0].steps.map((s) => ({ image_url: '', ...s })) });
     };
 
     const setStep = (i, patch) => setEditing((e) => ({ ...e, steps: e.steps.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) }));
@@ -80,6 +76,8 @@ export default function WaSequences({ groups, onChanged }) {
         if (!editing.name.trim()) return toast.error('Give the sequence a name.');
         if (!editing.group_id) return toast.error('Pick which group receives this sequence.');
         if (editing.steps.some((s) => !s.body.trim())) return toast.error('Every day needs a message (or remove the empty day).');
+        const blanks = editing.steps.flatMap((s) => findPlaceholders(s.body, s.cta_url).map((p) => `Day ${s.day_number}: ${p}`));
+        if (blanks.length) return toast.error(`Fill in ${blanks.slice(0, 3).join(', ')}${blanks.length > 3 ? '…' : ''} before saving.`);
         setBusy(true);
         try {
             const payload = { ...editing, steps: [...editing.steps].sort((a, b) => a.day_number - b.day_number) };
@@ -125,6 +123,26 @@ export default function WaSequences({ groups, onChanged }) {
                 <button onClick={() => setEditing(null)} className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white">
                     <ArrowLeft className="w-4 h-4" /> All sequences
                 </button>
+
+                {!editing.id && (
+                    <section className="rounded-2xl p-4" style={card}>
+                        <p className={labelCls}>Start from a ready-made set</p>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                            {SEQUENCE_PRESETS.map((p) => {
+                                const on = editing.presetId === p.id;
+                                return (
+                                    <button key={p.id} type="button"
+                                        onClick={() => { setEditing((e) => ({ ...e, presetId: p.id, name: e.name || p.name, steps: p.steps.map((s) => ({ image_url: '', ...s })) })); setActiveStep(0); }}
+                                        className="rounded-xl p-3 text-left"
+                                        style={on ? { background: 'rgba(231,23,99,0.12)', border: '1.5px solid rgba(231,23,99,0.5)' } : { background: 'rgba(255,255,255,0.02)', border: '1.5px solid rgba(255,255,255,0.07)' }}>
+                                        <p className="text-sm font-semibold text-white">{p.name}</p>
+                                        <p className="text-[11px] text-white/40 mt-0.5">{p.description}</p>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+                )}
 
                 <section className="rounded-2xl p-5 grid sm:grid-cols-2 gap-4" style={card}>
                     <div>
@@ -214,12 +232,12 @@ export default function WaSequences({ groups, onChanged }) {
                                     </button>
                                 )}
                             </div>
-                            <MessageComposer value={step} onChange={(v) => setStep(activeStep, v)} showAdvanced />
+                            <ComposerWithTemplates value={step} onChange={(v) => setStep(activeStep, v)} showAdvanced />
                         </section>
                     )}
 
                     <aside className="lg:sticky lg:top-20 space-y-3">
-                        {step && <WhatsAppPreview msg={step} />}
+                        {step && <PreviewPanel msg={step} />}
                         <button onClick={save} disabled={busy} className={btnPrimary + ' w-full'} style={{ background: PINK }}>
                             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save sequence
                         </button>

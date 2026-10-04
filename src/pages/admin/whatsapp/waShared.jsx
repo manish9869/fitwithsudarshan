@@ -44,11 +44,34 @@ export function waLink(phone, text) {
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 
+/**
+ * Render WhatsApp's inline formatting (*bold*, _italic_, ~strike~) as React
+ * nodes — no innerHTML, so message text can never inject markup.
+ */
+export function WaFormatted({ text }) {
+    const parts = [];
+    const re = /(\*[^*\n]+\*|_[^_\n]+_|~[^~\n]+~)/g;
+    let last = 0;
+    let m;
+    let k = 0;
+    while ((m = re.exec(text))) {
+        if (m.index > last) parts.push(text.slice(last, m.index));
+        const tok = m[0];
+        const inner = tok.slice(1, -1);
+        if (tok[0] === '*') parts.push(<strong key={k++} className="font-semibold text-white">{inner}</strong>);
+        else if (tok[0] === '_') parts.push(<em key={k++}>{inner}</em>);
+        else parts.push(<s key={k++}>{inner}</s>);
+        last = m.index + tok.length;
+    }
+    if (last < text.length) parts.push(text.slice(last));
+    return <>{parts}</>;
+}
+
 // ── Live WhatsApp-style preview (mirrors the poster + text + button look) ──
-export function WhatsAppPreview({ msg, name = 'Rahul Sharma', brand = 'FitWithSudarshan' }) {
+export function WhatsAppPreview({ msg, name = 'Rahul Sharma', brand = 'FitWithSudarshan', bare = false }) {
     const body = personalizePreview(msg.body, name);
     return (
-        <div className="rounded-2xl p-4" style={{ background: '#0b141a', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className={bare ? '' : 'rounded-2xl p-4'} style={bare ? undefined : { background: '#0b141a', border: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-[10px] text-center text-white/40 mb-3">
                 <span className="px-2 py-0.5 rounded-md" style={{ background: '#182229' }}>Preview · as {name.split(' ')[0]} sees it</span>
             </p>
@@ -56,7 +79,7 @@ export function WhatsAppPreview({ msg, name = 'Rahul Sharma', brand = 'FitWithSu
                 {msg.image_url && <img src={msg.image_url} alt="" className="w-full max-h-64 object-cover" />}
                 <div className="px-3 py-2">
                     <p className="text-[13px] text-white/90 whitespace-pre-wrap break-words leading-snug">
-                        {body || <span className="text-white/30">Your message will appear here…</span>}
+                        {body ? <WaFormatted text={body} /> : <span className="text-white/30">Your message will appear here…</span>}
                     </p>
                     <p className="text-[11px] text-white/35 mt-1.5 flex justify-between gap-2">
                         <span>{brand}</span><span>10:34 AM</span>

@@ -100,15 +100,19 @@ function PricingCard({ pricingTable, saleFlags, popularFlags, coachingId, planTy
 
                 <div className="mb-5">
                     <div className="flex items-baseline gap-2 flex-wrap">
-                        <motion.p className="text-4xl font-black leading-none"
+                        {/* "onwards" lives inside the price line (nowrap) so it
+                            sits in the same spot on every card instead of
+                            wrapping under longer prices like ₹12,999. Packages
+                            are starting rates — the final fee is set per client
+                            (physique, goals, medical history) after the
+                            consultation. Scale anchors left so the hovered
+                            card's price stays aligned with its neighbours. */}
+                        <motion.p className="text-3xl font-black leading-none whitespace-nowrap tabular-nums origin-left"
                             style={{ color: isPopular || isOnSale ? '#e71763' : 'white' }}
-                            animate={hovered ? { scale: 1.06 } : { scale: 1 }} transition={{ duration: 0.2 }}>
+                            animate={hovered ? { scale: 1.04 } : { scale: 1 }} transition={{ duration: 0.2 }}>
                             {formatPrice(price)}
+                            <span className="ml-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">onwards</span>
                         </motion.p>
-                        {/* Packages are starting rates — the final fee is set
-                            per client (physique, goals, medical history) after
-                            the consultation. */}
-                        <span className="text-xs font-bold uppercase tracking-wider text-white/45">onwards</span>
                         {isOnSale && (
                             <span className="text-lg font-bold text-white/30 line-through">{formatPrice(originalPrice)}</span>
                         )}
