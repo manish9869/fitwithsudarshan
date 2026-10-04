@@ -345,7 +345,8 @@ export const waApi = {
     sequencePreview: (id) => request(`/whatsapp/sequences/${id}/preview`),
     queue: (params) => request('/whatsapp/queue', { params }),
     buildQueue: () => request('/whatsapp/queue/build', { method: 'POST' }),
-    dispatch: () => request('/whatsapp/queue/dispatch', { method: 'POST' }),
+    dispatch: (ids) => request('/whatsapp/queue/dispatch', { method: 'POST', body: ids?.length ? { ids } : {} }),
+    direct: (body) => request('/whatsapp/direct', { method: 'POST', body }),
     skipQueue: (ids) => request('/whatsapp/queue/skip', { method: 'POST', body: { ids } }),
     updateQueueItem: (id, status) => request(`/whatsapp/queue/${id}`, { method: 'PATCH', body: { status } }),
 };

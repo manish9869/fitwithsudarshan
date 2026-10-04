@@ -135,7 +135,7 @@ export default function AdminWhatsApp() {
             {tab === 'queue' && <WaQueue status={status} onChanged={onChanged} />}
             {tab === 'broadcasts' && <WaCampaigns groups={groups} tags={tags} onChanged={onChanged} />}
             {tab === 'sequences' && <WaSequences groups={groups} onChanged={onChanged} />}
-            {tab === 'contacts' && <WaContacts groups={groups} tags={tags} reloadMeta={onChanged} />}
+            {tab === 'contacts' && <WaContacts groups={groups} tags={tags} reloadMeta={onChanged} apiConfigured={!!status?.apiConfigured} />}
         </div>
     );
 }
