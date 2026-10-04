@@ -23,6 +23,25 @@ export const DEFAULT_MAINTENANCE = {
     message: "The site is currently undergoing scheduled maintenance. We're working hard to improve your experience — please check back shortly. For anything urgent, reach out on WhatsApp.",
 };
 
+// Promotional pop-up on the landing page. Off until an admin turns it on.
+export const DEFAULT_PROMO_POPUP = {
+    enabled: false,
+    eyebrow: 'Limited-time offer',
+    title: 'Festive Transformation Offer',
+    message: 'Start your RECODE™ journey this month and get an exclusive discount on any coaching plan.',
+    image: '',
+    couponCode: '',
+    ctaLabel: 'Claim my offer',
+    ctaAction: 'whatsapp',
+    ctaUrl: '',
+    trigger: 'delay',
+    delaySeconds: 6,
+    frequency: 'day',
+    startDate: '',
+    endDate: '',
+    showOnMobile: true,
+};
+
 // Every key defaults to true (shown) — the object only ever needs to carry
 // the sections an admin has explicitly turned OFF. A section missing from
 // this object (e.g. never saved, or added to the site after this was last

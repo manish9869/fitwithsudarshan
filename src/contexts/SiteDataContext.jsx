@@ -15,6 +15,7 @@ const EMPTY = {
     testimonials: [], blogPosts: [], transformations: [], saleFlags: {}, popularFlags: {},
     maintenance: { enabled: false },
     sectionVisibility: {},
+    promoPopup: { enabled: false },
 };
 
 export function SiteDataProvider({ children }) {

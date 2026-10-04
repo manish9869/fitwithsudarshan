@@ -73,9 +73,10 @@ export function SelectField({ label, value, onChange, options }) {
         <div>
             {label && <label className={labelCls}>{label}</label>}
             <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} className={inputCls}>
-                {options.map((o) => (
-                    <option key={o} value={o} style={{ background: '#0a0a0a' }}>{o}</option>
-                ))}
+                {options.map((o) => {
+                    const opt = typeof o === 'string' ? { value: o, label: o } : o;
+                    return <option key={opt.value} value={opt.value} style={{ background: '#0a0a0a' }}>{opt.label}</option>;
+                })}
             </select>
         </div>
     );

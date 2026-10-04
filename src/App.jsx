@@ -8,7 +8,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 
-import { motion } from 'framer-motion';
+import { motion, MotionConfig } from 'framer-motion';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import CustomCursor from '@/components/CustomCursor';
@@ -192,6 +192,14 @@ const AdminSiteSettings = lazy(() =>
 const AdminLogs = lazy(() =>
   lazyRetry(() => import('@/pages/admin/AdminLogs'))
 );
+
+const AdminWhatsApp = lazy(() =>
+  lazyRetry(() => import('@/pages/admin/whatsapp/AdminWhatsApp'))
+);
+
+const NotFound = lazy(() =>
+  lazyRetry(() => import('@/pages/NotFound'))
+);
 // ── Loading fallback ──────────────────────────────────────────────────────
 function PageFallback() {
   return (
@@ -213,6 +221,7 @@ function PageFallback() {
           borderTopColor: '#e71763',
           animation: 'fws-spin 0.8s linear infinite',
         }}
+        className="motion-safe-spin"
       />
 
       <style>
@@ -299,7 +308,13 @@ function MaintenanceGate({ children }) {
 function App() {
   return (
     <SiteDataProvider>
+      {/* reducedMotion="user": when the OS asks for reduced motion, every
+          Framer Motion transform/layout animation (the dozens of infinite
+          float/pulse/scale loops across the landing page) is skipped, while
+          opacity fades still run so state changes stay legible. */}
+      <MotionConfig reducedMotion="user">
       <Router>
+        <a href="#main-content" className="skip-link">Skip to content</a>
         <RouteErrorBoundary>
           <CustomCursor />
           <ScrollToTop />
@@ -567,6 +582,7 @@ function App() {
               <Route path="content/legal-pages" element={<LazyRoute><AdminLegalPages /></LazyRoute>} />
               <Route path="site-settings" element={<LazyRoute><AdminSiteSettings /></LazyRoute>} />
               <Route path="logs" element={<LazyRoute><AdminLogs /></LazyRoute>} />
+              <Route path="whatsapp" element={<LazyRoute><AdminWhatsApp /></LazyRoute>} />
               {/* ── CMS: these have their own simplified editors ── */}
               <Route
                 path="content/coaching_types"
@@ -677,12 +693,23 @@ function App() {
                 }
               />
             </Route>
+
+            {/* Public catch-all — must stay last */}
+            <Route
+              path="*"
+              element={
+                <LazyRoute>
+                  <NotFound />
+                </LazyRoute>
+              }
+            />
           </Routes>
           </MaintenanceGate>
         </RouteErrorBoundary>
 
         <SpeedInsights />
       </Router>
+      </MotionConfig>
     </SiteDataProvider>
   );
 }

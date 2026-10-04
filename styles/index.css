@@ -54,8 +54,15 @@
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-heading: 'Inter', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
-  --font-display: 'Inter', system-ui, sans-serif;
+  /* Condensed athletic face for public headings — the gym-poster register
+     Inter alone can't hit. Loaded in index.html alongside Inter. */
+  --font-display: 'Barlow Condensed', 'Inter', system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Motion curves — strong ease-out for entrances/UI, ease-in-out for
+     on-screen movement. Shared so CSS and inline transitions agree. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 /* Base styles */
@@ -69,16 +76,71 @@
   }
 
   /* ── CURSOR: hide native cursor on PUBLIC pages only ── */
-  /* Admin pages (body.admin-page) keep normal cursor */
-  body:not(.admin-page) {
-    cursor: none;
-  }
-
+  /* Admin pages (body.admin-page) keep normal cursor.
+     Scoped to fine pointers only — previously `body { cursor: none }` sat
+     outside this query, so touch-laptops / hybrid devices (where
+     CustomCursor never renders) were left with no cursor at all. Text
+     fields keep the I-beam so users can see where they're placing the
+     caret in the contact / enroll forms. */
   @media (hover: hover) and (pointer: fine) {
+    body:not(.admin-page),
     body:not(.admin-page) *,
     body:not(.admin-page) *::before,
     body:not(.admin-page) *::after {
       cursor: none !important;
+    }
+
+    body:not(.admin-page) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]),
+    body:not(.admin-page) textarea {
+      cursor: text !important;
+    }
+  }
+
+  /* Athletic display type for public headings. Admin keeps Inter —
+     dense data UIs read better in a regular-width face. */
+  body:not(.admin-page) :is(h1, h2) {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  body:not(.admin-page) h1 {
+    font-weight: 800;
+    line-height: 0.95;
+  }
+
+  body:not(.admin-page) p {
+    text-wrap: pretty;
+  }
+
+  /* Visible keyboard focus everywhere on the public site. :focus-visible
+     only fires for keyboard navigation, so mouse clicks stay clean. */
+  body:not(.admin-page) :is(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    /* Kill CSS keyframe loops (spinners keep running but slowed so
+       loading state is still communicated). Framer Motion loops are
+       handled by <MotionConfig reducedMotion="user"> in App.jsx. */
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    .motion-safe-spin {
+      animation-duration: 1.5s !important;
+      animation-iteration-count: infinite !important;
     }
   }
 
@@ -166,6 +228,40 @@
     linear-gradient(rgba(231, 23, 99, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(231, 23, 99, 0.04) 1px, transparent 1px);
   background-size: 50px 50px;
+}
+
+/* Skip link — invisible until focused by keyboard */
+@utility skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10000;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  transform: translateY(-160%);
+  transition: transform 200ms var(--ease-out-strong);
+
+  &:focus {
+    transform: translateY(0);
+  }
+}
+
+/* Stat numbers that count up shouldn't jitter width as digits change */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tactile press feedback for pressable elements */
+@utility press {
+  transition: transform 160ms var(--ease-out-strong);
+
+  &:active {
+    transform: scale(0.97);
+  }
 }
 
 /* Gradient text */
