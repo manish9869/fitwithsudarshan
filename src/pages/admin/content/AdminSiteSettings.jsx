@@ -6,12 +6,12 @@
 // every field below is a normal text box, toggle, or "Add" list.
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler, ClipboardList, Eye } from 'lucide-react';
+import { Loader2, Save, Sparkles, User, Phone, Home, Menu, PanelBottom, Scale, Users2, ListChecks, MessageCircle, ArrowUpCircle, Smartphone, Wrench, ScrollText, ExternalLink, Ruler, ClipboardList, Eye, Megaphone } from 'lucide-react';
 import { getSiteContentKey, putSiteContentKey } from './cmsApi';
 import { useToast } from '../ToastProvider';
-import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField } from './SettingsFields';
+import { FieldGroup, TextInput, TextArea, ToggleField, TagListEditor, Repeater, ImageField, SelectField } from './SettingsFields';
 import { DEFAULT_WHATSAPP_MESSAGES } from '@/utils/whatsapp';
-import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_LOGO_URL, DEFAULT_MAINTENANCE, DEFAULT_SECTION_VISIBILITY, DEFAULT_LOGGING, DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES } from '@/utils/siteContentDefaults';
+import { DEFAULT_STICKY_CTA, DEFAULT_FLOATING_WHATSAPP, DEFAULT_HERO_BANNER_IMAGE, DEFAULT_COACH_PHOTO, DEFAULT_LOGO_URL, DEFAULT_MAINTENANCE, DEFAULT_SECTION_VISIBILITY, DEFAULT_LOGGING, DEFAULT_DIET_UNITS, DEFAULT_DIET_GUIDELINES, DEFAULT_PROMO_POPUP } from '@/utils/siteContentDefaults';
 
 // Some site_content keys ship empty ({}) until an admin saves an override —
 // without this, the editor below would show blank boxes even though the
@@ -22,6 +22,7 @@ const DEFAULTS_BY_KEY = {
     sticky_cta: DEFAULT_STICKY_CTA,
     floating_whatsapp: DEFAULT_FLOATING_WHATSAPP,
     maintenance: DEFAULT_MAINTENANCE,
+    promo_popup: DEFAULT_PROMO_POPUP,
     section_visibility: DEFAULT_SECTION_VISIBILITY,
     logging: DEFAULT_LOGGING,
     diet_units: DEFAULT_DIET_UNITS,
@@ -42,6 +43,7 @@ const SECTIONS = [
     { key: 'whatsapp_templates', label: 'WhatsApp Messages', icon: MessageCircle },
     { key: 'sticky_cta', label: 'Sticky Bottom Bar', icon: ArrowUpCircle },
     { key: 'floating_whatsapp', label: 'Floating WhatsApp', icon: Smartphone },
+    { key: 'promo_popup', label: 'Promo Pop-up', icon: Megaphone },
     { key: 'maintenance', label: 'Maintenance Mode', icon: Wrench },
     { key: 'logging', label: 'Logging', icon: ScrollText },
     { key: 'diet_units', label: 'Diet Serving Units', icon: Ruler },
@@ -333,6 +335,62 @@ function FloatingWhatsappForm({ value, onChange }) {
     );
 }
 
+const PROMO_CTA_OPTIONS = [
+    { value: 'whatsapp', label: 'Open WhatsApp chat (offer + coupon pre-filled)' },
+    { value: 'pricing', label: 'Scroll to Programs & Pricing' },
+    { value: 'enroll', label: 'Go to Enroll page' },
+    { value: 'url', label: 'Custom link' },
+];
+const PROMO_TRIGGER_OPTIONS = [
+    { value: 'delay', label: 'After a few seconds on the page' },
+    { value: 'scroll', label: 'After scrolling halfway down' },
+    { value: 'exit', label: 'When leaving the page (desktop) / halfway scroll (mobile)' },
+];
+const PROMO_FREQUENCY_OPTIONS = [
+    { value: 'session', label: 'Once per visit' },
+    { value: 'day', label: 'Once per day' },
+    { value: 'once', label: 'Only once per visitor for this offer' },
+];
+
+function PromoPopupForm({ value, onChange }) {
+    const v = value || {};
+    const set = (k) => (val) => onChange({ ...v, [k]: val });
+    return (
+        <>
+            <FieldGroup
+                title="Promo Pop-up"
+                description="A promotional offer that pops up on the homepage. Visitors can close it anytime, and it won't nag them: it respects the frequency you pick below. Changing the title or coupon counts as a new offer, so returning visitors will see it again."
+            >
+                <ToggleField label="Show the pop-up on the website" checked={!!v.enabled} onChange={set('enabled')} />
+                <div className="grid sm:grid-cols-2 gap-4">
+                    <TextInput label="Start date (optional)" type="date" value={v.startDate} onChange={set('startDate')} hint="Leave blank to start immediately." />
+                    <TextInput label="End date (optional)" type="date" value={v.endDate} onChange={set('endDate')} hint="The pop-up hides itself after this day." />
+                </div>
+            </FieldGroup>
+            <FieldGroup title="Offer content">
+                <TextInput label="Small label above title" value={v.eyebrow} onChange={set('eyebrow')} placeholder="Diwali offer · 3 days left" />
+                <TextInput label="Title" value={v.title} onChange={set('title')} placeholder="Festive Transformation Offer" />
+                <TextArea label="Message" value={v.message} onChange={set('message')} rows={3} placeholder="Get 20% off any 3-month plan…" />
+                <TextInput label="Coupon code (optional)" value={v.couponCode} onChange={set('couponCode')} placeholder="DIWALI20" hint="Shown with a one-tap Copy button. Create the code under Sales → Coupons first." />
+                <ImageField label="Image (optional)" value={v.image} onChange={set('image')} folder="promo" hint="A transformation photo or offer poster. Square or 4:3 works best." />
+            </FieldGroup>
+            <FieldGroup title="Button & timing">
+                <TextInput label="Button text" value={v.ctaLabel} onChange={set('ctaLabel')} placeholder="Claim my offer" />
+                <SelectField label="Button action" value={v.ctaAction || 'whatsapp'} onChange={set('ctaAction')} options={PROMO_CTA_OPTIONS} />
+                {v.ctaAction === 'url' && (
+                    <TextInput label="Custom link" value={v.ctaUrl} onChange={set('ctaUrl')} placeholder="https://… or /enroll" />
+                )}
+                <SelectField label="When to show it" value={v.trigger || 'delay'} onChange={set('trigger')} options={PROMO_TRIGGER_OPTIONS} />
+                {(v.trigger || 'delay') === 'delay' && (
+                    <TextInput label="Seconds before it appears" type="number" value={v.delaySeconds} onChange={(val) => set('delaySeconds')(Number(val) || 0)} placeholder="6" />
+                )}
+                <SelectField label="How often" value={v.frequency || 'day'} onChange={set('frequency')} options={PROMO_FREQUENCY_OPTIONS} />
+                <ToggleField label="Also show on phones" checked={v.showOnMobile !== false} onChange={set('showOnMobile')} />
+            </FieldGroup>
+        </>
+    );
+}
+
 function MaintenanceForm({ value, onChange }) {
     const v = value || {};
     const set = (k) => (val) => onChange({ ...v, [k]: val });
@@ -459,6 +517,7 @@ const FORM_COMPONENTS = {
     sticky_cta: StickyCtaForm,
     floating_whatsapp: FloatingWhatsappForm,
     maintenance: MaintenanceForm,
+    promo_popup: PromoPopupForm,
     section_visibility: SectionVisibilityForm,
     logging: LoggingForm,
     diet_units: DietUnitsForm,

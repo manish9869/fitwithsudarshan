@@ -6,90 +6,14 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    LayoutDashboard,
-    Users,
-    ClipboardList,
-    LogOut,
-    Menu,
-    Tag,
-    UserPlus,
-    BellRing,
-    Activity,
-    Wallet,
-    HelpCircle,
-    FileText,
-    Settings,
-    Salad,
-    ScrollText,
-    Apple,
-    Dumbbell,
-    BarChart3,
-    CalendarRange,
-    Repeat2,
-    ShieldCheck,
-    Inbox,
-} from 'lucide-react';
+import { LogOut, Menu, Search } from 'lucide-react';
 
 import { logout, getStoredAdmin } from './adminApi';
 import { ToastProvider } from './ToastProvider';
+import { NAV_GROUPS } from './adminNav';
+import CommandPalette, { useCommandPaletteShortcut } from './CommandPalette';
 import { useSiteData } from '@/contexts/SiteDataContext';
 import { DEFAULT_LOGO_URL } from '@/utils/siteContentDefaults';
-
-const NAV_GROUPS = [
-    {
-        title: 'Overview',
-        items: [
-            { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
-            { to: '/admin/funnel-audit', icon: Activity, label: 'Funnel Audit' },
-            { to: '/admin/logs', icon: ScrollText, label: 'System Logs' },
-        ],
-    },
-    {
-        title: 'Clients',
-        items: [
-            { to: '/admin/enrollments', icon: Users, label: 'Enrollments' },
-            { to: '/admin/manual-enrollment', icon: UserPlus, label: 'Manual Entry' },
-            { to: '/admin/balance-due', icon: Wallet, label: 'Balance Due' },
-            { to: '/admin/follow-ups', icon: BellRing, label: 'Follow-Ups' },
-            { to: '/admin/data-audit', icon: ShieldCheck, label: 'Data Audit' },
-            { to: '/admin/assessments', icon: ClipboardList, label: 'Assessments' },
-            { to: '/admin/leads', icon: Inbox, label: 'Cold Enquiries' },
-            { to: '/admin/diet-plans', icon: Salad, label: 'Diet Plans' },
-        ],
-    },
-    {
-        title: 'Master Data',
-        items: [
-            { to: '/admin/diet-foods', icon: Apple, label: 'Diet Foods' },
-            { to: '/admin/diet-exercises', icon: Dumbbell, label: 'Diet Exercises' },
-            { to: '/admin/diet-templates', icon: CalendarRange, label: 'Diet Templates' },
-            { to: '/admin/workout-templates', icon: Repeat2, label: 'Workout Templates' },
-        ],
-    },
-    {
-        title: 'Sales',
-        items: [
-            { to: '/admin/coupons', icon: Tag, label: 'Coupons' },
-            { to: '/admin/content/pricing', icon: Wallet, label: 'Pricing' },
-        ],
-    },
-    {
-        title: 'Website Content',
-        items: [
-            { to: '/admin/site-settings', icon: Settings, label: 'Site Settings' },
-            { to: '/admin/content/testimonials', icon: Users, label: 'Testimonials' },
-            { to: '/admin/content/blog_posts', icon: ClipboardList, label: 'Blog Posts' },
-            { to: '/admin/content/transformations', icon: Activity, label: 'Transformations' },
-            { to: '/admin/content/coaching_types', icon: Users, label: 'Coaching Types' },
-            { to: '/admin/content/durations', icon: BellRing, label: 'Durations' },
-            { to: '/admin/content/recode_method', icon: Activity, label: 'RECODE Method' },
-            { to: '/admin/content/faqs', icon: HelpCircle, label: 'FAQs' },
-            { to: '/admin/content/legal-pages', icon: FileText, label: 'Legal Pages' },
-        ],
-    },
-];
 
 export default function AdminLayout() {
     const navigate = useNavigate();
@@ -97,6 +21,9 @@ export default function AdminLayout() {
     const logoUrl = brand?.logo || DEFAULT_LOGO_URL;
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [paletteOpen, setPaletteOpen] = useState(false);
+    useCommandPaletteShortcut(setPaletteOpen);
+    const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
     const [admin, setAdmin] = useState(getStoredAdmin());
 
     useEffect(() => {
@@ -116,7 +43,7 @@ export default function AdminLayout() {
         navigate('/admin', { replace: true });
     };
 
-    const SidebarContent = () => (
+    const sidebarContent = (
         <div className="flex flex-col h-full">
 
             {/* Brand */}
@@ -251,7 +178,7 @@ export default function AdminLayout() {
                         outline: none !important;
                     }
 
-                    body.admin-page input:focus,
+                    body.admin-page input:not([data-cmdk-input]):focus,
                     body.admin-page select:focus,
                     body.admin-page textarea:focus {
                         outline: none !important;
@@ -274,7 +201,7 @@ export default function AdminLayout() {
                         borderRight: '1px solid rgba(255,255,255,0.06)',
                     }}
                 >
-                    <SidebarContent />
+                    {sidebarContent}
                 </aside>
 
                 {/* Mobile sidebar overlay */}
@@ -304,7 +231,7 @@ export default function AdminLayout() {
                                     borderRight: '1px solid rgba(255,255,255,0.08)',
                                 }}
                             >
-                                <SidebarContent />
+                                {sidebarContent}
                             </motion.aside>
                         </>
                     )}
@@ -325,14 +252,27 @@ export default function AdminLayout() {
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setSidebarOpen(true)}
+                                aria-label="Open navigation"
                                 className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/5"
                             >
                                 <Menu className="w-4 h-4" />
                             </button>
 
-                            <span className="text-xs text-white/30 font-medium hidden sm:block">
-                                FitWithSudarshan Admin
-                            </span>
+                            <button
+                                onClick={() => setPaletteOpen(true)}
+                                className="flex items-center gap-2 h-8 pl-2.5 pr-2 rounded-lg text-xs text-white/40 hover:text-white/70 transition-colors w-[min(56vw,280px)]"
+                                style={{
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                }}
+                                aria-label="Search clients, pages and actions"
+                            >
+                                <Search className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="truncate">Search clients, pages…</span>
+                                <kbd className="ml-auto hidden sm:inline text-[10px] font-semibold text-white/30 px-1.5 py-0.5 rounded border border-white/10">
+                                    {isMac ? '⌘K' : 'Ctrl K'}
+                                </kbd>
+                            </button>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -351,8 +291,13 @@ export default function AdminLayout() {
                         </div>
                     </header>
 
+                    <CommandPalette
+                        open={paletteOpen}
+                        onClose={() => setPaletteOpen(false)}
+                    />
+
                     {/* Page content */}
-                    <main className="flex-1 overflow-auto p-4 sm:p-6">
+                    <main id="main-content" className="flex-1 overflow-auto p-4 sm:p-6">
                         <Outlet />
                     </main>
                 </div>

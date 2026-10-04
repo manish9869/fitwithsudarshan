@@ -233,7 +233,10 @@ function PulseButton({
 
 // ─── Floating energy particles ─────────────────────────────────────────────────
 function Particles() {
-    const particles = Array.from(
+    // Lazy state init so positions are generated once per mount. Computed
+    // inline, every HeroSection re-render (stats starting, the consultation
+    // modal opening/closing) re-randomized them and the dots visibly jumped.
+    const [particles] = useState(() => Array.from(
         { length: 18 },
         (_, i) => ({
             id: i,
@@ -243,10 +246,10 @@ function Particles() {
             duration: Math.random() * 6 + 4,
             delay: Math.random() * 4
         })
-    );
+    ));
 
     return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
             {particles.map((p) => (
                 <motion.div
                     key={p.id}
@@ -518,28 +521,15 @@ export default function HeroSection() {
                         }}
                         className="mb-4"
                     >
-                        <motion.span
+                        <span
                             className="text-sm font-bold uppercase tracking-[0.3em]"
                             style={{
                                 color:
                                     "#e71763"
                             }}
-                            animate={{
-                                opacity: [
-                                    0.7,
-                                    1,
-                                    0.7
-                                ]
-                            }}
-                            transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                ease:
-                                    "easeInOut"
-                            }}
                         >
                             {brandTag}
-                        </motion.span>
+                        </span>
                     </motion.div>
 
                     {/* Typewriter headline */}
@@ -556,7 +546,7 @@ export default function HeroSection() {
                             duration: 0.6,
                             delay: 0.1
                         }}
-                        className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.05] mb-4 md:mb-6 text-white"
+                        className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold uppercase leading-[0.92] mb-4 md:mb-6 text-white"
                     >
                         <Typewriter
                             words={words}
@@ -699,76 +689,25 @@ export default function HeroSection() {
                                             ]
                                         }}
                                         whileHover={{
-                                            scale: 1.07,
                                             y: -4
                                         }}
-                                        className="rounded-2xl p-3 sm:p-4 md:p-6 cursor-default relative overflow-hidden group"
-                                        style={{
-                                            background:
-                                                "rgba(255,255,255,0.04)",
-                                            border:
-                                                "1px solid rgba(255,255,255,0.08)",
-                                            backdropFilter:
-                                                "blur(12px)",
-                                            transition:
-                                                "border-color 0.3s, box-shadow 0.3s"
-                                        }}
-                                        onMouseEnter={(
-                                            e
-                                        ) => {
-                                            e.currentTarget.style.borderColor =
-                                                "rgba(231,23,99,0.45)";
-
-                                            e.currentTarget.style.boxShadow =
-                                                "0 0 30px rgba(231,23,99,0.2), 0 10px 30px rgba(0,0,0,0.4)";
-                                        }}
-                                        onMouseLeave={(
-                                            e
-                                        ) => {
-                                            e.currentTarget.style.borderColor =
-                                                "rgba(255,255,255,0.08)";
-
-                                            e.currentTarget.style.boxShadow =
-                                                "none";
-                                        }}
+                                        // Border/glow on hover via CSS
+                                        // (gated to real pointers) instead
+                                        // of mutating style in JS handlers.
+                                        className="rounded-2xl p-3 sm:p-4 md:p-6 cursor-default relative overflow-hidden group border border-white/[0.08] bg-white/[0.04] backdrop-blur-md transition-[border-color,box-shadow] duration-300 [@media(hover:hover)]:hover:border-[rgba(231,23,99,0.45)] [@media(hover:hover)]:hover:shadow-[0_0_30px_rgba(231,23,99,0.2),0_10px_30px_rgba(0,0,0,0.4)]"
                                     >
-                                        <motion.div
-                                            className="absolute inset-0 rounded-2xl pointer-events-none"
-                                            initial={{
-                                                opacity: 0
-                                            }}
-                                            animate={{
-                                                opacity: [
-                                                    0,
-                                                    0.08,
-                                                    0
-                                                ]
-                                            }}
-                                            transition={{
-                                                duration: 3,
-                                                delay:
-                                                    0.8 +
-                                                    index *
-                                                    0.15,
-                                                repeat:
-                                                    Infinity,
-                                                repeatDelay: 4
-                                            }}
-                                            style={{
-                                                background:
-                                                    "linear-gradient(135deg, rgba(231,23,99,0.3) 0%, transparent 60%)"
-                                            }}
-                                        />
 
                                         <div className="flex flex-col items-center gap-1.5 relative z-10">
                                             <motion.div
                                                 initial={{
-                                                    scale: 0,
+                                                    scale: 0.6,
+                                                    opacity: 0,
                                                     rotate:
                                                         -20
                                                 }}
                                                 animate={{
                                                     scale: 1,
+                                                    opacity: 1,
                                                     rotate: 0
                                                 }}
                                                 transition={{
@@ -796,7 +735,7 @@ export default function HeroSection() {
                                             </motion.div>
 
                                             <motion.span
-                                                className="text-2xl md:text-4xl font-bold"
+                                                className="text-3xl md:text-5xl font-bold tabular"
                                                 style={{
                                                     color:
                                                         "#e71763"

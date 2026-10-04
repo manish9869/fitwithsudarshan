@@ -105,11 +105,15 @@ function PricingCard({ pricingTable, saleFlags, popularFlags, coachingId, planTy
                             animate={hovered ? { scale: 1.06 } : { scale: 1 }} transition={{ duration: 0.2 }}>
                             {formatPrice(price)}
                         </motion.p>
+                        {/* Packages are starting rates — the final fee is set
+                            per client (physique, goals, medical history) after
+                            the consultation. */}
+                        <span className="text-xs font-bold uppercase tracking-wider text-white/45">onwards</span>
                         {isOnSale && (
                             <span className="text-lg font-bold text-white/30 line-through">{formatPrice(originalPrice)}</span>
                         )}
                     </div>
-                    {isCouple && <p className="text-[11px] text-white/35 mt-1.5">for 2 people · {formatPrice(Math.round(price / 2))}/person</p>}
+                    {isCouple && <p className="text-[11px] text-white/35 mt-1.5">for 2 people · {formatPrice(Math.round(price / 2))}/person onwards</p>}
                     {isOnSale && (
                         <p className="text-[11px] font-bold mt-1.5" style={{ color: '#34d399' }}>
                             Save {formatPrice(originalPrice - price)} · Limited-time offer
@@ -339,6 +343,9 @@ export function PricingSection() {
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6, delay: 0.4 }} className="text-center">
+                    <p className="text-white/40 text-xs max-w-xl mx-auto mb-4 leading-relaxed">
+                        Prices shown are starting rates. Your final fee depends on your physique, goals and medical history, and is confirmed after your free consultation.
+                    </p>
                     <p className="text-white/35 text-sm mb-6">Not sure which plan fits you? Chat directly with Sudarshan.</p>
                     <motion.a href={wa.pricing} target="_blank" rel="noopener noreferrer"
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}

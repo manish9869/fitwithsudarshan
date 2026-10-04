@@ -10,6 +10,7 @@ import { ContactSection } from '@/components/landing/ContactSection';
 import BlogSection from '@/components/landing/BlogSection';
 import FloatingWhatsApp from '@/components/landing/FloatingWhatsApp';
 import StickyCTABar from '@/components/landing/StickyCTABar';
+import PromoPopup from '@/components/landing/PromoPopup';
 
 import { Button } from '@/components/ui/button';
 import { motion, useInView } from 'framer-motion';
@@ -65,6 +66,7 @@ export default function Landing() {
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Navbar />
+            <main id="main-content">
             {show('hero') && <HeroSection />}
 
             {show('features') && <Reveal><TrackedSection name="features"><FeaturesSection /></TrackedSection></Reveal>}
@@ -90,17 +92,18 @@ export default function Landing() {
                 />
                 <Reveal>
                     <div className="max-w-3xl mx-auto text-center relative z-10">
-                        <motion.span
+                        {/* Static eyebrow — the pulsing CTA rings below are
+                            this section's one moving element; a second
+                            blinking label just competed with them. */}
+                        <span
                             className="inline-block text-xs font-bold uppercase tracking-widest mb-3 sm:mb-4"
                             style={{ color: '#e71763' }}
-                            animate={{ opacity: [0.6, 1, 0.6] }}
-                            transition={{ duration: 2.5, repeat: Infinity }}
                         >
                             Your Transformation Starts Now
-                        </motion.span>
+                        </span>
 
                         {/* 320px: text-2xl base (was text-3xl — "Ready to RECODE?" overflows at 320px) */}
-                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 sm:mb-6 text-white">
+                        <h2 className="text-3xl sm:text-5xl md:text-7xl font-bold uppercase mb-4 sm:mb-6 text-white">
                             Ready to{' '}
                             <span style={{ color: '#e71763', textShadow: '0 0 30px rgba(231,23,99,0.4)' }}>RECODE?</span>
                         </h2>
@@ -147,10 +150,12 @@ export default function Landing() {
             </section>
 
             {show('contact') && <Reveal><TrackedSection name="contact"><ContactSection /></TrackedSection></Reveal>}
+            </main>
             <FooterSection />
 
             <FloatingWhatsApp />
             <StickyCTABar />
+            <PromoPopup />
 
         </div>
     );

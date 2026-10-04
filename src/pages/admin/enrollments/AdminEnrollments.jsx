@@ -1247,13 +1247,17 @@ export default function AdminEnrollments() {
         fetchData();
     }, [fetchData]);
 
+    // Runs on every ?focus= change, not just mount: the ⌘K palette can
+    // navigate here while this page is already open, which only updates
+    // the query string and never remounts the component.
     useEffect(() => {
         if (focusId) {
+            setSelectedId(focusId);
             const next = new URLSearchParams(searchParams);
             next.delete('focus');
             setSearchParams(next, { replace: true });
         }
-    }, []);
+    }, [focusId]);
 
     const handleRefresh = () => {
         _cache.allRows = null;

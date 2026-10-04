@@ -314,4 +314,40 @@ export async function fetchEnrollmentHistory(id) {
     const data = await request(`/enrollments/${id}/history`);
     return data.rows;
 }
+// ── WhatsApp marketing ────────────────────────────────────────────────────────
+export const waApi = {
+    status: () => request('/whatsapp/status'),
+    contacts: (params) => request('/whatsapp/contacts', { params }),
+    tags: () => request('/whatsapp/tags'),
+    createContact: (body) => request('/whatsapp/contacts', { method: 'POST', body }),
+    importContacts: (body) => request('/whatsapp/contacts/import', { method: 'POST', body }),
+    syncContacts: () => request('/whatsapp/contacts/sync', { method: 'POST' }),
+    updateContact: (id, body) => request(`/whatsapp/contacts/${id}`, { method: 'PATCH', body }),
+    deleteContact: (id) => request(`/whatsapp/contacts/${id}`, { method: 'DELETE' }),
+    groups: () => request('/whatsapp/groups'),
+    createGroup: (body) => request('/whatsapp/groups', { method: 'POST', body }),
+    updateGroup: (id, body) => request(`/whatsapp/groups/${id}`, { method: 'PATCH', body }),
+    deleteGroup: (id) => request(`/whatsapp/groups/${id}`, { method: 'DELETE' }),
+    addMembers: (id, body) => request(`/whatsapp/groups/${id}/members`, { method: 'POST', body }),
+    removeMembers: (id, contactIds) => request(`/whatsapp/groups/${id}/members`, { method: 'DELETE', body: { contactIds } }),
+    previewAudience: (audience, body) => request('/whatsapp/audience/preview', { method: 'POST', body: { audience, body } }),
+    campaigns: () => request('/whatsapp/campaigns'),
+    createCampaign: (body) => request('/whatsapp/campaigns', { method: 'POST', body }),
+    updateCampaign: (id, body) => request(`/whatsapp/campaigns/${id}`, { method: 'PUT', body }),
+    deleteCampaign: (id) => request(`/whatsapp/campaigns/${id}`, { method: 'DELETE' }),
+    launchCampaign: (id) => request(`/whatsapp/campaigns/${id}/launch`, { method: 'POST' }),
+    cancelCampaign: (id) => request(`/whatsapp/campaigns/${id}/cancel`, { method: 'POST' }),
+    sequences: () => request('/whatsapp/sequences'),
+    createSequence: (body) => request('/whatsapp/sequences', { method: 'POST', body }),
+    updateSequence: (id, body) => request(`/whatsapp/sequences/${id}`, { method: 'PUT', body }),
+    toggleSequence: (id, active) => request(`/whatsapp/sequences/${id}/active`, { method: 'PATCH', body: { active } }),
+    deleteSequence: (id) => request(`/whatsapp/sequences/${id}`, { method: 'DELETE' }),
+    sequencePreview: (id) => request(`/whatsapp/sequences/${id}/preview`),
+    queue: (params) => request('/whatsapp/queue', { params }),
+    buildQueue: () => request('/whatsapp/queue/build', { method: 'POST' }),
+    dispatch: () => request('/whatsapp/queue/dispatch', { method: 'POST' }),
+    skipQueue: (ids) => request('/whatsapp/queue/skip', { method: 'POST', body: { ids } }),
+    updateQueueItem: (id, status) => request(`/whatsapp/queue/${id}`, { method: 'PATCH', body: { status } }),
+};
+
 export { AdminApiError };
